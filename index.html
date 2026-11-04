@@ -66,6 +66,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();const type=b.dataset.modal;document.getElementById('modalTitle').textContent=type==='login'?'Welcome back':type==='stream'?'Create a live stream':'Join StreamArena';document.getElementById('modalDesc').textContent=type==='stream'?'Sign in first; live streaming provider setup will be required.':'Create your account to join the arena.';document.getElementById('modalBackdrop').style.display='grid'}));
 document.getElementById('closeModal').onclick=()=>document.getElementById('modalBackdrop').style.display='none';document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')e.currentTarget.style.display='none'};
 document.getElementById('modalForm').onsubmit=async e=>{
+  alert('FORM SUBMIT WORKING');
   e.preventDefault();
   alert("FORM SUBMIT WORKING");
   const type = document.getElementById('modalTitle').textContent === 'Welcome back' ? 'login' : 'signup';
