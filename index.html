@@ -66,6 +66,7 @@ document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',
 document.getElementById('closeModal').onclick=()=>document.getElementById('modalBackdrop').style.display='none';document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')e.currentTarget.style.display='none'};
 document.getElementById('modalForm').onsubmit=async e=>{
   e.preventDefault();
+  alert("FORM SUBMIT WORKING");
   const type = document.getElementById('modalTitle').textContent === 'Welcome back' ? 'login' : 'signup';
   console.log("FORM SUBMITTED:", type);
   const username = document.getElementById('modalName').value.trim();
