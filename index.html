@@ -67,6 +67,7 @@ document.getElementById('closeModal').onclick=()=>document.getElementById('modal
 document.getElementById('modalForm').onsubmit=async e=>{
   e.preventDefault();
   const type = document.getElementById('modalTitle').textContent === 'Welcome back' ? 'login' : 'signup';
+  console.log("FORM SUBMITTED:", type);
   const username = document.getElementById('modalName').value.trim();
   const email = document.getElementById('modalEmail').value.trim();
   const password = document.getElementById('modalPassword').value;
