@@ -82,10 +82,18 @@ document.getElementById('modalForm').onsubmit=async (e) => {
     if(type === 'login') {
       result = await supabaseClient.auth.signInWithPassword({email, password});
     } else {
-      result = await supabaseClient.auth.signUp({
-        email, password,
-        options: { data: { username, full_name: username, country } }
-      });
+ result = await supabaseClient.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      username,
+      full_name: username,
+      country
+    },
+    emailRedirectTo: 'https://streamarena-nu.vercel.app'
+  }
+});
     }
     if(result.error) throw result.error;
     await refreshSession();
