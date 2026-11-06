@@ -994,7 +994,7 @@ function attachLiveTrack(track, stage, muted = false) {
     // Report the actual decoded viewer dimensions; the local preview alone
     // cannot establish the quality received by remote viewers.
     const reportViewerResolution = async () => {
-      if (stage?.id !== 'liveStage' || !element.videoWidth || !element.videoHeight) return;
+      if (stage?.id !== 'liveStage' || !element.isConnected || !element.videoWidth || !element.videoHeight) return;
       const status = document.getElementById('liveStatus');
       if (!status || !activeLiveRoom) return;
       let diagnostics = 'Connected · received video ' + element.videoWidth + '×' + element.videoHeight;
@@ -1016,6 +1016,8 @@ function attachLiveTrack(track, stage, muted = false) {
     };
     element.addEventListener('loadedmetadata', reportViewerResolution, { once: true });
     element.addEventListener('resize', reportViewerResolution);
+    // Take a second sample after WebRTC has had time to accumulate bitrate/stats.
+    setTimeout(reportViewerResolution, 2000);
   } else if (element.tagName === 'AUDIO') {
     element.autoplay = true;
   }
