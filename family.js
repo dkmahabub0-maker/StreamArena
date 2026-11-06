@@ -50,8 +50,7 @@ async function loadFamilyWorkspace(){
     const sendInvite=make('button','btn smallbtn','Invite player');sendInvite.type='submit';inviteForm.append(username,sendInvite);
     inviteForm.onsubmit=async event=>{event.preventDefault();sendInvite.disabled=true;try{await rpc('invite_family_member',{p_family_id:family.id,p_username:username.value});username.value='';toast('Invitation sent.');}catch(error){toast(error.message||'Invitation failed.');}finally{sendInvite.disabled=false;}};
     card.append(inviteForm);
-   }else if(membership.role==='owner'){
-    card.append(btn('Delete Family','btn smallbtn',async()=>{if(!confirm('Delete '+family.name+' and its chat/invitations for all members?'))return;try{await rpc('delete_family',{p_family_id:family.id});await loadFamilyWorkspace();}catch(error){toast(error.message||'Could not delete Family.');}}));
+    if(membership.role==='owner')card.append(btn('Delete Family','btn smallbtn',async()=>{if(!confirm('Delete '+family.name+' and its chat/invitations for all members?'))return;try{await rpc('delete_family',{p_family_id:family.id});await loadFamilyWorkspace();}catch(error){toast(error.message||'Could not delete Family.');}}));
    }else{
     card.append(btn('Leave Family','btn smallbtn',async()=>{if(!confirm('Leave '+family.name+'?'))return;try{await rpc('leave_family',{p_family_id:family.id});await loadFamilyWorkspace();}catch(error){toast(error.message||'Could not leave Family.');}}));
    }
@@ -98,6 +97,5 @@ document.getElementById('familyRefreshBtn')?.addEventListener('click',loadFamily
 const originalRefreshSession=refreshSession;
 refreshSession=async function(){await originalRefreshSession();await loadFamilyWorkspace();};
 supabaseClient.auth.onAuthStateChange(event=>{if(['SIGNED_IN','SIGNED_OUT','TOKEN_REFRESHED','INITIAL_SESSION'].includes(event))setTimeout(loadFamilyWorkspace,0);});
-loadFamilyWorkspace();
-setInterval(()=>{if(document.visibilityState!=='hidden'&&currentUser)loadFamilyWorkspace();},30000);
+supabaseClient.auth.getSession().then(({data})=>{if(!currentUser&&data?.session?.user)currentUser=data.session.user;loadFamilyWorkspace();});
 })();
