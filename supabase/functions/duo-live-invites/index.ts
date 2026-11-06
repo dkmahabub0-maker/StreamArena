@@ -97,6 +97,42 @@ Deno.serve(async (req: Request) => {
       return Array.isArray(rows) ? rows[0] ?? null : null;
     };
 
+    if (action === "search") {
+      const username = typeof body?.username === "string" ? body.username.trim() : "";
+      if (username.length < 2 || username.length > 32 || !/^[a-zA-Z0-9_. -]+$/.test(username)) {
+        return reply({ error: "Enter a username with 2–32 letters, numbers, spaces, dots or underscores" }, 400, origin);
+      }
+      const params = new URLSearchParams({
+        select: "id,username",
+        username: `ilike.*${username.replace(/[%_]/g, "")}*`,
+        id: `neq.${user.id}`,
+        limit: "10",
+      });
+      const matches = await rest(`profiles?${params}`);
+      return reply({ users: Array.isArray(matches) ? matches : [] }, 200, origin);
+    }
+
+    if (action === "inbox") {
+      const params = new URLSearchParams({
+        select: "id,stream_id,host_user_id,expires_at,created_at",
+        invitee_user_id: `eq.${user.id}`,
+        status: "eq.pending",
+        expires_at: `gt.${new Date().toISOString()}`,
+        order: "created_at.desc",
+        limit: "20",
+      });
+      const invitations = await rest(`stream_cohost_invites?${params}`);
+      const rows = Array.isArray(invitations) ? invitations : [];
+      const hostIds = [...new Set(rows.map((row: {host_user_id:string}) => row.host_user_id))];
+      let hosts: Array<{id:string;username:string}> = [];
+      if (hostIds.length) {
+        const hostParams = new URLSearchParams({select:"id,username",id:`in.(${hostIds.join(",")})`});
+        hosts = await rest(`profiles?${hostParams}`);
+      }
+      const hostNames = new Map(hosts.map((host: {id:string;username:string}) => [host.id, host.username]));
+      return reply({ invitations: rows.map((row: {host_user_id:string}) => ({...row, host_username: hostNames.get(row.host_user_id) || "Player"})) }, 200, origin);
+    }
+
     if (action === "invite") {
       const inviteeUserId = typeof body?.inviteeUserId === "string" ? body.inviteeUserId : "";
       if (!uuidPattern.test(inviteeUserId) || inviteeUserId === user.id) {
