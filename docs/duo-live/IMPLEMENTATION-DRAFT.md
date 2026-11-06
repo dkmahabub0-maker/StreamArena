@@ -13,9 +13,9 @@ This is a code-review draft, not a production migration or deployment.
 1. The caller is authenticated against `/auth/v1/user`; body-supplied user IDs are never treated as caller identity.
 2. Invitation creation is restricted to the active stream owner and a real `profiles.id`.
 3. Invitees alone can accept/decline; only the host can revoke.
-4. Invitations expire after 10 minutes. A partial unique index permits at most one pending or accepted invitation per stream.
+4. Pending invitations expire after 10 minutes. Once accepted, the co-host remains authorized until revoked or the host's stream ends. A partial unique index permits at most one pending or accepted co-host per stream.
 5. The invite table has RLS enabled and no browser-role table grants. Only a server-side Edge Function with `SUPABASE_SERVICE_ROLE_KEY` can read/write it. The service key must never reach the browser.
-6. A co-host token must be issued only after checking the accepted, unexpired invitation for the exact host room and authenticated invitee.
+6. A co-host token must be issued only after checking the accepted invitation for the exact host room and authenticated invitee, and verifying that the host's stream remains live.
 
 ## Important implementation caveats to resolve before production
 
@@ -25,7 +25,7 @@ This is a code-review draft, not a production migration or deployment.
 - The invitation API currently accepts an invitee UUID. The UI must obtain that UUID from an authenticated profile search and display a stable username before sending.
 - A single active invitation per stream is enforced in Postgres, so simultaneous invite requests cannot create multiple co-host slots.
 - Add rate limiting and abuse monitoring before public rollout.
-- Test two signed-in accounts plus a third viewer; include expiry, replay, unauthorized IDs, concurrent invite, host end, co-host disconnect/reconnect, and revoke failure cases.
+- Test two signed-in accounts plus a third viewer; include pending expiry, replay, unauthorized IDs, concurrent invite, host end, co-host disconnect/reconnect, and revoke failure cases.
 
 ## Not implemented yet
 
