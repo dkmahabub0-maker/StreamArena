@@ -199,6 +199,14 @@
   <button class="btn" id="liveMicToggleBtn" type="button">Mute microphone</button>
   <p class="sub" id="liveControlsHint" role="status" aria-live="polite" style="flex:1 1 100%;margin:0">Camera, microphone and screen sharing are separate controls. Screen and system-audio support depends on your browser and device.</p>
 </div>
+<div id="duoLiveInvitePanel" style="display:none;gap:8px;flex-wrap:wrap;margin-top:12px;padding:12px;border:1px solid #394466;border-radius:12px">
+  <b style="flex:1 1 100%">Duo Live · Invite one friend</b>
+  <label class="sub" for="duoLiveFriendSearch" style="flex:1 1 100%">Search by StreamArena username</label>
+  <input id="duoLiveFriendSearch" type="search" maxlength="32" placeholder="Friend's username" autocomplete="off" style="flex:1 1 220px;min-width:0;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+  <button class="btn" id="duoLiveSearchBtn" type="button">Search</button>
+  <div id="duoLiveSearchResults" class="sub" role="status" aria-live="polite" style="flex:1 1 100%">Start your Live, then search for a friend to invite.</div>
+  <p class="sub" style="flex:1 1 100%;margin:0">Duo Live invitations require the reviewed invitation Edge Function and co-host token authorization to be deployed. This interface is a draft until those server changes are released.</p>
+</div>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -967,6 +975,59 @@ async function requestLiveKitToken(roomName, role) {
   if (!response.ok) throw new Error(payload.error || 'Could not create a streaming session.');
   return payload;
 }
+async function callDuoLiveInvites(payload) {
+  const {data:{session},error}=await supabaseClient.auth.getSession();
+  if(error)throw error;
+  if(!session?.access_token)throw new Error('Sign in again to use Duo Live invitations.');
+  const response=await fetch(window.STREAMARENA_SUPABASE_URL+'/functions/v1/duo-live-invites',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'apikey':window.STREAMARENA_SUPABASE_PUBLISHABLE_KEY,
+      'Authorization':'Bearer '+session.access_token
+    },
+    body:JSON.stringify(payload)
+  });
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(result.error||'Duo Live invitation request failed.');
+  return result;
+}
+async function searchDuoLiveFriends() {
+  const input=document.getElementById('duoLiveFriendSearch');
+  const results=document.getElementById('duoLiveSearchResults');
+  const button=document.getElementById('duoLiveSearchBtn');
+  const username=input.value.trim();
+  if(username.length<2){results.textContent='Enter at least two characters of a username.';return;}
+  button.disabled=true;results.textContent='Searching StreamArena users…';
+  try {
+    const result=await callDuoLiveInvites({action:'search',username});
+    results.replaceChildren();
+    if(!result.users?.length){results.textContent='No matching users found.';return;}
+    result.users.forEach(user=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid #293451';
+      const name=document.createElement('span');name.textContent='@'+(user.username||'Player');
+      const invite=document.createElement('button');invite.type='button';invite.className='smallbtn';invite.textContent='Invite';
+      invite.addEventListener('click',async()=>{
+        invite.disabled=true;
+        try {
+          await callDuoLiveInvites({action:'invite',inviteeUserId:user.id});
+          invite.textContent='Invited';
+          document.getElementById('liveControlsHint').textContent='Invitation sent to @'+(user.username||'Player')+'. It expires in 10 minutes.';
+        } catch(error) {
+          invite.disabled=false;toast(error.message||'Could not send invitation.');
+        }
+      });
+      row.append(name,invite);results.append(row);
+    });
+  } catch(error) {
+    results.textContent=error.message||'Could not search users.';
+  } finally {button.disabled=false;}
+}
+document.getElementById('duoLiveSearchBtn').addEventListener('click',searchDuoLiveFriends);
+document.getElementById('duoLiveFriendSearch').addEventListener('keydown',event=>{
+  if(event.key==='Enter'){event.preventDefault();searchDuoLiveFriends();}
+});
 function showViewerPlaybackFallback() {
   const button=document.getElementById('livePlayMediaBtn');
   if(button)button.style.display='inline-block';
@@ -1157,6 +1218,7 @@ async function startLiveBroadcast(){
       startupIssues.push('Microphone unavailable: '+(micError.message||'permission or device issue'));
     }
     document.getElementById('liveBroadcastControls').style.display='flex';
+    document.getElementById('duoLiveInvitePanel').style.display='flex';
     document.getElementById('liveControlsHint').textContent=startupIssues.length
       ?startupIssues.join(' · ')+'. Use the controls to retry permissions; screen sharing can still be attempted.'
       :'Camera and microphone are ready. Use Share game screen to capture a supported screen or browser tab.';
@@ -1178,6 +1240,7 @@ async function startLiveBroadcast(){
     if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch{} activeLiveRoom=null;}
     liveMicEnabled=true;liveCameraEnabled=true;liveScreenShareEnabled=false;liveCameraFacingMode='user';
     document.getElementById('liveBroadcastControls').style.display='none';
+    document.getElementById('duoLiveInvitePanel').style.display='none';
     if(createdId) await supabaseClient.from('streams').update({is_live:false}).eq('id',createdId).eq('user_id',currentUser.id);
     activeStreamId=null;
     document.getElementById('endLiveBtn').style.display='none';
