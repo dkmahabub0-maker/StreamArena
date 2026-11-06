@@ -316,9 +316,12 @@ async function loadLiveStreams() {
 }
 async function watchLiveStream(stream) {
   if (!currentUser) { toast('Please log in to watch live streams.'); return; }
+  if (activeStreamId) { toast('End your live stream before watching another stream.'); return; }
   if (!window.LivekitClient) { toast('LiveKit browser SDK did not load. Refresh and try again.'); return; }
-  if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}
+  if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch(disconnectError){console.warn('Previous viewer room disconnect:',disconnectError);}activeLiveRoom=null;}
   openLivePanel('watch');
+  const stage=document.getElementById('liveStage');
+  stage.replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Connecting to stream…'}));
   document.getElementById('liveHeading').textContent=stream.title;
   document.getElementById('liveStatus').textContent='Connecting to live stream…';
   document.getElementById('startLiveBtn').style.display='none';
@@ -329,18 +332,24 @@ async function watchLiveStream(stream) {
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
     activeLiveRoom=room;
     room.on(LivekitClient.RoomEvent.TrackSubscribed,(track)=>attachLiveTrack(track,document.getElementById('liveStage')));
-    room.on(LivekitClient.RoomEvent.Disconnected,()=>{document.getElementById('liveStatus').textContent='Disconnected.';});
+    room.on(LivekitClient.RoomEvent.Disconnected,()=>{
+      document.getElementById('liveStatus').textContent='Disconnected.';
+      if(activeLiveRoom===room)document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Stream disconnected.'}));
+    });
     await room.connect(credentials.serverUrl,credentials.token);
     document.getElementById('liveStatus').textContent='Connected · '+room.numParticipants+' participant(s)';
     room.remoteParticipants.forEach(p=>p.trackPublications.forEach(pub=>{if(pub.isSubscribed&&pub.track)attachLiveTrack(pub.track,document.getElementById('liveStage'));}));
   } catch(err) {
     document.getElementById('liveStatus').textContent=err.message||'Unable to join this stream.';
     toast(err.message||'Unable to join stream.');
-    if(activeLiveRoom){activeLiveRoom.disconnect();activeLiveRoom=null;}
+    if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch{}activeLiveRoom=null;}
+    stage.replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Unable to connect to this stream.'}));
   }
 }
 document.getElementById('startLiveBtn').addEventListener('click',async()=>{
   if(!currentUser){toast('Please log in first.');return;}
+  if(activeStreamId){toast('You already have an active live stream. End it before starting another.');return;}
+  if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch(disconnectError){console.warn('Previous viewer room disconnect:',disconnectError);}activeLiveRoom=null;}
   if(!window.LivekitClient){toast('LiveKit browser SDK did not load. Refresh and try again.');return;}
   const title=document.getElementById('liveTitle').value.trim();
   if(title.length<3){toast('Enter a stream title (at least 3 characters).');return;}
