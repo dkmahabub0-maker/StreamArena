@@ -273,10 +273,12 @@ function attachLiveTrack(track, stage, muted = false) {
 async function loadLiveStreams() {
   const cards = document.getElementById('streamCards');
   if (!cards) return;
+  const freshAfter = new Date(Date.now()-120000).toISOString();
   const result = await supabaseClient.from('streams')
-    .select('id,user_id,title,created_at')
+    .select('id,user_id,title,created_at,last_heartbeat_at')
     .eq('is_live', true)
-    .order('created_at', {ascending:false})
+    .gt('last_heartbeat_at', freshAfter)
+    .order('last_heartbeat_at', {ascending:false})
     .limit(30);
   cards.replaceChildren();
   if (result.error) {
@@ -335,13 +337,16 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
   document.getElementById('liveStatus').textContent='Preparing stream…';
   let createdId=null;
   try {
-    const existing=await supabaseClient.from('streams').select('id').eq('user_id',currentUser.id).eq('is_live',true).limit(1);
+    const freshAfter=new Date(Date.now()-120000).toISOString();
+    const stale=await supabaseClient.from('streams').update({is_live:false}).eq('user_id',currentUser.id).eq('is_live',true).lt('last_heartbeat_at',freshAfter);
+    if(stale.error)throw stale.error;
+    const existing=await supabaseClient.from('streams').select('id').eq('user_id',currentUser.id).eq('is_live',true).gt('last_heartbeat_at',freshAfter).limit(1);
     if(existing.error)throw existing.error;
     if(existing.data?.length){throw new Error('You already have a live stream. End it before starting another.');}
     const created=await supabaseClient.from('streams').insert({user_id:currentUser.id,title,is_live:false}).select('id').single();
     if(created.error)throw created.error;
     createdId=created.data.id;activeStreamId=createdId;
-    const marked=await supabaseClient.from('streams').update({is_live:true}).eq('id',createdId).eq('user_id',currentUser.id);
+    const marked=await supabaseClient.from('streams').update({is_live:true,last_heartbeat_at:new Date().toISOString()}).eq('id',createdId).eq('user_id',currentUser.id);
     if(marked.error)throw marked.error;
     const credentials=await requestLiveKitToken('stream-'+currentUser.id,'publisher');
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
@@ -353,10 +358,17 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
     if(camera?.track)attachLiveTrack(camera.track,stage,true);
     document.getElementById('liveHeading').textContent=title;
     document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.';
+    if(window.streamHeartbeatTimer)clearInterval(window.streamHeartbeatTimer);
+    window.streamHeartbeatTimer=setInterval(async()=>{
+      if(!activeStreamId||!currentUser||document.visibilityState==='hidden')return;
+      const beat=await supabaseClient.from('streams').update({last_heartbeat_at:new Date().toISOString()}).eq('id',activeStreamId).eq('user_id',currentUser.id).eq('is_live',true);
+      if(beat.error)console.warn('Stream heartbeat failed:',beat.error.message);
+    },25000);
     document.getElementById('liveTitle').style.display='none';
     button.style.display='none';document.getElementById('endLiveBtn').style.display='';
     await loadLiveStreams();
   } catch(err) {
+    if(window.streamHeartbeatTimer){clearInterval(window.streamHeartbeatTimer);window.streamHeartbeatTimer=null;}
     if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch{} activeLiveRoom=null;}
     if(createdId) await supabaseClient.from('streams').update({is_live:false}).eq('id',createdId).eq('user_id',currentUser.id);
     activeStreamId=null;
@@ -371,6 +383,7 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
 document.getElementById('endLiveBtn').addEventListener('click',async()=>{
   const button=document.getElementById('endLiveBtn');button.disabled=true;
   try {
+    if(window.streamHeartbeatTimer){clearInterval(window.streamHeartbeatTimer);window.streamHeartbeatTimer=null;}
     if(activeStreamId){
       const result=await supabaseClient.from('streams').update({is_live:false}).eq('id',activeStreamId).eq('user_id',currentUser.id);
       if(result.error)throw result.error;
