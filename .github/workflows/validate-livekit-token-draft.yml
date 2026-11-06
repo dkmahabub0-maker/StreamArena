@@ -6,6 +6,7 @@ on:
       - "supabase/functions/livekit-token/**"
       - "docs/duo-live/livekit-token-cohost-authorization.md"
       - ".github/workflows/validate-livekit-token-draft.yml"
+      - "docs/duo-live/cohost-token-test-cases.md"
   push:
     branches:
       - "feat/duo-live-cohost-token-draft"
