@@ -45,7 +45,12 @@ alter table public.family_members enable row level security;
 alter table public.family_invites enable row level security;
 alter table public.family_messages enable row level security;
 drop policy if exists "Family members can view their families" on public.families;
-create policy "Family members can view their families" on public.families for select to authenticated using(public.is_family_member(id));
+create policy "Family members and invitees can view their families" on public.families for select to authenticated using(
+ public.is_family_member(id) or exists(
+  select 1 from public.family_invites fi
+  where fi.family_id=id and fi.invitee_id=auth.uid() and fi.status='pending'
+ )
+);
 drop policy if exists "Members can view family membership" on public.family_members;
 create policy "Members can view family membership" on public.family_members for select to authenticated using(public.is_family_member(family_id));
 drop policy if exists "Invite participants can view family invites" on public.family_invites;
