@@ -518,6 +518,7 @@ document.getElementById('endLiveBtn').addEventListener('click',async()=>{
 });
 const previousRefreshSession=refreshSession;
 refreshSession=async function(){await previousRefreshSession();await loadLiveStreams();await refreshAdminTournamentPanel();};
+refreshSession();
 loadLiveStreams();
 setInterval(()=>{if(document.visibilityState!=='hidden')loadLiveStreams();},15000);
 
