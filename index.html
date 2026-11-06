@@ -1050,7 +1050,7 @@ async function startLiveBroadcast(){
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
     activeLiveRoom=room;
     room.on(LivekitClient.RoomEvent.LocalTrackUnpublished, (publication) => {
-      if(publication.source===LivekitClient.Track.Source.ScreenShare||publication.source===LivekitClient.Track.Source.ScreenShareAudio){
+      if(publication.source===LivekitClient.Track.Source.ScreenShare){
         liveScreenShareEnabled=false;updateLiveControlLabels();
         if(activeLiveRoom===room&&liveCameraEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
       }
