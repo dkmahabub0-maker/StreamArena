@@ -89,10 +89,6 @@ document.getElementById('logoutBtn').addEventListener('click',async()=>{
   if(result.error){toast(result.error.message||'Could not log out.');return;}
   await refreshSession();toast('Logged out.');
 });
-supabaseClient.auth.onAuthStateChange((_event,session)=>{
-  currentUser=session?.user||null;
-  refreshSession();
-});
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display='none',3000)}
 function openAuthModal(type='signup'){
   const login=type==='login';
