@@ -17,6 +17,10 @@
   .top-actions>button[data-modal="signup"]{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;float:none!important;grid-column:auto!important;grid-row:1!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:44px!important;margin:0!important;transform:none!important;flex:none!important;white-space:nowrap!important}
   .top-actions>.account-menu{grid-column:1 / -1!important;justify-self:end!important;flex:none!important}
 }
+/* Authenticated users must not see guest actions; mobile rules above use !important. */
+.top-actions.is-authenticated>button[data-modal="login"],
+.top-actions.is-authenticated>button[data-modal="signup"]{display:none!important;}
+.top-actions.is-authenticated>.account-menu{display:block!important;}
 </style>
 </head>
 <body>
@@ -158,6 +162,8 @@ function renderAuthState(){
   const logoutBtn=document.getElementById('logoutBtn');
   if(guestActions)guestActions.style.display=currentUser?'none':'flex';
   if(logoutBtn)logoutBtn.style.display=currentUser?'block':'none';
+  const topActions=document.querySelector('.top-actions');
+  if(topActions)topActions.classList.toggle('is-authenticated',!!currentUser);
   const headerLogin=document.querySelector('.top-actions [data-modal="login"]');
   const headerSignup=document.querySelector('.top-actions [data-modal="signup"]');
   const accountMenu=document.getElementById('headerAccountMenu');
