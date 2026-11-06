@@ -133,9 +133,7 @@ const supabaseClient = window.supabase.createClient(
   window.STREAMARENA_SUPABASE_PUBLISHABLE_KEY
 );
 let currentUser = null;
-async function refreshSession(){
-  const { data } = await supabaseClient.auth.getSession();
-  currentUser = data.session?.user || null;
+function renderAuthState(){
   const status = document.getElementById('authStatus');
   const accountName = document.getElementById('accountName');
   if(status) status.textContent = currentUser ? currentUser.email : 'Not signed in';
@@ -144,10 +142,28 @@ async function refreshSession(){
   const logoutBtn=document.getElementById('logoutBtn');
   if(guestActions)guestActions.style.display=currentUser?'none':'flex';
   if(logoutBtn)logoutBtn.style.display=currentUser?'block':'none';
+  document.querySelectorAll('.top-actions [data-modal]').forEach(button=>{button.style.display=currentUser?'none':'';});
   const chatInput=document.getElementById('chatText');
   if(chatInput) chatInput.placeholder=currentUser?'Type a message...':'Log in to chat';
+}
+async function refreshSession(){
+  const { data, error } = await supabaseClient.auth.getSession();
+  if(error) console.warn('Could not refresh auth session:',error.message);
+  currentUser = data?.session?.user || null;
+  renderAuthState();
   if(typeof loadSupportTickets==='function') loadSupportTickets();
 }
+supabaseClient.auth.onAuthStateChange((event, session)=>{
+  currentUser = session?.user || null;
+  renderAuthState();
+  if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='INITIAL_SESSION'){
+    Promise.resolve().then(()=>{
+      if(typeof loadSupportTickets==='function')loadSupportTickets();
+      if(typeof loadOrganizerTournamentPanel==='function')loadOrganizerTournamentPanel();
+      if(typeof refreshAdminTournamentPanel==='function')refreshAdminTournamentPanel();
+    });
+  }
+});
 document.getElementById('logoutBtn').addEventListener('click',async()=>{
   const button=document.getElementById('logoutBtn');button.disabled=true;
   const result=await supabaseClient.auth.signOut();
