@@ -3,6 +3,45 @@
 const root=document.getElementById('familyWorkspace');
 if(!root)return;
 let busy=false;
+let refreshTimer=null;
+const realtimeChannels=new Map();
+function clearFamilyRealtime(){
+ for(const channel of realtimeChannels.values())supabaseClient.removeChannel(channel);
+ realtimeChannels.clear();
+}
+function scheduleFamilyReload(){
+ if(refreshTimer)clearTimeout(refreshTimer);
+ refreshTimer=setTimeout(()=>{
+  refreshTimer=null;
+  if(busy){scheduleFamilyReload();return;}
+  loadFamilyWorkspace();
+ },300);
+}
+function syncFamilyRealtime(familyIds){
+ if(!currentUser){clearFamilyRealtime();return;}
+ const desired=new Set(['inbox']);
+ for(const id of familyIds)desired.add('family:'+id);
+ for(const [key,channel] of realtimeChannels){
+  if(!desired.has(key)){supabaseClient.removeChannel(channel);realtimeChannels.delete(key);}
+ }
+ if(!realtimeChannels.has('inbox')){
+  const channel=supabaseClient.channel('family-inbox-'+currentUser.id)
+   .on('postgres_changes',{event:'*',schema:'public',table:'family_invites',filter:'invitee_id=eq.'+currentUser.id},scheduleFamilyReload)
+   .subscribe();
+  realtimeChannels.set('inbox',channel);
+ }
+ for(const id of familyIds){
+  const key='family:'+id;
+  if(realtimeChannels.has(key))continue;
+  const channel=supabaseClient.channel('family-workspace-'+id+'-'+currentUser.id)
+   .on('postgres_changes',{event:'*',schema:'public',table:'family_messages',filter:'family_id=eq.'+id},scheduleFamilyReload)
+   .on('postgres_changes',{event:'*',schema:'public',table:'family_members',filter:'family_id=eq.'+id},scheduleFamilyReload)
+   .on('postgres_changes',{event:'*',schema:'public',table:'family_invites',filter:'family_id=eq.'+id},scheduleFamilyReload)
+   .on('postgres_changes',{event:'*',schema:'public',table:'families',filter:'id=eq.'+id},scheduleFamilyReload)
+   .subscribe();
+  realtimeChannels.set(key,channel);
+ }
+}
 const make=(tag,cls,text)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;};
 const btn=(label,cls,fn)=>{const node=make('button',cls||'btn',label);node.type='button';node.addEventListener('click',fn);return node;};
 async function rpc(name,args){const result=await supabaseClient.rpc(name,args);if(result.error)throw result.error;return result.data;}
@@ -13,13 +52,14 @@ function loggedOut(){
 async function loadFamilyWorkspace(){
  if(busy)return;busy=true;
  try{
-  if(!currentUser){loggedOut();return;}
+  if(!currentUser){clearFamilyRealtime();loggedOut();return;}
   root.replaceChildren(make('p','sub','Loading Family workspace…'));
   const [mine,inbox]=await Promise.all([
    supabaseClient.from('family_members').select('family_id,role,joined_at,families(id,name,owner_id,created_at)').eq('user_id',currentUser.id).order('joined_at',{ascending:true}),
    supabaseClient.from('family_invites').select('id,family_id,inviter_id,created_at,families(name)').eq('invitee_id',currentUser.id).eq('status','pending').order('created_at',{ascending:false})
   ]);
   if(mine.error)throw mine.error;if(inbox.error)throw inbox.error;
+  syncFamilyRealtime((mine.data||[]).map(item=>item.family_id));
   root.replaceChildren();
   const intro=make('p','sub','Create a private Family/Clan, invite players by username, manage members and chat. Each Family supports up to 50 members.');
   root.append(intro);
@@ -96,6 +136,14 @@ async function loadFamilyWorkspace(){
 document.getElementById('familyRefreshBtn')?.addEventListener('click',loadFamilyWorkspace);
 const originalRefreshSession=refreshSession;
 refreshSession=async function(){await originalRefreshSession();await loadFamilyWorkspace();};
-supabaseClient.auth.onAuthStateChange(event=>{if(['SIGNED_IN','SIGNED_OUT','TOKEN_REFRESHED','INITIAL_SESSION'].includes(event))setTimeout(loadFamilyWorkspace,0);});
-supabaseClient.auth.getSession().then(({data})=>{if(!currentUser&&data?.session?.user)currentUser=data.session.user;loadFamilyWorkspace();});
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+ if(!['SIGNED_IN','SIGNED_OUT','TOKEN_REFRESHED','INITIAL_SESSION','USER_UPDATED'].includes(event))return;
+ currentUser=session?.user||null;
+ if(event==='SIGNED_OUT')clearFamilyRealtime();
+ setTimeout(loadFamilyWorkspace,0);
+});
+supabaseClient.auth.getSession().then(({data})=>{
+ currentUser=data?.session?.user||null;
+ loadFamilyWorkspace();
+});
 })();
