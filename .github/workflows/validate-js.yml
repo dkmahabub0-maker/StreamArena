@@ -34,7 +34,7 @@ jobs:
               : [source];
 
             if (!scripts.length) {
-              throw new Error(\`No inline JavaScript found in \${file}\`);
+              throw new Error('No inline JavaScript found in ' + file);
             }
 
             scripts.forEach((script, index) => {
@@ -42,11 +42,11 @@ jobs:
                 new Function(script);
                 checked += 1;
               } catch (error) {
-                throw new Error(\`\${file} script \${index + 1}: \${error.message}\`);
+                throw new Error(file + ' script ' + (index + 1) + ': ' + error.message);
               }
             });
-            console.log(\`Validated \${scripts.length} script(s) in \${file}\`);
+            console.log('Validated ' + scripts.length + ' script(s) in ' + file);
           }
 
-          console.log(\`JavaScript syntax validation passed (\${checked} script block(s)).\`);
+          console.log('JavaScript syntax validation passed (' + checked + ' script block(s)).');
           NODE
