@@ -1,17 +1,24 @@
 import { AccessToken } from "npm:livekit-server-sdk@2.19.2";
 
-const allowedOrigins = new Set([
-  "https://streamarena-nu.vercel.app",
+const productionOrigin = "https://streamarena-nu.vercel.app";
+const exactOrigins = new Set([
+  productionOrigin,
   "http://localhost:3000",
   "http://127.0.0.1:5500",
 ]);
+const previewOrigin = /^https:\/\/streamarena(?:-[a-z0-9-]+)?\.vercel\.app$/i;
+
+function isAllowedOrigin(origin: string | null): boolean {
+  return !origin || exactOrigins.has(origin) || previewOrigin.test(origin);
+}
 
 function corsHeaders(origin: string | null) {
-  const permitted = origin && allowedOrigins.has(origin) ? origin : "https://streamarena-nu.vercel.app";
+  const permitted = origin && isAllowedOrigin(origin) ? origin : productionOrigin;
   return {
     "Access-Control-Allow-Origin": permitted,
     "Access-Control-Allow-Headers": "authorization, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Max-Age": "86400",
     "Vary": "Origin",
   };
 }
@@ -42,11 +49,9 @@ function getPublishableKey(): string {
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin");
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders(origin) });
-  }
+  if (!isAllowedOrigin(origin)) return json({ error: "Origin not allowed" }, 403, origin);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(origin) });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
-  if (origin && !allowedOrigins.has(origin)) return json({ error: "Origin not allowed" }, 403, origin);
 
   try {
     const authorization = req.headers.get("authorization") ?? "";
@@ -68,14 +73,13 @@ Deno.serve(async (req: Request) => {
 
     const publishableKey = getPublishableKey();
     const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        apikey: publishableKey,
-        Authorization: `Bearer ${match[1]}`,
-      },
+      headers: { apikey: publishableKey, Authorization: `Bearer ${match[1]}` },
     });
     if (!userResponse.ok) return json({ error: "Your sign-in session is invalid or expired" }, 401, origin);
     const user = await userResponse.json();
-    if (!user?.id || typeof user.id !== "string") return json({ error: "Unable to identify signed-in user" }, 401, origin);
+    if (!user?.id || typeof user.id !== "string") {
+      return json({ error: "Unable to identify signed-in user" }, 401, origin);
+    }
 
     const body = await req.json().catch(() => null);
     const roomName = typeof body?.roomName === "string" ? body.roomName.trim() : "";
@@ -91,14 +95,21 @@ Deno.serve(async (req: Request) => {
     if (role === "publisher" && roomName !== ownRoom) {
       return json({ error: "You can only publish to your own stream room" }, 403, origin);
     }
-    if (role === "viewer" && !/^stream-[0-9a-f-]{36}$/i.test(roomName)) {
+    if (role === "viewer" && !/^stream-[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(roomName)) {
       return json({ error: "Invalid stream room" }, 400, origin);
     }
+
     const roomOwnerId = role === "publisher" ? user.id : roomName.slice("stream-".length);
-    const streamCheck = await fetch(
-      `${supabaseUrl}/rest/v1/streams?select=id,user_id&user_id=eq.${encodeURIComponent(roomOwnerId)}&is_live=eq.true&limit=1`,
-      { headers: { apikey: publishableKey, Authorization: `Bearer ${match[1]}` } },
-    );
+    const freshAfter = new Date(Date.now() - 120_000).toISOString();
+    const streamUrl = new URL(`${supabaseUrl}/rest/v1/streams`);
+    streamUrl.searchParams.set("select", "id,user_id");
+    streamUrl.searchParams.set("user_id", `eq.${roomOwnerId}`);
+    streamUrl.searchParams.set("is_live", "eq.true");
+    streamUrl.searchParams.set("last_heartbeat_at", `gt.${freshAfter}`);
+    streamUrl.searchParams.set("limit", "1");
+    const streamCheck = await fetch(streamUrl, {
+      headers: { apikey: publishableKey, Authorization: `Bearer ${match[1]}` },
+    });
     if (!streamCheck.ok) {
       console.error("Unable to verify active stream:", streamCheck.status);
       return json({ error: "Unable to verify stream status" }, 502, origin);
@@ -108,9 +119,12 @@ Deno.serve(async (req: Request) => {
       return json({ error: "No active stream was found for this room" }, 404, origin);
     }
 
+    const displayName = typeof user.user_metadata?.username === "string"
+      ? user.user_metadata.username.slice(0, 80)
+      : "Player";
     const token = new AccessToken(livekitApiKey, livekitApiSecret, {
       identity: user.id,
-      name: typeof user.email === "string" ? user.email.slice(0, 80) : user.id,
+      name: displayName,
       ttl: 60 * 60,
     });
     token.addGrant({
