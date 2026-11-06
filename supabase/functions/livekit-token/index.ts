@@ -1,4 +1,4 @@
-import { AccessToken, RoomServiceClient } from "npm:livekit-server-sdk@2.19.2";
+import { AccessToken, RoomServiceClient, TrackSource } from "npm:livekit-server-sdk@2.19.2";
 
 const productionOrigin = "https://streamarena-nu.vercel.app";
 const exactOrigins = new Set([
@@ -204,7 +204,7 @@ Deno.serve(async (req: Request) => {
         roomJoin: true,
         room: roomName,
         canPublish: true,
-        canPublishSources: ["camera", "microphone"],
+        canPublishSources: [TrackSource.CAMERA, TrackSource.MICROPHONE],
         canSubscribe: true,
         canPublishData: false,
       });
