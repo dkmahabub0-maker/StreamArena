@@ -360,7 +360,7 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
     document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.';
     if(window.streamHeartbeatTimer)clearInterval(window.streamHeartbeatTimer);
     window.streamHeartbeatTimer=setInterval(async()=>{
-      if(!activeStreamId||!currentUser||document.visibilityState==='hidden')return;
+      if(!activeStreamId||!currentUser)return;
       const beat=await supabaseClient.from('streams').update({last_heartbeat_at:new Date().toISOString()}).eq('id',activeStreamId).eq('user_id',currentUser.id).eq('is_live',true);
       if(beat.error)console.warn('Stream heartbeat failed:',beat.error.message);
     },25000);
