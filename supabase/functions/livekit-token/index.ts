@@ -87,41 +87,94 @@ Deno.serve(async (req: Request) => {
     if (!/^[a-zA-Z0-9_-]{3,80}$/.test(roomName)) {
       return json({ error: "Invalid room name" }, 400, origin);
     }
-    if (role !== "publisher" && role !== "viewer") {
-      return json({ error: "Role must be publisher or viewer" }, 400, origin);
+    if (role !== "publisher" && role !== "viewer" && role !== "cohost") {
+      return json({ error: "Role must be publisher, viewer or cohost" }, 400, origin);
     }
 
+    const streamRoomPattern = /^stream-[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const ownRoom = `stream-${user.id}`;
     if (role === "publisher" && roomName !== ownRoom) {
       return json({ error: "You can only publish to your own stream room" }, 403, origin);
     }
-    if (role === "viewer" && !/^stream-[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(roomName)) {
+    if ((role === "viewer" || role === "cohost") && !streamRoomPattern.test(roomName)) {
       return json({ error: "Invalid stream room" }, 400, origin);
+    }
+    if (role === "cohost" && roomName === ownRoom) {
+      return json({ error: "The host cannot join their own stream as a co-host" }, 403, origin);
     }
 
     const roomOwnerId = role === "publisher" ? user.id : roomName.slice("stream-".length);
     const freshAfter = new Date(Date.now() - 120_000).toISOString();
-    const streamUrl = new URL(`${supabaseUrl}/rest/v1/streams`);
-    streamUrl.searchParams.set("select", "id,user_id");
-    streamUrl.searchParams.set("user_id", `eq.${roomOwnerId}`);
-    streamUrl.searchParams.set("is_live", "eq.true");
-    streamUrl.searchParams.set("last_heartbeat_at", `gt.${freshAfter}`);
-    streamUrl.searchParams.set("limit", "1");
-    const streamCheck = await fetch(streamUrl, {
-      headers: { apikey: publishableKey, Authorization: `Bearer ${match[1]}` },
-    });
-    if (!streamCheck.ok) {
-      console.error("Unable to verify active stream:", streamCheck.status);
-      return json({ error: "Unable to verify stream status" }, 502, origin);
-    }
-    const activeStreams = await streamCheck.json();
-    if (!Array.isArray(activeStreams) || activeStreams.length === 0) {
-      return json({ error: "No active stream was found for this room" }, 404, origin);
+    let activeStreamId: string | null = null;
+
+    if (role === "cohost") {
+      // Invitation rows are server-only. Never expose the service-role key to the browser.
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!serviceRoleKey) {
+        console.error("SUPABASE_SERVICE_ROLE_KEY is required for co-host authorization");
+        return json({ error: "Co-host authorization is not configured" }, 503, origin);
+      }
+      const adminHeaders = {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      };
+      const streamUrl = new URL(`${supabaseUrl}/rest/v1/streams`);
+      streamUrl.searchParams.set("select", "id,user_id");
+      streamUrl.searchParams.set("user_id", `eq.${roomOwnerId}`);
+      streamUrl.searchParams.set("is_live", "eq.true");
+      streamUrl.searchParams.set("last_heartbeat_at", `gt.${freshAfter}`);
+      streamUrl.searchParams.set("limit", "1");
+      const streamResponse = await fetch(streamUrl, { headers: adminHeaders });
+      if (!streamResponse.ok) {
+        console.error("Unable to verify co-host stream:", streamResponse.status);
+        return json({ error: "Unable to verify the host's Live" }, 502, origin);
+      }
+      const streams = await streamResponse.json();
+      if (!Array.isArray(streams) || streams.length !== 1) {
+        return json({ error: "The host's Live is no longer active" }, 409, origin);
+      }
+      activeStreamId = streams[0].id;
+
+      const inviteUrl = new URL(`${supabaseUrl}/rest/v1/stream_cohost_invites`);
+      inviteUrl.searchParams.set("select", "id");
+      inviteUrl.searchParams.set("stream_id", `eq.${activeStreamId}`);
+      inviteUrl.searchParams.set("host_user_id", `eq.${roomOwnerId}`);
+      inviteUrl.searchParams.set("invitee_user_id", `eq.${user.id}`);
+      inviteUrl.searchParams.set("status", "eq.accepted");
+      inviteUrl.searchParams.set("limit", "1");
+      const inviteResponse = await fetch(inviteUrl, { headers: adminHeaders });
+      if (!inviteResponse.ok) {
+        console.error("Unable to verify accepted co-host invitation:", inviteResponse.status);
+        return json({ error: "Unable to verify co-host invitation" }, 502, origin);
+      }
+      const invitations = await inviteResponse.json();
+      if (!Array.isArray(invitations) || invitations.length !== 1) {
+        return json({ error: "An accepted invitation for this Live is required" }, 403, origin);
+      }
+    } else {
+      const streamUrl = new URL(`${supabaseUrl}/rest/v1/streams`);
+      streamUrl.searchParams.set("select", "id,user_id");
+      streamUrl.searchParams.set("user_id", `eq.${roomOwnerId}`);
+      streamUrl.searchParams.set("is_live", "eq.true");
+      streamUrl.searchParams.set("last_heartbeat_at", `gt.${freshAfter}`);
+      streamUrl.searchParams.set("limit", "1");
+      const streamCheck = await fetch(streamUrl, {
+        headers: { apikey: publishableKey, Authorization: `Bearer ${match[1]}` },
+      });
+      if (!streamCheck.ok) {
+        console.error("Unable to verify active stream:", streamCheck.status);
+        return json({ error: "Unable to verify stream status" }, 502, origin);
+      }
+      const activeStreams = await streamCheck.json();
+      if (!Array.isArray(activeStreams) || activeStreams.length === 0) {
+        return json({ error: "No active stream was found for this room" }, 404, origin);
+      }
+      activeStreamId = activeStreams[0].id;
     }
 
-    // A client can write its own heartbeat row, so database freshness alone
-    // is not proof that a publisher is actually connected and sending media.
-    if (role === "viewer") {
+    // Database heartbeat alone is insufficient: the host must still be connected
+    // to this exact LiveKit room and publishing media before a co-host can join.
+    if (role === "viewer" || role === "cohost") {
       const roomService = new RoomServiceClient(
         livekitUrl.replace(/^wss:/i, "https:"),
         livekitApiKey,
@@ -132,7 +185,9 @@ Deno.serve(async (req: Request) => {
         participant.identity === roomOwnerId && (participant.tracks?.length ?? 0) > 0
       );
       if (!activePublisher) {
-        return json({ error: "The streamer is not currently publishing media" }, 404, origin);
+        return json({ error: role === "cohost"
+          ? "The host is not currently publishing media"
+          : "The streamer is not currently publishing media" }, 404, origin);
       }
     }
 
@@ -142,15 +197,26 @@ Deno.serve(async (req: Request) => {
     const token = new AccessToken(livekitApiKey, livekitApiSecret, {
       identity: user.id,
       name: displayName,
-      ttl: 60 * 60,
+      // Short token lifetime limits the post-revocation rejoin window.\n      ttl: role === "cohost" ? 60 : 60 * 60,
     });
-    token.addGrant({
-      roomJoin: true,
-      room: roomName,
-      canPublish: role === "publisher",
-      canSubscribe: true,
-      canPublishData: role === "publisher",
-    });
+    if (role === "cohost") {
+      token.addGrant({
+        roomJoin: true,
+        room: roomName,
+        canPublish: true,
+        canPublishSources: ["camera", "microphone"],
+        canSubscribe: true,
+        canPublishData: false,
+      });
+    } else {
+      token.addGrant({
+        roomJoin: true,
+        room: roomName,
+        canPublish: role === "publisher",
+        canSubscribe: true,
+        canPublishData: role === "publisher",
+      });
+    }
     const participantToken = await token.toJwt();
     return json({ token: participantToken, serverUrl: livekitUrl, roomName, role }, 200, origin);
   } catch (error) {
