@@ -21,16 +21,12 @@
 <div class="layout" id="home">
 <aside class="side">
 <a href="#home">⌂ <span data-en="Home" data-bn="হোম">Home</span></a><a href="#live">🔴 <span data-en="Live Streams" data-bn="লাইভ স্ট্রিম">Live Streams</span></a><a href="#tournaments">🏆 <span data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</span></a><a href="#games">🎮 <span data-en="Games" data-bn="গেমস">Games</span></a><a href="#community">👥 <span data-en="Community" data-bn="কমিউনিটি">Community</span></a><a href="#leaderboard">♛ <span data-en="Leaderboard" data-bn="লিডারবোর্ড">Leaderboard</span></a>
-<h4 data-en="Quick Access" data-bn="দ্রুত প্রবেশ">Quick Access</h4><a href="#" data-modal="stream">📹 <span data-en="Create Live Stream" data-bn="লাইভ শুরু করুন">Create Live Stream</span></a><a href="#tournaments">🏆 <span data-en="Join Tournament" data-bn="টুর্নামেন্টে যোগ দিন">Join Tournament</span></a><h4 data-en="Popular Regions" data-bn="জনপ্রিয় অঞ্চল">Popular Regions</h4><div class="country">🇧🇩 Bangladesh</div><div class="country">🇮🇳 India</div><div class="country">🇸🇦 Saudi Arabia</div><div class="country">🇵🇰 Pakistan</div><div class="country">🌍 Global</div>
+<h4 data-en="Quick Access" data-bn="দ্রুত প্রবেশ">Quick Access</h4><a href="#" data-live-open>📹 <span data-en="Create Live Stream" data-bn="লাইভ শুরু করুন">Create Live Stream</span></a><a href="#tournaments">🏆 <span data-en="Join Tournament" data-bn="টুর্নামেন্টে যোগ দিন">Join Tournament</span></a><h4 data-en="Popular Regions" data-bn="জনপ্রিয় অঞ্চল">Popular Regions</h4><div class="country">🇧🇩 Bangladesh</div><div class="country">🇮🇳 India</div><div class="country">🇸🇦 Saudi Arabia</div><div class="country">🇵🇰 Pakistan</div><div class="country">🌍 Global</div>
 </aside>
 <main class="main">
 <section class="hero"><div class="hero-content"><div class="eyebrow">THE GLOBAL GAMING ARENA</div><h1>PLAY. STREAM. <span class="gradient">COMPETE.</span></h1><p data-en="The ultimate gaming & esports platform for players around the world." data-bn="সারা বিশ্বের গেমারদের জন্য গেমিং ও ই-স্পোর্টস প্ল্যাটফর্ম।">The ultimate gaming & esports platform for players around the world.</p><div class="feature-row"><div class="feature">🔴 <b data-en="Live Streaming" data-bn="লাইভ স্ট্রিমিং">Live Streaming</b><span data-en="Watch & Go Live" data-bn="দেখুন ও লাইভ করুন">Watch & Go Live</span></div><div class="feature">🏆 <b data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</b><span>Free & Paid</span></div><div class="feature">🎮 <b data-en="Gaming" data-bn="গেমিং">Gaming</b><span>Play & Compete</span></div><div class="feature">🌍 <b data-en="Global Community" data-bn="বিশ্ব কমিউনিটি">Global Community</b><span>Connect worldwide</span></div></div><div class="actions"><button class="btn primary" data-modal="signup" data-en="Get Started Free →" data-bn="ফ্রিতে শুরু করুন →">Get Started Free →</button><button class="btn" onclick="document.querySelector('#live').scrollIntoView({behavior:'smooth'})">▷ Watch Streams</button></div></div></section>
 <section class="section" id="games"><div class="section-head"><h2>🎮 <span data-en="Popular Games" data-bn="জনপ্রিয় গেম">Popular Games</span></h2><button class="textbtn" onclick="toast('More games will be added soon!')">View all →</button></div><div class="games" id="gameGrid"><div class="game"><div class="emoji">🔥</div><b>Free Fire</b></div><div class="game"><div class="emoji">🎯</div><b>PUBG Mobile</b></div><div class="game"><div class="emoji">🪖</div><b>BGMI</b></div><div class="game"><div class="emoji">💥</div><b>Call of Duty</b></div><div class="game"><div class="emoji">⚡</div><b>Valorant</b></div><div class="game"><div class="emoji">⛏️</div><b>Minecraft</b></div></div></section>
-<section class="section" id="live"><div class="section-head"><h2>🔴 <span data-en="Live Streams" data-bn="লাইভ স্ট্রিম">Live Streams</span></h2><button class="textbtn" data-modal="stream">＋ Go Live</button></div><div class="filters"><button class="chip active" data-filter="All">All</button><button class="chip" data-filter="Free Fire">Free Fire</button><button class="chip" data-filter="PUBG Mobile">PUBG Mobile</button><button class="chip" data-filter="BGMI">BGMI</button><button class="chip" data-filter="Other">Other</button></div><div class="cards" id="streamCards" style="margin-top:12px">
-<div class="stream-card" data-game="Free Fire"><div class="thumb">🎮<span class="livebadge">● LIVE</span><span class="viewers">◉ 1.2K</span></div><div class="cardbody"><h3>Free Fire Ranked Push 🔥</h3><p>👤 Rafi Gaming · 🇧🇩 Bangladesh</p><div class="cardactions"><button class="smallbtn like">♡ Like <span>124</span></button><button class="smallbtn" onclick="toast('Stream player demo — connect a streaming provider to watch live video.')">▶ Watch</button></div></div></div>
-<div class="stream-card" data-game="PUBG Mobile"><div class="thumb">🎯<span class="livebadge">● LIVE</span><span class="viewers">◉ 876</span></div><div class="cardbody"><h3>PUBG Mobile | Solo vs Squad</h3><p>👤 Xtreme Gamer · 🇮🇳 India</p><div class="cardactions"><button class="smallbtn like">♡ Like <span>98</span></button><button class="smallbtn" onclick="toast('Stream player demo — connect a streaming provider to watch live video.')">▶ Watch</button></div></div></div>
-<div class="stream-card" data-game="BGMI"><div class="thumb">🪖<span class="livebadge">● LIVE</span><span class="viewers">◉ 532</span></div><div class="cardbody"><h3>BGMI Full Rush Gameplay</h3><p>👤 Techno Gaming · 🇮🇳 India</p><div class="cardactions"><button class="smallbtn like">♡ Like <span>76</span></button><button class="smallbtn" onclick="toast('Stream player demo — connect a streaming provider to watch live video.')">▶ Watch</button></div></div></div>
-</div></section>
+<section class="section" id="live"><div class="section-head"><h2>🔴 <span data-en="Live Streams" data-bn="লাইভ স্ট্রিম">Live Streams</span></h2><button class="textbtn" data-live-open>＋ Go Live</button></div><div class="filters"><button class="chip active" data-filter="All">All</button><button class="chip" data-filter="Free Fire">Free Fire</button><button class="chip" data-filter="PUBG Mobile">PUBG Mobile</button><button class="chip" data-filter="BGMI">BGMI</button><button class="chip" data-filter="Other">Other</button></div><div class="cards" id="streamCards" style="margin-top:12px"><p class="sub" id="streamLoading">Loading live streams…</p></div></div></section>
 <section class="section" id="tournaments"><div class="section-head"><h2>🏆 <span data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</span></h2><div class="filters"><button class="chip active" data-tour="Free">Free</button><button class="chip" data-tour="Paid">Paid</button></div></div><div class="tournaments" id="tourCards">
 <div class="tourney" data-type="Free"><div class="tour-icon">🔥</div><div class="tour-info"><h3>Free Fire Solo Cup</h3><p>👥 Solo · 🌍 Global</p><p>Prize pool: <b style="color:var(--green)">Free entry</b></p><div class="tour-foot"><span class="sub">Starts soon</span><button class="btn primary smallbtn join">Join Now</button></div></div></div>
 <div class="tourney" data-type="Free"><div class="tour-icon">🎯</div><div class="tour-info"><h3>PUBG Mobile Weekly</h3><p>👥 Squad · 🇮🇳 India</p><p>Prize pool: <b style="color:var(--green)">Free entry</b></p><div class="tour-foot"><span class="sub">Registration open</span><button class="btn primary smallbtn join">Join Now</button></div></div></div>
@@ -59,6 +55,8 @@
 <footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div><a href="#help" style="color:inherit">Help Center</a> · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password (demo only)" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit" >Continue</button></form><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
 <div class="toast" id="toast"></div>
+<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div><div id="liveControls" style="display:flex;gap:8px;flex-wrap:wrap"><input id="liveTitle" maxlength="120" placeholder="Stream title" style="flex:1;min-width:180px;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><button class="btn primary" id="startLiveBtn">Start Live</button><button class="btn" id="endLiveBtn" style="display:none">End Live</button></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
 <script>
@@ -205,4 +203,174 @@ supabaseClient.channel('support-updates').on('postgres_changes',{event:'*',schem
 loadSupportTickets();
 document.getElementById('langBtn').onclick=()=>{language=language==='en'?'bn':'en';document.documentElement.lang=language;document.getElementById('langBtn').textContent='🌐 '+language.toUpperCase();document.querySelectorAll('[data-en][data-bn]').forEach(el=>el.textContent=el.dataset[language]);document.querySelector('.search').placeholder=language==='bn'?'গেম, স্ট্রিমার খুঁজুন...':'⌕ Search games, streamers...'};
 refreshSession();document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('.game').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none');document.querySelectorAll('.stream-card').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none')});
+
+/* LiveKit browser integration */
+let activeLiveRoom = null;
+let activeStreamId = null;
+let activeStreamOwner = null;
+let liveMode = null;
+
+function openLivePanel(mode = 'start') {
+  document.getElementById('liveBackdrop').style.display = 'grid';
+  document.getElementById('liveHeading').textContent = mode === 'start' ? 'Start a live stream' : 'Watch live stream';
+  document.getElementById('liveStatus').textContent = currentUser ? 'Ready.' : 'Please log in first.';
+  document.getElementById('liveTitle').style.display = mode === 'start' ? '' : 'none';
+  document.getElementById('startLiveBtn').style.display = mode === 'start' ? '' : 'none';
+  document.getElementById('endLiveBtn').style.display = 'none';
+  document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'), {className:'sub', textContent:'Video will appear here'}));
+  liveMode = mode;
+}
+function closeLivePanel() {
+  if (activeLiveRoom) {
+    activeLiveRoom.disconnect();
+    activeLiveRoom = null;
+  }
+  document.getElementById('liveBackdrop').style.display = 'none';
+}
+document.querySelectorAll('[data-live-open]').forEach(el => el.addEventListener('click', e => {
+  e.preventDefault();
+  if (!currentUser) {
+    toast('Please log in before starting a stream.');
+    document.querySelector('[data-modal="login"]')?.click();
+    return;
+  }
+  openLivePanel('start');
+}));
+document.getElementById('liveClose').addEventListener('click', closeLivePanel);
+document.getElementById('liveBackdrop').addEventListener('click', e => { if (e.target.id === 'liveBackdrop') closeLivePanel(); });
+
+async function requestLiveKitToken(roomName, role) {
+  const {data:{session}} = await supabaseClient.auth.getSession();
+  if (!session?.access_token) throw new Error('Your login session has expired. Please sign in again.');
+  const response = await fetch(window.STREAMARENA_SUPABASE_URL + '/functions/v1/livekit-token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': window.STREAMARENA_SUPABASE_PUBLISHABLE_KEY,
+      'Authorization': 'Bearer ' + session.access_token
+    },
+    body: JSON.stringify({roomName, role})
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || 'Could not create a streaming session.');
+  return payload;
+}
+function attachLiveTrack(track, stage, muted = false) {
+  const element = track.attach();
+  if (element.tagName === 'VIDEO') {
+    element.autoplay = true;
+    element.playsInline = true;
+    element.muted = muted;
+    element.style.cssText = 'width:100%;height:100%;max-height:520px;object-fit:contain';
+  } else if (element.tagName === 'AUDIO') {
+    element.autoplay = true;
+  }
+  stage.append(element);
+}
+async function loadLiveStreams() {
+  const cards = document.getElementById('streamCards');
+  if (!cards) return;
+  const result = await supabaseClient.from('streams')
+    .select('id,user_id,title,created_at')
+    .eq('is_live', true)
+    .order('created_at', {ascending:false})
+    .limit(30);
+  cards.replaceChildren();
+  if (result.error) {
+    const p=document.createElement('p');p.className='sub';p.textContent='Could not load live streams: '+result.error.message;cards.append(p);return;
+  }
+  const streams=result.data||[];
+  if (!streams.length) {
+    const p=document.createElement('p');p.className='sub';p.textContent='No one is live right now. Sign in and select Go Live to start the first stream.';cards.append(p);return;
+  }
+  const ids=[...new Set(streams.map(s=>s.user_id))];
+  const profileResult=await supabaseClient.from('profiles').select('id,username').in('id',ids);
+  const names=new Map((profileResult.data||[]).map(p=>[p.id,p.username||'Player']));
+  streams.forEach(stream=>{
+    const card=document.createElement('article');card.className='stream-card';
+    const thumb=document.createElement('div');thumb.className='thumb';thumb.textContent='LIVE';
+    const body=document.createElement('div');body.className='cardbody';
+    const title=document.createElement('h3');title.textContent=stream.title;
+    const owner=document.createElement('p');owner.textContent='By '+(names.get(stream.user_id)||'Player');
+    const actions=document.createElement('div');actions.className='cardactions';
+    const watch=document.createElement('button');watch.className='smallbtn';watch.textContent='▶ Watch';
+    watch.addEventListener('click',()=>watchLiveStream(stream));
+    actions.append(watch);body.append(title,owner,actions);card.append(thumb,body);cards.append(card);
+  });
+}
+async function watchLiveStream(stream) {
+  if (!currentUser) { toast('Please log in to watch live streams.'); return; }
+  if (!window.LivekitClient) { toast('LiveKit browser SDK did not load. Refresh and try again.'); return; }
+  openLivePanel('watch');
+  document.getElementById('liveHeading').textContent=stream.title;
+  document.getElementById('liveStatus').textContent='Connecting to live stream…';
+  document.getElementById('startLiveBtn').style.display='none';
+  activeStreamOwner=stream.user_id;
+  try {
+    const roomName='stream-'+stream.user_id;
+    const credentials=await requestLiveKitToken(roomName,'viewer');
+    const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
+    activeLiveRoom=room;
+    room.on(LivekitClient.RoomEvent.TrackSubscribed,(track)=>attachLiveTrack(track,document.getElementById('liveStage')));
+    room.on(LivekitClient.RoomEvent.Disconnected,()=>{document.getElementById('liveStatus').textContent='Disconnected.';});
+    await room.connect(credentials.serverUrl,credentials.token);
+    document.getElementById('liveStatus').textContent='Connected · '+room.numParticipants+' participant(s)';
+    room.remoteParticipants.forEach(p=>p.trackPublications.forEach(pub=>{if(pub.isSubscribed&&pub.track)attachLiveTrack(pub.track,document.getElementById('liveStage'));}));
+  } catch(err) {
+    document.getElementById('liveStatus').textContent=err.message||'Unable to join this stream.';
+    toast(err.message||'Unable to join stream.');
+    if(activeLiveRoom){activeLiveRoom.disconnect();activeLiveRoom=null;}
+  }
+}
+document.getElementById('startLiveBtn').addEventListener('click',async()=>{
+  if(!currentUser){toast('Please log in first.');return;}
+  if(!window.LivekitClient){toast('LiveKit browser SDK did not load. Refresh and try again.');return;}
+  const title=document.getElementById('liveTitle').value.trim();
+  if(title.length<3){toast('Enter a stream title (at least 3 characters).');return;}
+  const button=document.getElementById('startLiveBtn');button.disabled=true;
+  document.getElementById('liveStatus').textContent='Preparing stream…';
+  let createdId=null;
+  try {
+    const created=await supabaseClient.from('streams').insert({user_id:currentUser.id,title,is_live:false}).select('id').single();
+    if(created.error)throw created.error;
+    createdId=created.data.id;activeStreamId=createdId;
+    const marked=await supabaseClient.from('streams').update({is_live:true}).eq('id',createdId).eq('user_id',currentUser.id);
+    if(marked.error)throw marked.error;
+    const credentials=await requestLiveKitToken('stream-'+currentUser.id,'publisher');
+    const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
+    activeLiveRoom=room;
+    await room.connect(credentials.serverUrl,credentials.token);
+    await room.localParticipant.enableCameraAndMicrophone();
+    const stage=document.getElementById('liveStage');stage.replaceChildren();
+    const camera=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+    if(camera?.track)attachLiveTrack(camera.track,stage,true);
+    document.getElementById('liveHeading').textContent=title;
+    document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.';
+    document.getElementById('liveTitle').style.display='none';
+    button.style.display='none';document.getElementById('endLiveBtn').style.display='';
+    await loadLiveStreams();
+  } catch(err) {
+    if(createdId) await supabaseClient.from('streams').update({is_live:false}).eq('id',createdId).eq('user_id',currentUser.id);
+    document.getElementById('liveStatus').textContent=err.message||'Could not start stream.';
+    toast(err.message||'Could not start stream.');
+  } finally {button.disabled=false;}
+});
+document.getElementById('endLiveBtn').addEventListener('click',async()=>{
+  const button=document.getElementById('endLiveBtn');button.disabled=true;
+  try {
+    if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}
+    if(activeStreamId){
+      const result=await supabaseClient.from('streams').update({is_live:false}).eq('id',activeStreamId).eq('user_id',currentUser.id);
+      if(result.error)throw result.error;
+    }
+    activeStreamId=null;document.getElementById('liveStatus').textContent='Stream ended.';
+    document.getElementById('endLiveBtn').style.display='none';
+    await loadLiveStreams();
+  } catch(err){toast(err.message||'Could not end stream.');}
+  finally{button.disabled=false;}
+});
+const previousRefreshSession=refreshSession;
+refreshSession=async function(){await previousRefreshSession();await loadLiveStreams();};
+loadLiveStreams();
+
 </script></body></html>
