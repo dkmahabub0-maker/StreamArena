@@ -82,18 +82,29 @@ document.getElementById('modalForm').onsubmit=async (e) => {
     if(type === 'login') {
       result = await supabaseClient.auth.signInWithPassword({email, password});
     } else {
- result = await supabaseClient.auth.signUp({
-  email,
-  password,
-  options: {
-    data: {
-      username,
-      full_name: username,
-      country
-    },
-    emailRedirectTo: 'https://streamarena-nu.vercel.app'
-  }
-});
+      if (!username) throw new Error('Username is required.');
+      const { data: matchingProfiles, error: usernameCheckError } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .limit(1);
+      if (usernameCheckError) throw usernameCheckError;
+      if (matchingProfiles && matchingProfiles.length > 0) {
+        throw new Error('Username already taken. Please choose another one.');
+      }
+
+      result = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            full_name: username,
+            country
+          },
+          emailRedirectTo: 'https://streamarena-nu.vercel.app'
+        }
+      });
     }
     if(result.error) throw result.error;
     await refreshSession();
