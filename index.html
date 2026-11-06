@@ -250,6 +250,19 @@ async function refreshAdminTournamentPanel(){
   };
   row.append(label,count,status,show);list.append(row);
  }
+ const paymentBox=document.getElementById('adminDemoPayments');
+ if(paymentBox){
+  const p=await supabaseClient.from('tournament_demo_payments').select('id,tournament_id,organizer_id,demo_points,status,created_at').order('created_at',{ascending:false}).limit(100);
+  paymentBox.replaceChildren();
+  if(p.error)paymentBox.textContent='Could not load demo payments: '+p.error.message;
+  else if(!p.data?.length)paymentBox.textContent='No demo hosting transactions.';
+  else{
+   const ids=[...new Set(p.data.map(x=>x.tournament_id))];
+   const tours=await supabaseClient.from('tournaments').select('id,title').in('id',ids);
+   const titles=new Map((tours.data||[]).map(x=>[x.id,x.title]));
+   p.data.forEach(x=>{const line=document.createElement('p');line.className='sub';line.textContent=(titles.get(x.tournament_id)||'Tournament')+' · '+x.demo_points+' Demo Points · '+x.status.toUpperCase()+' · DEMO / NOT REAL PAYMENT';paymentBox.append(line);});
+  }
+ }
 }
 
 async function completeDemoHostingPayment(tournamentId,demoPoints){
