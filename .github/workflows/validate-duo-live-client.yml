@@ -28,24 +28,22 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const html = fs.readFileSync('index.html', 'utf8');
-          const scripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)]
+          const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
             .map(match => match[1]).filter(source => source.trim());
           if (!scripts.length) throw new Error('No inline application script found');
           scripts.forEach((source, index) => {
             try { new Function(source); }
-            catch (error) { throw new Error(`Inline script ${index + 1} failed syntax validation: ${error.message}`); }
+            catch (error) { throw new Error('Inline script ' + (index + 1) + ' failed syntax validation: ' + error.message); }
           });
-          const ids = [...html.matchAll(/\\bid="([^"]+)"/g)].map(match => match[1]);
+          const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
           if (new Set(ids).size !== ids.length) throw new Error('Duplicate HTML IDs detected');
           for (const required of [
             'joinDuoLiveAsCohost',
             'leaveDuoLiveBtn',
             'duo-camera-grid',
-            "requestLiveKitToken(roomName,'cohost')",
-            "canPublishSources"
+            "requestLiveKitToken(roomName,'cohost')"
           ]) {
-            if (!html.includes(required) && required === 'canPublishSources') continue;
-            if (!html.includes(required)) throw new Error(`Missing Duo Live browser contract: ${required}`);
+            if (!html.includes(required)) throw new Error('Missing Duo Live browser contract: ' + required);
           }
-          console.log(`Validated ${scripts.length} inline script(s) and ${ids.length} unique HTML IDs.`);
+          console.log('Validated ' + scripts.length + ' inline script(s) and ' + ids.length + ' unique HTML IDs.');
           NODE
