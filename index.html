@@ -130,7 +130,15 @@ let language='en';console.log("STREAMARENA SCRIPT STARTED");
 
 const supabaseClient = window.supabase.createClient(
   window.STREAMARENA_SUPABASE_URL,
-  window.STREAMARENA_SUPABASE_PUBLISHABLE_KEY
+  window.STREAMARENA_SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: window.localStorage
+    }
+  }
 );
 let currentUser = null;
 function renderAuthState(){
