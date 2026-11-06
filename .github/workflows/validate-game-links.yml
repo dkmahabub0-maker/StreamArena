@@ -1,0 +1,52 @@
+name: Game catalog link validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  game-links:
+    name: Validate game store links and JavaScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate official store links and inline scripts
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const requiredLinks = [
+            'https://play.google.com/store/apps/details?id=com.dts.freefireth',
+            'https://play.google.com/store/apps/details?id=com.tencent.ig',
+            'https://play.google.com/store/apps/details?id=com.pubg.imobile'
+          ];
+
+          for (const link of requiredLinks) {
+            if (!html.includes(link)) {
+              throw new Error('Missing game store link: ' + link);
+            }
+          }
+          console.log('All three game store links are present.');
+
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+            .filter((match) => !/\bsrc\s*=/.test(match[1]))
+            .map((match) => match[2])
+            .filter((script) => script.trim());
+
+          if (!scripts.length) throw new Error('No inline JavaScript found.');
+          scripts.forEach((script, index) => {
+            try {
+              new Function(script);
+            } catch (error) {
+              throw new Error('Inline script ' + (index + 1) + ': ' + error.message);
+            }
+          });
+          console.log('Parsed ' + scripts.length + ' inline script block(s).');
+          NODE
