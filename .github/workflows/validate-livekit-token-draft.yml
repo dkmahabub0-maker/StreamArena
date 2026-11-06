@@ -1,0 +1,29 @@
+name: Validate Duo Live token draft
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/livekit-token/**"
+      - "docs/duo-live/livekit-token-cohost-authorization.md"
+      - ".github/workflows/validate-livekit-token-draft.yml"
+  push:
+    branches:
+      - "feat/duo-live-cohost-token-draft"
+    paths:
+      - "supabase/functions/livekit-token/**"
+      - "docs/duo-live/livekit-token-cohost-authorization.md"
+      - ".github/workflows/validate-livekit-token-draft.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check LiveKit token Edge Function
+        run: deno check supabase/functions/livekit-token/index.ts
