@@ -394,15 +394,21 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
 document.getElementById('endLiveBtn').addEventListener('click',async()=>{
   const button=document.getElementById('endLiveBtn');button.disabled=true;
   try {
-    if(window.streamHeartbeatTimer){clearInterval(window.streamHeartbeatTimer);window.streamHeartbeatTimer=null;}
     if(activeStreamId){
       const result=await supabaseClient.from('streams').update({is_live:false}).eq('id',activeStreamId).eq('user_id',currentUser.id);
       if(result.error)throw result.error;
     }
-    if(activeLiveRoom){try{await activeLiveRoom.disconnect();}finally{activeLiveRoom=null;}}
-    activeStreamId=null;document.getElementById('liveStatus').textContent='Stream ended.';
+    if(window.streamHeartbeatTimer){clearInterval(window.streamHeartbeatTimer);window.streamHeartbeatTimer=null;}
+    if(activeLiveRoom){
+      try{await activeLiveRoom.disconnect();}
+      catch(disconnectError){console.warn('LiveKit disconnect after ending stream:',disconnectError);}
+      finally{activeLiveRoom=null;}
+    }
+    activeStreamId=null;
+    document.getElementById('liveStatus').textContent='Stream ended.';
     document.getElementById('endLiveBtn').style.display='none';
     document.getElementById('startLiveBtn').style.display='';
+    document.getElementById('liveTitle').style.display='';
     await loadLiveStreams();
   } catch(err){toast(err.message||'Could not end stream.');}
   finally{button.disabled=false;}
