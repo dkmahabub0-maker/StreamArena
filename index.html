@@ -326,7 +326,7 @@ document.getElementById('forgotPasswordBtn').addEventListener('click',async()=>{
 });
 document.getElementById('authSwitchRow').addEventListener('click',event=>{if(event.target.hasAttribute('data-auth-switch'))openAuthModal(authMode==='login'?'signup':'login');});
 document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();openAuthModal(b.dataset.modal)}));
-document.querySelector('[data-start-action]').addEventListener('click',()=>{if(currentUser){document.getElementById('tournaments').scrollIntoView({behavior:'smooth',block:'start'});loadTournamentCards();}else openAuthModal('signup');});
+document.querySelector('[data-start-action]').addEventListener('click',async()=>{const {data,error}=await supabaseClient.auth.getSession();if(error){toast('Could not verify your sign-in session. Please try again.');return;}currentUser=data?.session?.user||null;renderAuthState();if(currentUser){document.getElementById('tournaments').scrollIntoView({behavior:'smooth',block:'start'});loadTournamentCards();}else openAuthModal('signup');});
 function closeAuthModal(){document.getElementById('modalBackdrop').style.display='none';document.getElementById('modalForm').reset();document.getElementById('modalName').required=true;document.getElementById('modalName').style.display='';document.getElementById('modalCountry').style.display='';document.getElementById('modalPassword').style.display='';document.getElementById('modalPassword').required=true;}
 document.getElementById('closeModal').onclick=closeAuthModal;
 document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')closeAuthModal()};
