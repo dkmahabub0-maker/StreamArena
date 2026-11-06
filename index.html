@@ -205,6 +205,11 @@
   <input id="duoLiveFriendSearch" type="search" maxlength="32" placeholder="Friend's username" autocomplete="off" style="flex:1 1 220px;min-width:0;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
   <button class="btn" id="duoLiveSearchBtn" type="button">Search</button>
   <div id="duoLiveSearchResults" class="sub" role="status" aria-live="polite" style="flex:1 1 100%">Start your Live, then search for a friend to invite.</div>
+  <div style="flex:1 1 100%;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:6px">
+    <b>Current co-host invitations</b>
+    <button class="smallbtn" id="duoLiveRefreshHostBtn" type="button">Refresh list</button>
+  </div>
+  <div id="duoLiveHostInvites" class="sub" role="status" aria-live="polite" style="flex:1 1 100%">No active co-host invitations.</div>
   <p class="sub" style="flex:1 1 100%;margin:0">Duo Live invitations require the reviewed invitation Edge Function and co-host token authorization to be deployed. This interface is a draft until those server changes are released.</p>
 </div>
 </div></div>
@@ -1039,6 +1044,40 @@ async function loadDuoLiveInbox() {
   } catch(error) {list.textContent=error.message||'Could not load invitations.';}
 }
 document.getElementById('duoLiveRefreshInboxBtn').addEventListener('click',loadDuoLiveInbox);
+async function loadDuoLiveHostInvites() {
+  const list=document.getElementById('duoLiveHostInvites');
+  if(!list||!currentUser)return;
+  list.textContent='Loading co-host invitations…';
+  try {
+    const result=await callDuoLiveInvites({action:'host-inbox'});
+    list.replaceChildren();
+    if(!result.invitations?.length){list.textContent='No pending or accepted co-host invitations for this Live.';return;}
+    result.invitations.forEach(invite=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #293451';
+      const details=document.createElement('span');
+      const state=invite.status==='accepted'?'Accepted co-host':'Invitation pending';
+      details.textContent='@'+(invite.invitee_username||'Player')+' · '+state;
+      const revoke=document.createElement('button');
+      revoke.type='button';revoke.className='smallbtn';revoke.textContent='Revoke';
+      revoke.addEventListener('click',async()=>{
+        revoke.disabled=true;
+        try {
+          const response=await callDuoLiveInvites({action:'revoke',invitationId:invite.id});
+          details.textContent=response.participantRemoved===false
+            ?'Revoked. LiveKit could not confirm participant removal; host may need to end the Live.'
+            :'Invitation revoked.';
+          revoke.remove();
+          loadDuoLiveHostInvites();
+        } catch(error) {
+          revoke.disabled=false;toast(error.message||'Could not revoke this invitation.');
+        }
+      });
+      row.append(details,revoke);list.append(row);
+    });
+  } catch(error) {list.textContent=error.message||'Could not load co-host invitations.';}
+}
+document.getElementById('duoLiveRefreshHostBtn').addEventListener('click',loadDuoLiveHostInvites);
 async function searchDuoLiveFriends() {
   const input=document.getElementById('duoLiveFriendSearch');
   const results=document.getElementById('duoLiveSearchResults');
@@ -1266,6 +1305,7 @@ async function startLiveBroadcast(){
     }
     document.getElementById('liveBroadcastControls').style.display='flex';
     document.getElementById('duoLiveInvitePanel').style.display='flex';
+    loadDuoLiveHostInvites();
     document.getElementById('liveControlsHint').textContent=startupIssues.length
       ?startupIssues.join(' · ')+'. Use the controls to retry permissions; screen sharing can still be attempted.'
       :'Camera and microphone are ready. Use Share game screen to capture a supported screen or browser tab.';
