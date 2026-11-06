@@ -192,6 +192,7 @@
   </div>
 </div>
 <button class="btn" id="endLiveBtn" type="button" style="display:none;margin-top:10px">End Live</button>
+<button class="btn" id="leaveDuoLiveBtn" type="button" style="display:none;margin-top:10px">Leave Duo Live</button>
 <div id="liveBroadcastControls" style="display:none;gap:8px;flex-wrap:wrap;margin-top:10px">
   <button class="btn" id="liveScreenShareBtn" type="button">Share game screen</button>
   <button class="btn" id="liveCameraSwitchBtn" type="button">Switch camera</button>
@@ -672,6 +673,7 @@ document.getElementById('hostingPaymentLink').addEventListener('click',()=>{
 
 /* LiveKit browser integration */
 let activeLiveRoom = null;
+let activeDuoCohostRoom = null;
 let activeStreamId = null;
 let activeStreamOwner = null;
 let liveMode = null;
@@ -708,11 +710,19 @@ function updateLiveControlLabels() {
 function showLocalBroadcastVideo(source) {
   if(!activeLiveRoom)return;
   const stage=document.getElementById('liveStage');
-  stage.replaceChildren();
-  if(source===LivekitClient.Track.Source.Camera&&!liveCameraEnabled){stage.append(Object.assign(document.createElement('span'),{className:'sub',textContent:'Your camera is off. Viewers can still hear your microphone.'}));return;}
+  if(source===LivekitClient.Track.Source.ScreenShare){stage.replaceChildren();stage.dataset.videoSource='screen';}
+  if(source===LivekitClient.Track.Source.Camera&&!liveCameraEnabled){
+    const grid=stage.querySelector(':scope > .duo-camera-grid');
+    const tile=grid&&[...grid.querySelectorAll('.duo-camera-tile')].find(node=>node.dataset.participantId===activeLiveRoom.localParticipant.identity);
+    if(tile)tile.remove();
+    if(!grid||!grid.querySelector('.duo-camera-tile'))stage.append(Object.assign(document.createElement('span'),{className:'sub',textContent:'Your camera is off. Viewers can still hear your microphone.'}));
+    return;
+  }
   const publication=activeLiveRoom.localParticipant.getTrackPublication(source);
-  if(publication?.track)attachLiveTrack(publication.track,stage,true);
-  else stage.append(Object.assign(document.createElement('span'),{className:'sub',textContent:source===LivekitClient.Track.Source.ScreenShare?'Screen share is not active.':'Camera preview is unavailable.'}));
+  if(publication?.track){
+    if(source===LivekitClient.Track.Source.Camera)attachDuoRoomTrack(publication.track,stage,activeLiveRoom.localParticipant,true);
+    else attachLiveTrack(publication.track,stage,true);
+  } else stage.append(Object.assign(document.createElement('span'),{className:'sub',textContent:source===LivekitClient.Track.Source.ScreenShare?'Screen share is not active.':'Camera preview is unavailable.'}));
 }
 async function toggleLiveScreenShare() {
   if(!activeLiveRoom||!activeStreamId)return;
@@ -959,6 +969,11 @@ function closeLivePanel() {
     activeLiveRoom.disconnect();
     activeLiveRoom = null;
   }
+  if (activeDuoCohostRoom) {
+    activeDuoCohostRoom.disconnect();
+    activeDuoCohostRoom = null;
+  }
+  const leaveButton=document.getElementById('leaveDuoLiveBtn');if(leaveButton)leaveButton.style.display='none';
   document.getElementById('liveBackdrop').style.display = 'none';
 }
 document.querySelectorAll('[data-live-open]').forEach(el => el.addEventListener('click', e => {
@@ -1028,9 +1043,14 @@ async function loadDuoLiveInbox() {
         try {
           await callDuoLiveInvites({action:'respond',invitationId:invite.id,decision});
           details.textContent=decision==='accept'
-            ?'Invitation accepted. Co-host joining will be enabled after the LiveKit authorization update.'
+            ?'Invitation accepted. Join the host’s Live to start co-hosting.'
             :'Invitation declined.';
           actions.replaceChildren();
+          if(decision==='accept'){
+            const join=document.createElement('button');join.type='button';join.className='smallbtn';join.textContent='Join Duo Live';
+            join.addEventListener('click',()=>joinDuoLiveAsCohost(invite,join));
+            actions.append(join);
+          }
         } catch(error) {
           button.disabled=false;toast(error.message||'Could not respond to invitation.');
         }
@@ -1129,6 +1149,103 @@ async function playViewerMediaFromGesture() {
   if(failed)toast('Playback is still blocked. Check Safari site settings and tap Enable stream audio if shown.');
 }
 document.getElementById('livePlayMediaBtn').addEventListener('click',playViewerMediaFromGesture);
+function attachDuoRoomTrack(track, stage, participant, muted = false) {
+  if(track.kind==='audio'){
+    const audio=track.attach();
+    audio.autoplay=true;audio.style.display='none';stage.append(audio);
+    const play=audio.play?.();if(play&&typeof play.catch==='function')play.catch(()=>showViewerPlaybackFallback());
+    return;
+  }
+  const source=track.source;
+  if(source===LivekitClient.Track.Source.ScreenShare){
+    stage.replaceChildren();stage.dataset.videoSource='screen';
+    attachLiveTrack(track,stage,muted);return;
+  }
+  if(source!==LivekitClient.Track.Source.Camera||stage.dataset.videoSource==='screen')return;
+  let grid=stage.querySelector(':scope > .duo-camera-grid');
+  if(!grid){
+    const existing=[...stage.querySelectorAll(':scope > video')];
+    grid=document.createElement('div');grid.className='duo-camera-grid';
+    grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px;width:100%;height:100%;align-items:stretch';
+    stage.replaceChildren(grid);stage.dataset.videoSource='camera';
+    existing.forEach(video=>{
+      const tile=document.createElement('div');tile.className='duo-camera-tile';
+      tile.style.cssText='min-width:0;min-height:180px;position:relative;background:#080d19;border:1px solid #293451;border-radius:10px;overflow:hidden';
+      const media=document.createElement('div');media.className='duo-camera-media';media.style.cssText='width:100%;height:100%;min-height:180px';
+      video.style.cssText='width:100%;height:100%;max-height:520px;object-fit:contain';
+      media.append(video);tile.append(media);grid.append(tile);
+    });
+  }
+  const identity=participant?.identity||'participant';
+  let tile=[...grid.querySelectorAll('.duo-camera-tile')].find(node=>node.dataset.participantId===identity);
+  if(!tile){
+    tile=document.createElement('div');tile.className='duo-camera-tile';tile.dataset.participantId=identity;
+    tile.style.cssText='min-width:0;min-height:180px;position:relative;background:#080d19;border:1px solid #293451;border-radius:10px;overflow:hidden';
+    const label=document.createElement('div');label.className='duo-camera-label';
+    label.textContent=participant?.name|| (identity===currentUser?.id?'You':'Player');
+    label.style.cssText='position:absolute;z-index:1;left:8px;top:8px;padding:3px 8px;border-radius:20px;background:#000b;color:#fff;font-size:12px';
+    const media=document.createElement('div');media.className='duo-camera-media';media.style.cssText='width:100%;height:100%;min-height:180px';
+    tile.append(label,media);grid.append(tile);
+  }
+  const media=tile.querySelector('.duo-camera-media');
+  if(!media.querySelector('video'))attachLiveTrack(track,media,muted);
+}
+function removeDuoRoomTrack(track,participant,stage) {
+  track.detach().forEach(element=>element.remove());
+  if(track.kind==='video'&&track.source===LivekitClient.Track.Source.Camera){
+    const identity=participant?.identity;
+    const grid=stage.querySelector(':scope > .duo-camera-grid');
+    const tile=grid&&[...grid.querySelectorAll('.duo-camera-tile')].find(node=>node.dataset.participantId===identity);
+    if(tile)tile.remove();
+    if(grid&&!grid.querySelector('.duo-camera-tile')){grid.remove();stage.dataset.videoSource='';}
+  }
+}
+async function joinDuoLiveAsCohost(invite,button) {
+  if(!currentUser){toast('Sign in again before joining Duo Live.');return;}
+  if(activeStreamId){toast('End your own Live before joining as a co-host.');return;}
+  if(activeDuoCohostRoom){toast('You are already connected as a co-host.');return;}
+  if(!window.LivekitClient){toast('LiveKit browser SDK did not load. Refresh and try again.');return;}
+  if(button)button.disabled=true;
+  try{
+    if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}
+    openLivePanel('watch');
+    const stage=document.getElementById('liveStage');
+    stage.replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Joining the host’s Live…'}));
+    document.getElementById('liveHeading').textContent='Duo Live · @'+(invite.host_username||'Player');
+    document.getElementById('liveStatus').textContent='Checking invitation and connecting…';
+    const roomName='stream-'+invite.host_user_id;
+    const credentials=await requestLiveKitToken(roomName,'cohost');
+    const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
+    activeDuoCohostRoom=room;
+    room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>attachDuoRoomTrack(track,stage,participant));
+    room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>removeDuoRoomTrack(track,participant,stage));
+    room.on(LivekitClient.RoomEvent.Disconnected,()=>{
+      if(activeDuoCohostRoom===room){activeDuoCohostRoom=null;document.getElementById('liveStatus').textContent='Duo Live connection ended.';document.getElementById('leaveDuoLiveBtn').style.display='none';}
+    });
+    await room.connect(credentials.serverUrl,credentials.token);
+    await room.localParticipant.setCameraEnabled(true);
+    await room.localParticipant.setMicrophoneEnabled(true);
+    const camera=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+    if(camera?.track)attachDuoRoomTrack(camera.track,stage,room.localParticipant,true);
+    room.remoteParticipants.forEach(participant=>{
+      for(const publication of participant.trackPublications.values()){
+        if(publication.isSubscribed&&publication.track)attachDuoRoomTrack(publication.track,stage,participant);
+      }
+    });
+    document.getElementById('liveStatus').textContent='You are connected as a co-host. Keep this page open while the Live is running.';
+    document.getElementById('leaveDuoLiveBtn').style.display='inline-block';
+  }catch(error){
+    if(activeDuoCohostRoom){try{await activeDuoCohostRoom.disconnect();}catch{}activeDuoCohostRoom=null;}
+    document.getElementById('liveStatus').textContent=error.message||'Could not join Duo Live.';
+    toast(error.message||'Could not join Duo Live.');
+  }finally{if(button)button.disabled=false;}
+}
+document.getElementById('leaveDuoLiveBtn').addEventListener('click',async()=>{
+  const button=document.getElementById('leaveDuoLiveBtn');button.disabled=true;
+  try{if(activeDuoCohostRoom)await activeDuoCohostRoom.disconnect();}
+  catch(error){toast(error.message||'Could not leave the LiveKit room.');}
+  finally{activeDuoCohostRoom=null;button.style.display='none';button.disabled=false;document.getElementById('liveStatus').textContent='You left Duo Live.';document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'You are no longer co-hosting.'}));}
+});
 function attachLiveTrack(track, stage, muted = false) {
   const element = track.attach();
   if (element.tagName === 'VIDEO') {
@@ -1206,8 +1323,15 @@ async function watchLiveStream(stream) {
     room.on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged,()=>{
       if(enableAudio)enableAudio.style.display=room.canPlaybackAudio?'none':'inline-block';
     });
-    room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>{ const target=document.getElementById('liveStage'); if(track.kind==='video'){ if(publication?.source===LivekitClient.Track.Source.ScreenShare){target.replaceChildren();target.dataset.videoSource='screen';} else if(publication?.source===LivekitClient.Track.Source.Camera){if(target.dataset.videoSource==='screen')return;target.querySelectorAll('video').forEach(video=>video.remove());target.dataset.videoSource='camera';} } attachLiveTrack(track,target); });
-    room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>{ track.detach().forEach(element=>element.remove()); if(publication?.source===LivekitClient.Track.Source.ScreenShare){const camera=participant?.getTrackPublication(LivekitClient.Track.Source.Camera);if(camera?.isSubscribed&&camera.track){const target=document.getElementById('liveStage');target.replaceChildren();target.dataset.videoSource='camera';attachLiveTrack(camera.track,target);}} });
+    room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>attachDuoRoomTrack(track,document.getElementById('liveStage'),participant));
+    room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>{
+      const target=document.getElementById('liveStage');
+      removeDuoRoomTrack(track,participant,target);
+      if(publication?.source===LivekitClient.Track.Source.ScreenShare){
+        const camera=participant?.getTrackPublication(LivekitClient.Track.Source.Camera);
+        if(camera?.isSubscribed&&camera.track){target.replaceChildren();target.dataset.videoSource='camera';attachDuoRoomTrack(camera.track,target,participant);}
+      }
+    });
     room.on(LivekitClient.RoomEvent.Disconnected,()=>{
       const enableAudio=document.getElementById('liveEnableAudioBtn');if(enableAudio)enableAudio.style.display='none';
       document.getElementById('liveStatus').textContent='Disconnected.';
@@ -1216,7 +1340,7 @@ async function watchLiveStream(stream) {
     await room.connect(credentials.serverUrl,credentials.token);
     document.getElementById('liveStatus').textContent='Connected · '+room.numParticipants+' participant(s)';
     if(enableAudio)enableAudio.style.display=room.canPlaybackAudio?'none':'inline-block';
-    room.remoteParticipants.forEach(p=>{const pubs=[...p.trackPublications.values()].filter(pub=>pub.isSubscribed&&pub.track);const screen=pubs.find(pub=>pub.source===LivekitClient.Track.Source.ScreenShare);const camera=pubs.find(pub=>pub.source===LivekitClient.Track.Source.Camera);const target=document.getElementById('liveStage');const video=screen||camera;if(video){target.dataset.videoSource=screen?'screen':'camera';attachLiveTrack(video.track,target);}pubs.filter(pub=>pub.track.kind==='audio').forEach(pub=>attachLiveTrack(pub.track,target));});
+    room.remoteParticipants.forEach(participant=>{for(const publication of participant.trackPublications.values()){if(publication.isSubscribed&&publication.track)attachDuoRoomTrack(publication.track,document.getElementById('liveStage'),participant);}});
   } catch(err) {
     document.getElementById('liveStatus').textContent=err.message||'Unable to join this stream.';
     toast(err.message||'Unable to join stream.');
@@ -1279,6 +1403,8 @@ async function startLiveBroadcast(){
     const credentials=await requestLiveKitToken('stream-'+currentUser.id,'publisher');
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
     activeLiveRoom=room;
+    room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>attachDuoRoomTrack(track,document.getElementById('liveStage'),participant));
+    room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>removeDuoRoomTrack(track,participant,document.getElementById('liveStage')));
     room.on(LivekitClient.RoomEvent.LocalTrackUnpublished, (publication) => {
       if(publication.source===LivekitClient.Track.Source.ScreenShare){
         liveScreenShareEnabled=false;updateLiveControlLabels();
@@ -1293,7 +1419,7 @@ async function startLiveBroadcast(){
       const camera=await room.localParticipant.setCameraEnabled(true);
       liveCameraEnabled=!!camera;
       const cameraPublication=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
-      if(cameraPublication?.track)attachLiveTrack(cameraPublication.track,stage,true);
+      if(cameraPublication?.track)attachDuoRoomTrack(cameraPublication.track,stage,room.localParticipant,true);
     } catch(cameraError) {
       startupIssues.push('Camera unavailable: '+(cameraError.message||'permission or device issue'));
     }
