@@ -79,8 +79,24 @@ async function refreshSession(){
   if(typeof loadSupportTickets==='function') loadSupportTickets();
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display='none',3000)}
-document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();const type=b.dataset.modal;document.getElementById('modalTitle').textContent=type==='login'?'Welcome back':type==='stream'?'Create a live stream':'Join StreamArena';document.getElementById('modalDesc').textContent=type==='stream'?'Start a LiveKit camera and microphone broadcast.':type==='login'?'Sign in with your email and password.':'Create your account to join the arena.';document.getElementById('modalBackdrop').style.display='grid'}));
-document.getElementById('closeModal').onclick=()=>document.getElementById('modalBackdrop').style.display='none';document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')e.currentTarget.style.display='none'};
+function openAuthModal(type='signup'){
+  const login=type==='login';
+  document.getElementById('modalTitle').textContent=login?'Welcome back':'Join StreamArena';
+  document.getElementById('modalDesc').textContent=login?'Sign in with your email and password.':'Create your account to join the arena.';
+  const username=document.getElementById('modalName');
+  const country=document.getElementById('modalCountry');
+  username.required=!login;
+  username.style.display=login?'none':'';
+  country.style.display=login?'none':'';
+  username.value='';
+  document.getElementById('modalEmail').value='';
+  document.getElementById('modalPassword').value='';
+  document.getElementById('modalBackdrop').style.display='grid';
+}
+document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();openAuthModal(b.dataset.modal)}));
+function closeAuthModal(){document.getElementById('modalBackdrop').style.display='none';document.getElementById('modalForm').reset();document.getElementById('modalName').required=true;document.getElementById('modalName').style.display='';document.getElementById('modalCountry').style.display='';}
+document.getElementById('closeModal').onclick=closeAuthModal;
+document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')closeAuthModal()};
 document.getElementById('modalForm').onsubmit=async (e) => {
   e.preventDefault();
   const title=document.getElementById('modalTitle').textContent;
