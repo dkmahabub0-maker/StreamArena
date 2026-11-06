@@ -307,6 +307,7 @@ async function loadLiveStreams() {
 async function watchLiveStream(stream) {
   if (!currentUser) { toast('Please log in to watch live streams.'); return; }
   if (!window.LivekitClient) { toast('LiveKit browser SDK did not load. Refresh and try again.'); return; }
+  if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}
   openLivePanel('watch');
   document.getElementById('liveHeading').textContent=stream.title;
   document.getElementById('liveStatus').textContent='Connecting to live stream…';
@@ -359,21 +360,28 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
     button.style.display='none';document.getElementById('endLiveBtn').style.display='';
     await loadLiveStreams();
   } catch(err) {
+    if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch{} activeLiveRoom=null;}
     if(createdId) await supabaseClient.from('streams').update({is_live:false}).eq('id',createdId).eq('user_id',currentUser.id);
+    activeStreamId=null;
+    document.getElementById('endLiveBtn').style.display='none';
+    document.getElementById('startLiveBtn').style.display='';
+    document.getElementById('liveTitle').style.display='';
     document.getElementById('liveStatus').textContent=err.message||'Could not start stream.';
     toast(err.message||'Could not start stream.');
+    await loadLiveStreams();
   } finally {button.disabled=false;}
 });
 document.getElementById('endLiveBtn').addEventListener('click',async()=>{
   const button=document.getElementById('endLiveBtn');button.disabled=true;
   try {
-    if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}
     if(activeStreamId){
       const result=await supabaseClient.from('streams').update({is_live:false}).eq('id',activeStreamId).eq('user_id',currentUser.id);
       if(result.error)throw result.error;
     }
+    if(activeLiveRoom){try{await activeLiveRoom.disconnect();}finally{activeLiveRoom=null;}}
     activeStreamId=null;document.getElementById('liveStatus').textContent='Stream ended.';
     document.getElementById('endLiveBtn').style.display='none';
+    document.getElementById('startLiveBtn').style.display='';
     await loadLiveStreams();
   } catch(err){toast(err.message||'Could not end stream.');}
   finally{button.disabled=false;}
