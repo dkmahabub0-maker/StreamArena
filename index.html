@@ -710,7 +710,7 @@ function updateLiveControlLabels() {
 function showLocalBroadcastVideo(source) {
   if(!activeLiveRoom)return;
   const stage=document.getElementById('liveStage');
-  if(source===LivekitClient.Track.Source.ScreenShare){stage.replaceChildren();stage.dataset.videoSource='screen';}
+  if(source===LivekitClient.Track.Source.ScreenShare){const audio=[...stage.querySelectorAll('audio')];stage.replaceChildren(...audio);stage.dataset.videoSource='screen';}
   if(source===LivekitClient.Track.Source.Camera&&!liveCameraEnabled){
     const grid=stage.querySelector(':scope > .duo-camera-grid');
     const tile=grid&&[...grid.querySelectorAll('.duo-camera-tile')].find(node=>node.dataset.participantId===activeLiveRoom.localParticipant.identity);
@@ -1160,7 +1160,7 @@ function attachDuoRoomTrack(track, stage, participant, muted = false) {
   }
   const source=track.source;
   if(source===LivekitClient.Track.Source.ScreenShare){
-    stage.replaceChildren();stage.dataset.videoSource='screen';
+    const audio=[...stage.querySelectorAll('audio')];stage.replaceChildren(...audio);stage.dataset.videoSource='screen';
     attachLiveTrack(track,stage,muted);return;
   }
   if(source!==LivekitClient.Track.Source.Camera||stage.dataset.videoSource==='screen')return;
