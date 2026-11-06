@@ -838,20 +838,21 @@ document.getElementById('liveEnableAudioBtn').addEventListener('click',async()=>
 });
 const liveControlMenuToggle=document.getElementById('liveControlMenuToggle');
 const liveControlPopover=document.getElementById('liveBroadcastControls');
-function setLiveControlMenuOpen(open) {
+function setLiveControlMenuOpen(open,restoreFocus=false) {
   if(!liveControlPopover||!liveControlMenuToggle)return;
   liveControlPopover.style.display=open?'flex':'none';
   liveControlPopover.setAttribute('aria-hidden',String(!open));
   liveControlMenuToggle.setAttribute('aria-expanded',String(open));
   liveControlMenuToggle.setAttribute('aria-label',open?'Close live controls':'Open live controls');
   liveControlMenuToggle.textContent=open?'×':'☰';
+  if(!open&&restoreFocus&&liveControlMenuToggle.style.display!=='none')liveControlMenuToggle.focus();
 }
 liveControlMenuToggle?.addEventListener('click',()=>setLiveControlMenuOpen(liveControlMenuToggle.getAttribute('aria-expanded')!=='true'));
-document.getElementById('liveScreenShareBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false);toggleLiveScreenShare();});
-document.getElementById('liveCameraSwitchBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false);switchLiveCamera();});
-document.getElementById('liveCameraToggleBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false);toggleLiveCamera();});
-document.getElementById('liveMicToggleBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false);toggleLiveMicrophone();});
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&liveControlMenuToggle?.getAttribute('aria-expanded')==='true')setLiveControlMenuOpen(false);});
+document.getElementById('liveScreenShareBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false,true);toggleLiveScreenShare();});
+document.getElementById('liveCameraSwitchBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false,true);switchLiveCamera();});
+document.getElementById('liveCameraToggleBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false,true);toggleLiveCamera();});
+document.getElementById('liveMicToggleBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false,true);toggleLiveMicrophone();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&liveControlMenuToggle?.getAttribute('aria-expanded')==='true'){event.preventDefault();setLiveControlMenuOpen(false,true);}});
 document.addEventListener('click',event=>{
   if(liveControlMenuToggle?.getAttribute('aria-expanded')==='true'&&!liveControlPopover?.contains(event.target)&&!liveControlMenuToggle?.contains(event.target))setLiveControlMenuOpen(false);
 });
