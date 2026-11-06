@@ -1059,6 +1059,25 @@ async function watchLiveStream(stream) {
     room.on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged,()=>{
       if(enableAudio)enableAudio.style.display=room.canPlaybackAudio?'none':'inline-block';
     });
+    room.on(LivekitClient.RoomEvent.Reconnecting,()=>{
+      if(activeLiveRoom!==room)return;
+      document.getElementById('liveStatus').textContent='Connection interrupted · trying to reconnect. Keep this page open.';
+    });
+    room.on(LivekitClient.RoomEvent.Reconnected,async()=>{
+      if(activeLiveRoom!==room)return;
+      document.getElementById('liveStatus').textContent='Reconnected · restoring live playback…';
+      const stage=document.getElementById('liveStage');
+      const media=[...stage.querySelectorAll('video,audio')];
+      const results=await Promise.allSettled(media.map(element=>element.play()));
+      if(activeLiveRoom!==room)return;
+      const failed=results.some(result=>result.status==='rejected');
+      const videoPresent=media.some(element=>element.tagName==='VIDEO');
+      const button=document.getElementById('livePlayMediaBtn');
+      if(button)button.style.display=failed?'inline-block':'none';
+      document.getElementById('liveStatus').textContent=failed
+        ?'Reconnected · tap Enable stream playback if video or audio does not resume.'
+        :videoPresent?'Reconnected · live video playback resumed.':'Reconnected · waiting for the broadcaster video track.';
+    });
     room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>{ const target=document.getElementById('liveStage'); if(track.kind==='video'){ if(publication?.source===LivekitClient.Track.Source.ScreenShare){target.replaceChildren();target.dataset.videoSource='screen';} else if(publication?.source===LivekitClient.Track.Source.Camera){if(target.dataset.videoSource==='screen')return;target.querySelectorAll('video').forEach(video=>video.remove());target.dataset.videoSource='camera';} } attachLiveTrack(track,target); });
     room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>{ track.detach().forEach(element=>element.remove()); if(publication?.source===LivekitClient.Track.Source.ScreenShare){const camera=participant?.getTrackPublication(LivekitClient.Track.Source.Camera);if(camera?.isSubscribed&&camera.track){const target=document.getElementById('liveStage');target.replaceChildren();target.dataset.videoSource='camera';attachLiveTrack(camera.track,target);}} });
     room.on(LivekitClient.RoomEvent.Disconnected,()=>{
