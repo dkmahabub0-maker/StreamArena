@@ -45,6 +45,17 @@
     margin:0!important;
   }
 }
+
+/* Keep the live setup usable on short mobile screens. */
+#liveBackdrop{overflow-y:auto!important;align-items:flex-start!important;padding:12px!important;-webkit-overflow-scrolling:touch}
+#liveBackdrop>.modal{width:min(760px,100%)!important;max-height:calc(100dvh - 24px)!important;overflow-y:auto!important;overscroll-behavior:contain;margin:auto 0!important;padding-bottom:24px}
+#liveSetup,#livePreflight{min-width:0}
+#liveSetup>button,#liveSetup .btn,#livePreflight .btn{min-height:46px}
+#liveThumbnailEditor{display:none;gap:9px;padding:12px;border:1px solid #394466;border-radius:12px;background:#0b1020}
+#liveThumbnailCanvas{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#03050a;border-radius:8px;touch-action:pan-y}
+#liveThumbnailEditor label{display:block;margin:5px 0}
+#liveThumbnailEditor input[type=range],#liveThumbnailEditor input[type=text],#liveThumbnailEditor select{width:100%;min-height:40px;background:#11182a;color:white;border:1px solid #394466;border-radius:8px;padding:8px}
+@media(max-width:760px){#liveBackdrop{padding:8px!important}#liveBackdrop>.modal{max-height:calc(100dvh - 16px)!important;width:100%!important;margin:0!important}#liveStage{min-height:180px!important}}
 </style>
 </head>
 <body>
@@ -134,6 +145,14 @@
   <select id="liveTournament" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="">No tournament link</option></select>
   <label class="sub" for="liveThumbnailFile">Custom thumbnail (JPG, PNG or WebP · max 5 MB)</label>
   <input id="liveThumbnailFile" type="file" accept="image/jpeg,image/png,image/webp" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+  <div id="liveThumbnailEditor">
+    <b>Edit your thumbnail</b>
+    <canvas id="liveThumbnailCanvas" width="1280" height="720" aria-label="Editable thumbnail preview"></canvas>
+    <label for="liveThumbnailZoom">Crop / Zoom</label><input id="liveThumbnailZoom" type="range" min="1" max="2.5" step="0.05" value="1">
+    <label for="liveThumbnailText">Text on thumbnail (optional)</label><input id="liveThumbnailText" type="text" maxlength="70" placeholder="Add your own title">
+    <label for="liveThumbnailTextColor">Text color</label><select id="liveThumbnailTextColor"><option value="#ffffff">White</option><option value="#ffdf4d">Yellow</option><option value="#ff526b">Red</option><option value="#65d7ff">Blue</option></select>
+    <div class="sub">Your edited image is saved as the stream thumbnail. You can change it any time before going live.</div>
+  </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <img id="liveThumbnailPreview" alt="Thumbnail preview" style="display:none;width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid #394466">
     <button class="smallbtn" id="clearLiveThumbnail" type="button">Remove thumbnail</button>
@@ -141,7 +160,7 @@
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn" id="saveLiveSettingsBtn" type="button">Save live setup</button>
-    <button class="btn primary" id="startLiveBtn" type="button">Preview Thumbnail</button>
+    <button class="btn primary" id="startLiveBtn" type="button">Review &amp; Continue to Go Live</button>
   </div>
 </div>
 <div id="livePreflight" style="display:none;gap:10px;margin-top:14px;padding:14px;border:1px solid #394466;border-radius:12px;background:#0b1020">
@@ -676,9 +695,9 @@ async function saveLiveSettings(options={}) {
   if(file){
     if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPG, PNG or WebP image.');
     if(file.size>5*1024*1024)throw new Error('Thumbnail must be 5 MB or smaller.');
-    const extension=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-    const path=currentUser.id+'/'+Date.now()+'.'+extension;
-    const upload=await supabaseClient.storage.from('stream-thumbnails').upload(path,file,{contentType:file.type,upsert:false});
+    const editedBlob=await getEditedThumbnailBlob();
+    const path=currentUser.id+'/'+Date.now()+'.jpg';
+    const upload=await supabaseClient.storage.from('stream-thumbnails').upload(path,editedBlob,{contentType:'image/jpeg',upsert:false});
     if(upload.error)throw upload.error;
     thumbnailUrl=supabaseClient.storage.from('stream-thumbnails').getPublicUrl(path).data.publicUrl;
   }
@@ -699,15 +718,41 @@ document.getElementById('saveLiveSettingsBtn').addEventListener('click',async()=
   catch(err){document.getElementById('liveSettingsStatus').textContent=err.message||'Could not save live setup.';toast(err.message||'Could not save live setup.');}
   finally{button.disabled=false;}
 });
+let liveThumbnailImage=null;
+function drawLiveThumbnail(){
+  const canvas=document.getElementById('liveThumbnailCanvas');if(!canvas||!liveThumbnailImage)return;
+  const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
+  const zoom=Number(document.getElementById('liveThumbnailZoom').value||1);
+  const scale=Math.max(w/liveThumbnailImage.width,h/liveThumbnailImage.height)*zoom;
+  const sw=w/scale,sh=h/scale,sx=(liveThumbnailImage.width-sw)/2,sy=(liveThumbnailImage.height-sh)/2;
+  ctx.clearRect(0,0,w,h);ctx.drawImage(liveThumbnailImage,sx,sy,sw,sh,0,0,w,h);
+  const caption=document.getElementById('liveThumbnailText').value.trim();
+  if(caption){
+    const fontSize=Math.max(34,Math.min(76,Math.round(w/Math.max(10,caption.length)*1.25)));
+    ctx.fillStyle='rgba(0,0,0,.58)';ctx.fillRect(0,h-142,w,142);
+    ctx.font='900 '+fontSize+'px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.lineWidth=8;ctx.strokeStyle='rgba(0,0,0,.8)';ctx.strokeText(caption,w/2,h-70,w-80);
+    ctx.fillStyle=document.getElementById('liveThumbnailTextColor').value;ctx.fillText(caption,w/2,h-70,w-80);
+  }
+}
+function getEditedThumbnailBlob(){
+  return new Promise((resolve,reject)=>{
+    const canvas=document.getElementById('liveThumbnailCanvas');
+    if(!liveThumbnailImage||!canvas){reject(new Error('Select a thumbnail image first.'));return;}
+    canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not create edited thumbnail.')),'image/jpeg',.9);
+  });
+}
 document.getElementById('liveThumbnailFile').addEventListener('change',event=>{
   const file=event.target.files?.[0];if(!file)return;
-  if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024){
-    event.target.value='';toast('Choose a JPG, PNG or WebP image up to 5 MB.');return;
-  }
-  clearSavedLiveThumbnail=false;renderLiveThumbnail(URL.createObjectURL(file));
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024){event.target.value='';toast('Choose a JPG, PNG or WebP image up to 5 MB.');return;}
+  const reader=new FileReader();reader.onload=()=>{
+    const image=new Image();image.onload=()=>{liveThumbnailImage=image;document.getElementById('liveThumbnailEditor').style.display='grid';drawLiveThumbnail();clearSavedLiveThumbnail=false;renderLiveThumbnail(URL.createObjectURL(file));};image.onerror=()=>toast('Could not read this image.');image.src=reader.result;
+  };reader.onerror=()=>toast('Could not read this image file.');reader.readAsDataURL(file);
 });
+['liveThumbnailZoom','liveThumbnailText','liveThumbnailTextColor'].forEach(id=>document.getElementById(id).addEventListener('input',drawLiveThumbnail));
 document.getElementById('clearLiveThumbnail').addEventListener('click',()=>{
-  document.getElementById('liveThumbnailFile').value='';clearSavedLiveThumbnail=true;renderLiveThumbnail(null);
+  document.getElementById('liveThumbnailFile').value='';liveThumbnailImage=null;document.getElementById('liveThumbnailEditor').style.display='none';
+  clearSavedLiveThumbnail=true;renderLiveThumbnail(null);
 });
 function closeLivePanel() {
   if (activeStreamId) {
