@@ -32,6 +32,19 @@
 <div class="tourney" data-type="Free"><div class="tour-icon">🎯</div><div class="tour-info"><h3>PUBG Mobile Weekly</h3><p>👥 Squad · 🇮🇳 India</p><p>Prize pool: <b style="color:var(--green)">Free entry</b></p><div class="tour-foot"><span class="sub">Registration open</span><button class="btn primary smallbtn join">Join Now</button></div></div></div>
 <div class="tourney" data-type="Paid" style="display:none"><div class="tour-icon">⚡</div><div class="tour-info"><h3>Pro Squad Championship</h3><p>👥 Squad · 🌍 Global</p><p>Entry: <b style="color:#ffd166">$2 demo</b></p><div class="tour-foot"><span class="sub">Demo listing</span><button class="btn smallbtn" disabled>Coming soon</button></div></div></div>
 <div class="tourney" data-type="Paid" style="display:none"><div class="tour-icon">🪖</div><div class="tour-info"><h3>BGMI Champions Cup</h3><p>👥 Squad · 🇮🇳 India</p><p>Entry: <b style="color:#ffd166">$1 demo</b></p><div class="tour-foot"><span class="sub">Demo listing</span><button class="btn smallbtn" disabled>Coming soon</button></div></div></div>
+</div>
+<div id="adminTournamentPanel" style="display:none;margin-top:16px;padding:14px;border:1px solid #5745a8;border-radius:12px;background:#0b1020">
+  <div class="section-head"><h3 style="margin:0">Admin · Tournament Management</h3><span class="sub">Admin role required</span></div>
+  <p class="sub">Only free tournaments can be created here. Paid entry remains disabled until payment processing and verification are implemented.</p>
+  <form id="adminTournamentForm" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+    <input id="adminTourTitle" required maxlength="120" placeholder="Tournament title" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+    <input id="adminTourPrize" type="number" min="0" max="100000000" step="0.01" placeholder="Prize pool (display amount)" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+    <input id="adminTourStarts" type="datetime-local" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+    <select id="adminTourStatus" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="upcoming">Upcoming</option><option value="registration_open">Registration open</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select>
+    <button class="btn primary" type="submit" style="grid-column:1/-1;justify-self:start">Create free tournament</button>
+  </form>
+  <div id="adminTournamentList" style="margin-top:12px"></div>
+  <div id="adminRegistrationList" style="margin-top:12px"></div>
 </div></section>
 <section class="section" id="help">
 <div class="section-head"><h2>Help Center & Support</h2><span class="sub">Account help · Support tickets</span></div>
@@ -154,6 +167,54 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.qu
 document.querySelectorAll('[data-tour]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tour]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tourney').forEach(c=>c.style.display=c.dataset.type===b.dataset.tour?'flex':'none')});
 document.querySelectorAll('.like').forEach(b=>b.onclick=()=>toast('These are sample streams. Likes become available when real streams are published.'));
 document.querySelectorAll('.follow').forEach(b=>b.onclick=()=>toast('This sample streamer is not linked to a registered account yet.'));
+async function refreshAdminTournamentPanel(){
+ const panel=document.getElementById('adminTournamentPanel');if(!panel)return;
+ const isAdmin=currentUser?.app_metadata?.role==='admin';panel.style.display=isAdmin?'block':'none';
+ if(!isAdmin)return;
+ const list=document.getElementById('adminTournamentList');list.textContent='Loading tournaments…';
+ const q=await supabaseClient.from('tournaments').select('id,title,entry_type,entry_fee,prize_pool,status,starts_at').order('created_at',{ascending:false}).limit(50);
+ if(q.error){list.textContent='Could not load tournaments: '+q.error.message;return;}
+ list.replaceChildren();
+ for(const t of q.data||[]){
+  const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #26304a';
+  const label=document.createElement('span');label.style.cssText='flex:1;min-width:150px';label.textContent=t.title+' · '+(t.entry_type||'free')+' · '+(t.status||'upcoming');
+  const count=document.createElement('span');count.className='sub';count.textContent='Loading registrations';
+  const status=document.createElement('select');['upcoming','registration_open','completed','cancelled'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;o.selected=v===t.status;status.append(o);});
+  status.style.cssText='background:#11182a;color:white;border:1px solid #293451;border-radius:8px;padding:6px';
+  status.onchange=async()=>{status.disabled=true;const u=await supabaseClient.from('tournaments').update({status:status.value}).eq('id',t.id);status.disabled=false;if(u.error){toast(u.error.message);status.value=t.status;}else{t.status=status.value;label.textContent=t.title+' · '+t.entry_type+' · '+t.status;toast('Tournament status updated.');}};
+  const regs=await supabaseClient.from('tournament_registrations').select('id,user_id,created_at').eq('tournament_id',t.id).order('created_at',{ascending:false}).limit(100);
+  count.textContent=(regs.error?'Registration count unavailable':(regs.data?.length||0)+' registrations');
+  const show=document.createElement('button');show.type='button';show.className='smallbtn';show.textContent='View players';
+  show.onclick=async()=>{
+   const out=document.getElementById('adminRegistrationList');out.replaceChildren();
+   const heading=document.createElement('h4');heading.textContent='Registrations · '+t.title;out.append(heading);
+   if(regs.error){out.append(document.createTextNode(regs.error.message));return;}
+   const ids=[...new Set((regs.data||[]).map(x=>x.user_id).filter(Boolean))];
+   let profiles=[];if(ids.length){const p=await supabaseClient.from('profiles').select('id,username').in('id',ids);if(!p.error)profiles=p.data||[];}
+   const names=new Map(profiles.map(p=>[p.id,p.username||'Player']));
+   if(!ids.length){out.append(document.createTextNode('No registrations yet.'));return;}
+   ids.forEach(id=>{const line=document.createElement('p');line.className='sub';line.textContent=(names.get(id)||'Player')+' · '+id;out.append(line);});
+  };
+  row.append(label,count,status,show);list.append(row);
+ }
+}
+document.getElementById('adminTournamentForm').onsubmit=async e=>{
+ e.preventDefault();if(currentUser?.app_metadata?.role!=='admin'){toast('Admin access required.');return;}
+ const form=e.currentTarget,button=form.querySelector('button[type="submit"]');
+ const title=document.getElementById('adminTourTitle').value.trim();
+ const prize=Number(document.getElementById('adminTourPrize').value||0);
+ const starts=document.getElementById('adminTourStarts').value;
+ const status=document.getElementById('adminTourStatus').value;
+ if(title.length<3||title.length>120||!Number.isFinite(prize)||prize<0){toast('Check the tournament title and prize amount.');return;}
+ button.disabled=true;
+ try{
+  const payload={title,entry_type:'free',entry_fee:0,prize_pool:prize,status,starts_at:starts?new Date(starts).toISOString():null};
+  const saved=await supabaseClient.from('tournaments').insert(payload);
+  if(saved.error)throw saved.error;
+  form.reset();toast('Free tournament created.');await refreshAdminTournamentPanel();
+ }catch(err){toast(err.message||'Tournament could not be created.');}
+ finally{button.disabled=false;}
+};
 document.querySelectorAll('.join').forEach(b=>b.onclick=async()=>{
   if(!currentUser){toast('Please log in before registering.');document.querySelector('[data-modal="login"]').click();return;}
   const card=b.closest('.tourney');const title=card?.querySelector('h3')?.textContent?.trim();if(!title)return;
@@ -456,7 +517,7 @@ document.getElementById('endLiveBtn').addEventListener('click',async()=>{
   finally{button.disabled=false;}
 });
 const previousRefreshSession=refreshSession;
-refreshSession=async function(){await previousRefreshSession();await loadLiveStreams();};
+refreshSession=async function(){await previousRefreshSession();await loadLiveStreams();await refreshAdminTournamentPanel();};
 loadLiveStreams();
 setInterval(()=>{if(document.visibilityState!=='hidden')loadLiveStreams();},15000);
 
