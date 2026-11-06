@@ -1,6 +1,13 @@
 name: Validate Duo Live draft
 
 on:
+  push:
+    branches:
+      - "feat/duo-live-invitation-security-draft"
+    paths:
+      - "supabase/functions/duo-live-invites/**"
+      - "docs/duo-live/**"
+      - ".github/workflows/validate-duo-live-draft.yml"
   pull_request:
     paths:
       - "supabase/functions/duo-live-invites/**"
