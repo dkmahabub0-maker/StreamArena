@@ -117,7 +117,7 @@ begin
  if auth.uid() is null then raise exception 'Sign in first.'; end if;
  select role into v_actor_role from public.family_members where family_id=p_family_id and user_id=auth.uid();
  select role into v_target_role from public.family_members where family_id=p_family_id and user_id=p_user_id;
- if v_actor_role not in ('owner','admin') then raise exception 'Only a Family owner or admin can remove members.'; end if;
+ if coalesce(v_actor_role,'') not in ('owner','admin') then raise exception 'Only a Family owner or admin can remove members.'; end if;
  if v_target_role is null then raise exception 'Member not found.'; end if;
  if v_target_role='owner' then raise exception 'The Family owner cannot be removed.'; end if;
  if v_actor_role='admin' and v_target_role='admin' then raise exception 'An admin cannot remove another admin.'; end if;
@@ -154,3 +154,32 @@ begin
   alter publication supabase_realtime add table public.family_messages;
  end if;
 end $$;
+
+
+create or replace function public.set_family_member_role(p_family_id uuid,p_user_id uuid,p_role text)
+returns boolean language plpgsql security definer set search_path=public,pg_temp
+as $$
+begin
+ if auth.uid() is null then raise exception 'Sign in first.'; end if;
+ if not exists(select 1 from public.family_members where family_id=p_family_id and user_id=auth.uid() and role='owner') then raise exception 'Only the Family owner can change admin roles.'; end if;
+ if p_role not in ('admin','member') then raise exception 'Role must be admin or member.'; end if;
+ if p_user_id=auth.uid() then raise exception 'The owner role cannot be changed here.'; end if;
+ update public.family_members set role=p_role where family_id=p_family_id and user_id=p_user_id and role<>'owner';
+ if not found then raise exception 'Family member not found.'; end if;
+ return true;
+end; $$;
+
+create or replace function public.delete_family(p_family_id uuid)
+returns boolean language plpgsql security definer set search_path=public,pg_temp
+as $$
+begin
+ if auth.uid() is null then raise exception 'Sign in first.'; end if;
+ delete from public.families where id=p_family_id and owner_id=auth.uid();
+ if not found then raise exception 'Only the Family owner can delete this Family.'; end if;
+ return true;
+end; $$;
+
+revoke all on function public.set_family_member_role(uuid,uuid,text) from public,anon;
+revoke all on function public.delete_family(uuid) from public,anon;
+grant execute on function public.set_family_member_role(uuid,uuid,text) to authenticated;
+grant execute on function public.delete_family(uuid) to authenticated;
