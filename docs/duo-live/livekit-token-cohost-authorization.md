@@ -1,36 +1,31 @@
-# Required `livekit-token` co-host authorization change
+# Duo Live co-host token authorization draft
 
-The production function currently validates the bearer token manually and permits only `publisher` and `viewer`. Keep that existing session validation. Do not enable arbitrary room publishing.
+**Status: draft only. This file is not deployed.** The source in `supabase/functions/livekit-token/index.ts` is based on the currently deployed `livekit-token` v6 source inspected on 2026-11-06. It preserves the existing `publisher` and `viewer` paths and adds a narrowly scoped `cohost` path.
 
-## Request contract
+## Authorization checks
 
-Accept `role: "cohost"` only with a valid `roomName = stream-<host UUID>`. Resolve the host UUID from the validated room name, not from a second body field.
+For `role: "cohost"`, the server:
+1. Authenticates the caller by validating their Supabase bearer token with `/auth/v1/user`. The caller ID is never accepted from the request body.
+2. Derives the host ID only from the requested `stream-<host UUID>` room name.
+3. Uses the server-only `SUPABASE_SERVICE_ROLE_KEY` to confirm a live stream row owned by that host, with `is_live=true` and a heartbeat newer than 120 seconds.
+4. Requires exactly an `accepted` row in `stream_cohost_invites` matching the exact stream ID, host ID, and authenticated invitee ID.
+5. Uses the LiveKit RoomService API to confirm the host participant is still connected and publishing at least one track in that exact room.
+6. Issues a 60-second token scoped to that one room. It permits publishing only `camera` and `microphone`, subscribing to other tracks, and explicitly disables data publishing. It grants no room-admin, recording, screen-share, or room-creation permission.
 
-## Required server-side checks before minting a token
+The 60-second token expiry limits the period in which a previously issued but unused token could be used after an invitation is revoked. LiveKit token expiry applies to the initial connection; a connected participant is removed by the invitation revoke action. Revocation still depends on successful server-side participant removal; if that fails, the UI must surface the failure and the host should end the Live if necessary.
 
-1. Read `SUPABASE_SERVICE_ROLE_KEY` only inside the Edge Function.
-2. Query `stream_cohost_invites` for all of:
-   - `host_user_id = <room owner>`
-   - `invitee_user_id = <authenticated user.id>`
-   - `status = 'accepted'`
-   - The invitation's `stream_id` matches the host's current live stream.
-   - `expires_at` is checked only while the invitation is pending. Once accepted, the co-host authorization remains active until revoked or the stream ends.
-3. Verify the stream is live with a fresh heartbeat.
-4. Verify the LiveKit room currently contains the host participant. Enforce the single-cohost slot and reject a second co-host.
-5. Issue a token with `identity = authenticated user.id`, `roomJoin = true`, `canPublish = true`, `canSubscribe = true`, `canPublishData = false`, and `canPublishSources = ["camera", "microphone"]`. LiveKit's v2.19.2 `VideoGrant.canPublishSources` explicitly supersedes `canPublish` and limits the allowed track sources. Do not grant room administration, recording, screen-share, or screen-share-audio permissions. See the [LiveKit VideoGrant reference](https://docs.livekit.io/reference/server-sdk-js/interfaces/VideoGrant.html).
-6. Preserve existing publisher/viewer checks unchanged.
+## Required deployment prerequisites
 
-## Revocation semantics
+- Review and apply the separate draft SQL schema in `docs/duo-live/stream_cohost_invites_draft.sql` through an approved migration. It is not in `supabase/migrations` and has not been applied to production.
+- Deploy the `duo-live-invites` Edge Function from the matching reviewed branch.
+- Ensure `SUPABASE_SERVICE_ROLE_KEY` is configured as a server-side Edge Function secret. It must never be exposed to the browser.
+- Preserve `verify_jwt=false` for this function because the current function performs explicit bearer-token validation itself. The request handler still rejects missing/invalid user sessions.
+- Deploy the replacement `livekit-token` function only after reviewing the diff against the live v6 function and testing with two signed-in accounts plus a separate viewer.
 
-Revoking the database invitation prevents future token issuance. Remove the active participant using `RoomServiceClient.removeParticipant(roomName, inviteeUserId)` and handle failure explicitly. LiveKit Cloud documents that this operation also revokes the participant's current access token; if the participant has already left, the API can still revoke the token while returning a participant-not-found error. See the [LiveKit participant management documentation](https://docs.livekit.io/intro/basics/rooms-participants-tracks/participants/). Never claim a successful kick unless the API outcome is understood and handled.
+## Not enabled by this PR
 
-## Security tests required
+No production migration, secret change, Edge Function deployment, LiveKit server setting, website deployment, or PR merge has been performed. The frontend does not yet connect the co-host to the room or render two camera tiles. This PR only prepares the server-side authorization path.
 
-- Authenticated non-invitee requests `cohost` -> 403.
-- Invitee with pending, declined, revoked, or expired-pending invitation -> denied.
-- Accepted invite for another host/room -> denied.
-- Accepted invite with ended/stale stream -> denied.
-- Uninvited account knowing the room name -> denied.
-- Host publisher and viewer behavior remain unchanged.
-- Co-host can publish camera and microphone but cannot publish screen-share or screen-share-audio.
-- Co-host has no room-admin or room-record grants.
+## Validation and limitations
+
+The Deno type-check workflow validates the function source. It does not prove the production secret is configured, the migration is applied, the LiveKit Cloud room behavior, or end-to-end co-host publishing. Those require an approved staging deployment and a two-account integration test.
