@@ -1173,7 +1173,13 @@ async function startLiveBroadcast(){
       :'Camera and microphone are ready. Use Share game screen to capture a supported screen or browser tab.';
     updateLiveControlLabels();
     document.getElementById('liveHeading').textContent=title;
-    document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.';
+    let captureResolution='';
+    try {
+      const capturedTrack=activeLiveRoom?.localParticipant?.getTrackPublication(LivekitClient.Track.Source.Camera)?.track?.mediaStreamTrack;
+      const captureSettings=capturedTrack?.getSettings?.();
+      if(captureSettings?.width&&captureSettings?.height)captureResolution=' · camera capture '+captureSettings.width+'×'+captureSettings.height;
+    } catch(diagnosticError) { console.debug('Camera capture diagnostics unavailable:',diagnosticError); }
+    document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.'+captureResolution;
     if(window.streamHeartbeatTimer)clearInterval(window.streamHeartbeatTimer);
     window.streamHeartbeatTimer=setInterval(async()=>{
       if(!activeStreamId||!currentUser)return;
