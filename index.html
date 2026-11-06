@@ -961,14 +961,15 @@ async function watchLiveStream(stream) {
     const credentials=await requestLiveKitToken(roomName,'viewer');
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
     activeLiveRoom=room;
-    room.on(LivekitClient.RoomEvent.TrackSubscribed,(track)=>attachLiveTrack(track,document.getElementById('liveStage')));
+    room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>{ const target=document.getElementById('liveStage'); if(track.kind==='video'){ if(publication?.source===LivekitClient.Track.Source.ScreenShare){target.replaceChildren();target.dataset.videoSource='screen';} else if(publication?.source===LivekitClient.Track.Source.Camera){if(target.dataset.videoSource==='screen')return;target.querySelectorAll('video').forEach(video=>video.remove());target.dataset.videoSource='camera';} } attachLiveTrack(track,target); });
+    room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>{ track.detach().forEach(element=>element.remove()); if(publication?.source===LivekitClient.Track.Source.ScreenShare){const camera=participant?.getTrackPublication(LivekitClient.Track.Source.Camera);if(camera?.isSubscribed&&camera.track){const target=document.getElementById('liveStage');target.replaceChildren();target.dataset.videoSource='camera';attachLiveTrack(camera.track,target);}} });
     room.on(LivekitClient.RoomEvent.Disconnected,()=>{
       document.getElementById('liveStatus').textContent='Disconnected.';
       if(activeLiveRoom===room)document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Stream disconnected.'}));
     });
     await room.connect(credentials.serverUrl,credentials.token);
     document.getElementById('liveStatus').textContent='Connected · '+room.numParticipants+' participant(s)';
-    room.remoteParticipants.forEach(p=>p.trackPublications.forEach(pub=>{if(pub.isSubscribed&&pub.track)attachLiveTrack(pub.track,document.getElementById('liveStage'));}));
+    room.remoteParticipants.forEach(p=>{const pubs=[...p.trackPublications.values()].filter(pub=>pub.isSubscribed&&pub.track);const screen=pubs.find(pub=>pub.source===LivekitClient.Track.Source.ScreenShare);const camera=pubs.find(pub=>pub.source===LivekitClient.Track.Source.Camera);const target=document.getElementById('liveStage');const video=screen||camera;if(video){target.dataset.videoSource=screen?'screen':'camera';attachLiveTrack(video.track,target);}pubs.filter(pub=>pub.track.kind==='audio').forEach(pub=>attachLiveTrack(pub.track,target));});
   } catch(err) {
     document.getElementById('liveStatus').textContent=err.message||'Unable to join this stream.';
     toast(err.message||'Unable to join stream.');
