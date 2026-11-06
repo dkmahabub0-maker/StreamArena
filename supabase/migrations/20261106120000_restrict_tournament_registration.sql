@@ -1,0 +1,1 @@
+-- No-op compatibility placeholder. The tournament registration policy is defined and applied by 20261106114731_restrict_tournament_registration_to_free_open.sql.

@@ -7,8 +7,16 @@
 <title>StreamArena — Your Game. Your Stream. Your Arena.</title>
 <style>
 :root{--bg:#060811;--panel:#0c1120;--panel2:#10172a;--line:#222d4a;--text:#f4f6ff;--muted:#99a6c5;--purple:#6844ff;--blue:#3287ff;--red:#ff435c;--green:#3be0a0}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 55% -20%,#1c1450 0,transparent 42%),var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}button{cursor:pointer}.topbar{height:72px;display:flex;align-items:center;gap:24px;padding:0 24px;border-bottom:1px solid var(--line);background:#070a14ee;position:sticky;top:0;z-index:5;backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:900;white-space:nowrap;letter-spacing:-1px}.logo{display:grid;place-items:center;width:38px;height:38px;background:linear-gradient(135deg,#7c5cff,#288bff);clip-path:polygon(50% 0,100% 100%,68% 100%,50% 57%,31% 100%,0 100%);color:transparent}.brand span span{color:#8465ff}.tagline{font-size:9px;color:#b8c2df;letter-spacing:0;display:block;margin-top:-4px}.nav{display:flex;gap:20px;align-items:center;flex:1}.nav a{color:#c5cee5;text-decoration:none;font-weight:650;white-space:nowrap}.nav a:hover,.nav a.active{color:#9e8aff}.search{max-width:260px;min-width:100px;width:100%;background:#11182a;border:1px solid #202944;border-radius:12px;padding:11px 13px;color:white}.btn{border:1px solid #4537a4;color:white;background:#12152b;border-radius:11px;padding:10px 16px;font-weight:750}.btn.primary{background:linear-gradient(110deg,#633cff,#3f69ff);border:0;box-shadow:0 7px 24px #5739ff33}.lang{background:transparent;color:white;border:0}.layout{display:grid;grid-template-columns:190px minmax(0,1fr) 280px;gap:14px;padding:14px;max-width:1800px;margin:auto}.side,.rightbox,.section,.hero{background:linear-gradient(145deg,#0d1322,#080d18);border:1px solid var(--line);border-radius:15px}.side{padding:14px;height:calc(100vh - 100px);min-height:700px;position:sticky;top:86px}.side a{display:flex;gap:11px;padding:11px 10px;margin:2px 0;color:#c4cde2;text-decoration:none;border-radius:9px}.side a:first-child,.side a:hover{background:#171d36;color:white}.side h4{font-size:11px;color:#8190b3;text-transform:uppercase;letter-spacing:1px;margin:24px 8px 8px}.country{font-size:12px;color:#aebbd7;padding:6px 7px}.main{min-width:0}.hero{min-height:255px;position:relative;overflow:hidden;padding:28px;background:linear-gradient(90deg,#0b1020 0%,#0b1020ed 36%,#16104299 72%,#090b18 100%),radial-gradient(circle at 78% 40%,#6339ff 0,transparent 35%);display:flex;align-items:center}.hero:after{content:"";position:absolute;right:5%;top:-35%;width:300px;height:440px;border:2px solid #7861ff55;transform:rotate(28deg);box-shadow:0 0 80px #583bff55,inset 0 0 60px #583bff22;pointer-events:none}.hero-content{position:relative;z-index:1;max-width:650px}.eyebrow{color:#a99aff;font-weight:800;letter-spacing:2px;font-size:11px}.hero h1{font-size:clamp(29px,3vw,48px);line-height:1.08;margin:10px 0}.gradient{background:linear-gradient(90deg,#a38aff,#548eff);color:transparent;background-clip:text}.hero p{font-size:16px;color:#bac5e2;margin:0 0 20px}.feature-row{display:flex;gap:20px;flex-wrap:wrap;margin:18px 0}.feature{font-size:12px;color:#c5cce1}.feature b{display:block;color:#fff;font-size:13px}.actions{display:flex;gap:12px}.section{padding:15px;margin-top:14px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.section h2{font-size:17px;margin:0}.sub{color:var(--muted);font-size:12px}.textbtn{border:0;background:none;color:#9f8bff;font-weight:750}.games{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}.game{background:linear-gradient(145deg,#1b2540,#0c1221);border:1px solid #273454;border-radius:11px;padding:15px 8px;text-align:center;min-width:0}.game .emoji{font-size:27px}.game b{display:block;font-size:11px;margin-top:8px}.filters{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid #27304b;background:#10172a;color:#aebbd7;padding:6px 12px;border-radius:99px;font-size:11px}.chip.active{background:#5b3cff;color:white;border-color:#6b50ff}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.stream-card,.tourney{border:1px solid #273454;background:#0a1020;border-radius:12px;overflow:hidden;min-width:0}.thumb{height:115px;display:grid;place-items:center;position:relative;background:radial-gradient(circle at 70% 30%,#6244c5,transparent 35%),linear-gradient(135deg,#1e3557,#11162d 55%,#361c52);font-size:36px}.thumb:before{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#070b15aa,transparent)}.livebadge{position:absolute;left:9px;top:9px;background:#ff304e;color:white;border-radius:5px;padding:3px 7px;font-size:10px;font-weight:900}.viewers{position:absolute;right:8px;bottom:7px;font-size:10px;background:#050710aa;padding:3px 6px;border-radius:5px}.cardbody{padding:10px}.cardbody h3{font-size:12px;margin:0 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cardbody p{font-size:11px;color:var(--muted);margin:4px 0}.cardactions{display:flex;gap:6px;margin-top:10px}.smallbtn{padding:6px 9px;font-size:11px;border-radius:8px;border:1px solid #2c3756;background:#141b30;color:white}.smallbtn.liked{color:#ff6684;border-color:#ff6684}.tournaments{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tourney{padding:13px;display:flex;gap:12px;align-items:center}.tour-icon{width:65px;height:70px;display:grid;place-items:center;background:linear-gradient(135deg,#34205e,#112849);border-radius:9px;font-size:27px;flex-shrink:0}.tour-info{min-width:0;flex:1}.tour-info h3{font-size:12px;margin:0 0 4px}.tour-info p{font-size:11px;color:var(--muted);margin:3px 0}.tour-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}.rightbox{padding:14px;margin-bottom:14px}.user{display:flex;align-items:center;gap:10px}.avatar{width:42px;height:42px;display:grid;place-items:center;background:linear-gradient(135deg,#7045ff,#147dba);border-radius:50%;font-size:20px}.user b{display:block}.user small{color:var(--muted)}.chatline{font-size:11px;padding:8px 0;border-bottom:1px solid #1c2540;color:#c8d1e7}.chatline b{color:#a58aff;margin-right:5px}.chat-input{display:flex;gap:5px;margin-top:10px}.chat-input input{min-width:0;width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:9px;color:white}.rank{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #1c2540}.rank .num{font-weight:900;color:#9c8aff}.rank .avatar{width:32px;height:32px;font-size:14px}.rank .follow{margin-left:auto;padding:6px 9px;font-size:10px}.footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px 25px;color:#8390af;border-top:1px solid var(--line);font-size:11px}.footer b{color:#a89aff;font-size:15px}.modal-backdrop{position:fixed;inset:0;background:#000b;display:none;place-items:center;z-index:20;padding:16px}.modal{width:min(420px,100%);background:#0d1322;border:1px solid #3b3e70;border-radius:16px;padding:22px;box-shadow:0 20px 90px #000}.modal h2{margin-top:0}.modal input,.modal select{display:block;width:100%;padding:12px;margin:10px 0;background:#10182b;color:white;border:1px solid #303b5b;border-radius:9px}.modal .btn{width:100%;margin-top:8px}.close{float:right;background:none;border:0;color:white;font-size:22px}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#24204b;border:1px solid #7460ff;padding:12px 18px;border-radius:10px;display:none;z-index:30;box-shadow:0 8px 30px #0008}
-@media(max-width:1150px){.layout{grid-template-columns:160px minmax(0,1fr)}.rightcol{display:none}.nav{gap:12px}.search{max-width:190px}.games{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.topbar{height:auto;min-height:65px;flex-wrap:wrap;padding:12px;gap:12px}.brand{font-size:20px}.nav{order:3;flex-basis:100%;overflow:auto;padding:5px 0}.nav a{font-size:12px}.search{flex:1;max-width:none}.top-actions .login{display:none}.layout{display:block;padding:9px}.side{display:none}.hero{padding:22px;min-height:260px}.hero:after{right:-30%;opacity:.6}.hero h1{font-size:32px}.feature-row{gap:12px}.games{grid-template-columns:repeat(3,minmax(0,1fr))}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.tournaments{grid-template-columns:1fr}.thumb{height:100px}.footer{padding:18px}.hide-mobile{display:none}}@media(max-width:420px){.cards{grid-template-columns:1fr}.games{grid-template-columns:repeat(2,minmax(0,1fr))}.hero h1{font-size:28px}.section{padding:11px}}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 55% -20%,#1c1450 0,transparent 42%),var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}button{cursor:pointer}.topbar{height:72px;display:flex;align-items:center;gap:24px;padding:0 24px;border-bottom:1px solid var(--line);background:#070a14ee;position:sticky;top:0;z-index:5;backdrop-filter:blur(16px)}.top-actions{display:flex;align-items:center;gap:8px}.account-menu{display:none;position:relative}.account-dropdown{display:none;position:absolute;right:0;top:calc(100% + 10px);width:min(290px,calc(100vw - 24px));padding:14px;background:#0d1322;border:1px solid #394466;border-radius:12px;box-shadow:0 18px 50px #000b;z-index:30}.account-dropdown.open{display:block}.account-dropdown strong{display:block;overflow-wrap:anywhere}.account-dropdown .sub{margin:4px 0 10px}.account-dropdown .account-detail{padding:7px 0;border-top:1px solid #222d4a;overflow-wrap:anywhere}.account-dropdown button{width:100%;margin-top:10px}.account-avatar-btn{width:44px;height:44px;min-width:44px;padding:0!important;border-radius:50%!important;display:grid!important;place-items:center;font-size:19px;line-height:1}.account-avatar-btn span{display:block}.top-actions .account-menu>.account-avatar-btn{width:44px;min-height:44px;flex:0 0 44px}.brand{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:900;white-space:nowrap;letter-spacing:-1px}.logo{display:grid;place-items:center;width:38px;height:38px;background:linear-gradient(135deg,#7c5cff,#288bff);clip-path:polygon(50% 0,100% 100%,68% 100%,50% 57%,31% 100%,0 100%);color:transparent}.brand span span{color:#8465ff}.tagline{font-size:9px;color:#b8c2df;letter-spacing:0;display:block;margin-top:-4px}.nav{display:flex;gap:20px;align-items:center;flex:1}.nav a{color:#c5cee5;text-decoration:none;font-weight:650;white-space:nowrap}.nav a:hover,.nav a.active{color:#9e8aff}.search{max-width:260px;min-width:100px;width:100%;background:#11182a;border:1px solid #202944;border-radius:12px;padding:11px 13px;color:white}.btn{border:1px solid #4537a4;color:white;background:#12152b;border-radius:11px;padding:10px 16px;font-weight:750}.btn.primary{background:linear-gradient(110deg,#633cff,#3f69ff);border:0;box-shadow:0 7px 24px #5739ff33}.lang{background:transparent;color:white;border:0}.layout{display:grid;grid-template-columns:190px minmax(0,1fr) 280px;gap:14px;padding:14px;max-width:1800px;margin:auto}.side,.rightbox,.section,.hero{background:linear-gradient(145deg,#0d1322,#080d18);border:1px solid var(--line);border-radius:15px}.side{padding:14px;height:calc(100vh - 100px);min-height:700px;position:sticky;top:86px}.side a{display:flex;gap:11px;padding:11px 10px;margin:2px 0;color:#c4cde2;text-decoration:none;border-radius:9px}.side a:first-child,.side a:hover{background:#171d36;color:white}.side h4{font-size:11px;color:#8190b3;text-transform:uppercase;letter-spacing:1px;margin:24px 8px 8px}.country{font-size:12px;color:#aebbd7;padding:6px 7px}.main{min-width:0}.hero{min-height:255px;position:relative;overflow:hidden;padding:28px;background:linear-gradient(90deg,#0b1020 0%,#0b1020ed 36%,#16104299 72%,#090b18 100%),radial-gradient(circle at 78% 40%,#6339ff 0,transparent 35%);display:flex;align-items:center}.hero:after{content:"";position:absolute;right:5%;top:-35%;width:300px;height:440px;border:2px solid #7861ff55;transform:rotate(28deg);box-shadow:0 0 80px #583bff55,inset 0 0 60px #583bff22;pointer-events:none}.hero-content{position:relative;z-index:1;max-width:650px}.eyebrow{color:#a99aff;font-weight:800;letter-spacing:2px;font-size:11px}.hero h1{font-size:clamp(29px,3vw,48px);line-height:1.08;margin:10px 0}.gradient{background:linear-gradient(90deg,#a38aff,#548eff);color:transparent;background-clip:text}.hero p{font-size:16px;color:#bac5e2;margin:0 0 20px}.feature-row{display:flex;gap:20px;flex-wrap:wrap;margin:18px 0}.feature{font-size:12px;color:#c5cce1}.feature b{display:block;color:#fff;font-size:13px}.actions{display:flex;gap:12px}.section{padding:15px;margin-top:14px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.section h2{font-size:17px;margin:0}.sub{color:var(--muted);font-size:12px}.textbtn{border:0;background:none;color:#9f8bff;font-weight:750}.games{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}.game{background:linear-gradient(145deg,#1b2540,#0c1221);border:1px solid #273454;border-radius:11px;padding:15px 8px;text-align:center;min-width:0}.game .emoji{font-size:27px}.game b{display:block;font-size:11px;margin-top:8px}.filters{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid #27304b;background:#10172a;color:#aebbd7;padding:6px 12px;border-radius:99px;font-size:11px}.chip.active{background:#5b3cff;color:white;border-color:#6b50ff}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.stream-card,.tourney{border:1px solid #273454;background:#0a1020;border-radius:12px;overflow:hidden;min-width:0}.thumb{height:115px;display:grid;place-items:center;position:relative;background:radial-gradient(circle at 70% 30%,#6244c5,transparent 35%),linear-gradient(135deg,#1e3557,#11162d 55%,#361c52);font-size:36px}.thumb:before{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#070b15aa,transparent)}.livebadge{position:absolute;left:9px;top:9px;background:#ff304e;color:white;border-radius:5px;padding:3px 7px;font-size:10px;font-weight:900}.viewers{position:absolute;right:8px;bottom:7px;font-size:10px;background:#050710aa;padding:3px 6px;border-radius:5px}.cardbody{padding:10px}.cardbody h3{font-size:12px;margin:0 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cardbody p{font-size:11px;color:var(--muted);margin:4px 0}.cardactions{display:flex;gap:6px;margin-top:10px}.smallbtn{padding:6px 9px;font-size:11px;border-radius:8px;border:1px solid #2c3756;background:#141b30;color:white}.smallbtn.liked{color:#ff6684;border-color:#ff6684}.tournaments{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tourney{padding:13px;display:flex;gap:12px;align-items:center}.tour-icon{width:65px;height:70px;display:grid;place-items:center;background:linear-gradient(135deg,#34205e,#112849);border-radius:9px;font-size:27px;flex-shrink:0}.tour-info{min-width:0;flex:1}.tour-info h3{font-size:12px;margin:0 0 4px}.tour-info p{font-size:11px;color:var(--muted);margin:3px 0}.tour-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}.rightbox{padding:14px;margin-bottom:14px}.user{display:flex;align-items:center;gap:10px}.avatar{width:42px;height:42px;display:grid;place-items:center;background:linear-gradient(135deg,#7045ff,#147dba);border-radius:50%;font-size:20px}.user b{display:block}.user small{color:var(--muted)}.chatline{font-size:11px;padding:8px 0;border-bottom:1px solid #1c2540;color:#c8d1e7}.chatline b{color:#a58aff;margin-right:5px}.chat-input{display:flex;gap:5px;margin-top:10px}.chat-input input{min-width:0;width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:9px;color:white}.rank{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #1c2540}.rank .num{font-weight:900;color:#9c8aff}.rank .avatar{width:32px;height:32px;font-size:14px}.rank .follow{margin-left:auto;padding:6px 9px;font-size:10px}.footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px 25px;color:#8390af;border-top:1px solid var(--line);font-size:11px}.footer b{color:#a89aff;font-size:15px}.modal-backdrop{position:fixed;inset:0;background:#000b;display:none;place-items:center;z-index:20;padding:16px}.modal{width:min(420px,100%);background:#0d1322;border:1px solid #3b3e70;border-radius:16px;padding:22px;box-shadow:0 20px 90px #000}.modal h2{margin-top:0}.modal input,.modal select{display:block;width:100%;padding:12px;margin:10px 0;background:#10182b;color:white;border:1px solid #303b5b;border-radius:9px}.modal .btn{width:100%;margin-top:8px}.close{float:right;background:none;border:0;color:white;font-size:22px}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#24204b;border:1px solid #7460ff;padding:12px 18px;border-radius:10px;display:none;z-index:30;box-shadow:0 8px 30px #0008}
+@media(max-width:1150px){.layout{grid-template-columns:160px minmax(0,1fr)}.rightcol{display:none}.nav{gap:12px}.search{max-width:190px}.games{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.topbar{height:auto;min-height:65px;flex-wrap:wrap;padding:12px;gap:10px}.brand{order:1;font-size:20px;flex:1 1 auto}.top-actions{order:2;display:flex!important;flex:0 0 100%;width:100%;gap:10px;margin:0}.top-actions .btn{display:block!important;visibility:visible!important;opacity:1!important;flex:1 1 50%;min-width:0;min-height:44px;padding:11px 12px;font-size:14px}.top-actions .account-menu{flex:0 0 44px;min-width:44px;margin-left:auto}.top-actions .account-menu>.btn{width:44px;min-width:44px;height:44px}.top-actions .account-dropdown{left:auto;right:0;width:min(290px,calc(100vw - 24px))}.search{display:none}.lang{order:3;margin-left:auto}.nav{order:4;flex:0 0 100%;overflow:auto;padding:5px 0}.nav a{font-size:12px}.layout{display:block;padding:9px}.side{display:none}.hero{padding:22px;min-height:260px}.hero:after{right:-30%;opacity:.6}.hero h1{font-size:32px}.feature-row{gap:12px}.games{grid-template-columns:repeat(3,minmax(0,1fr))}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.tournaments{grid-template-columns:1fr}.thumb{height:100px}.footer{padding:18px}.hide-mobile{display:none}}@media(max-width:420px){.cards{grid-template-columns:1fr}.games{grid-template-columns:repeat(2,minmax(0,1fr))}.hero h1{font-size:28px}.section{padding:11px}}@media(max-width:760px){.top-actions{display:flex!important;flex-flow:row nowrap!important;align-items:center!important;width:100%!important;min-width:0!important;gap:10px!important}.top-actions>button[data-modal="login"],.top-actions>button[data-modal="signup"]{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;float:none!important;flex:1 1 0!important;width:0!important;min-width:0!important;max-width:none!important;margin:0!important;transform:none!important;white-space:nowrap!important}.top-actions>.account-menu{flex:0 0 44px!important}}
+
+/* Mobile auth actions: use a two-column grid so Login cannot be squeezed out. */
+@media(max-width:760px){
+  .top-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-auto-flow:row!important;align-items:stretch!important;flex:0 0 100%!important;width:100%!important;min-width:0!important;gap:10px!important}
+  .top-actions>button[data-modal="login"],
+  .top-actions>button[data-modal="signup"]{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;float:none!important;grid-column:auto!important;grid-row:1!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:44px!important;margin:0!important;transform:none!important;flex:none!important;white-space:nowrap!important}
+  .top-actions>.account-menu{grid-column:1 / -1!important;justify-self:end!important;flex:none!important}
+}
 </style>
 </head>
 <body>
@@ -16,36 +24,113 @@
   <div class="brand"><div class="logo">A</div><span>Stream<span>Arena</span><small class="tagline">Your Game. Your Stream. Your Arena.</small></span></div>
   <nav class="nav"><a href="#home" class="active" data-en="⌂ Home" data-bn="⌂ হোম">⌂ Home</a><a href="#live" data-en="🔴 Live" data-bn="🔴 লাইভ">🔴 Live</a><a href="#tournaments" data-en="🏆 Tournaments" data-bn="🏆 টুর্নামেন্ট">🏆 Tournaments</a><a href="#games" data-en="🎮 Games" data-bn="🎮 গেমস">🎮 Games</a><a href="#community" data-en="♟ Community" data-bn="♟ কমিউনিটি">♟ Community</a></nav>
   <input class="search" id="search" placeholder="⌕ Search games, streamers...">
-  <button class="lang" id="langBtn">🌐 EN</button><div class="top-actions"><button class="btn login" data-modal="login">Login</button><button class="btn primary" data-modal="signup" onclick="document.getElementById('modalBackdrop').style.display='grid'">Sign Up</button></div> </div>
+  <button class="lang" id="langBtn">🌐 EN</button><div class="top-actions"><button class="btn login" data-modal="login">Login</button><button class="btn primary" data-modal="signup">Sign Up</button><div class="account-menu" id="headerAccountMenu"><button class="btn primary account-avatar-btn" type="button" id="accountMenuToggle" aria-label="Open account menu" title="My Account" aria-expanded="false" aria-controls="accountDropdown"><span id="accountAvatarInitials">👤</span></button><div class="account-dropdown" id="accountDropdown"><strong id="headerAccountName">Player</strong><p class="sub" id="headerAccountEmail">—</p><div class="account-detail"><span class="sub">Username</span><br><span id="headerAccountUsername">—</span></div><div class="account-detail"><span class="sub">Country</span><br><span id="headerAccountCountry">—</span></div><button class="btn" type="button" id="headerLogoutBtn">Log out</button></div></div></div>
 </header>
 <div class="layout" id="home">
 <aside class="side">
 <a href="#home">⌂ <span data-en="Home" data-bn="হোম">Home</span></a><a href="#live">🔴 <span data-en="Live Streams" data-bn="লাইভ স্ট্রিম">Live Streams</span></a><a href="#tournaments">🏆 <span data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</span></a><a href="#games">🎮 <span data-en="Games" data-bn="গেমস">Games</span></a><a href="#community">👥 <span data-en="Community" data-bn="কমিউনিটি">Community</span></a><a href="#leaderboard">♛ <span data-en="Leaderboard" data-bn="লিডারবোর্ড">Leaderboard</span></a>
-<h4 data-en="Quick Access" data-bn="দ্রুত প্রবেশ">Quick Access</h4><a href="#" data-modal="stream">📹 <span data-en="Create Live Stream" data-bn="লাইভ শুরু করুন">Create Live Stream</span></a><a href="#tournaments">🏆 <span data-en="Join Tournament" data-bn="টুর্নামেন্টে যোগ দিন">Join Tournament</span></a><h4 data-en="Popular Regions" data-bn="জনপ্রিয় অঞ্চল">Popular Regions</h4><div class="country">🇧🇩 Bangladesh</div><div class="country">🇮🇳 India</div><div class="country">🇸🇦 Saudi Arabia</div><div class="country">🇵🇰 Pakistan</div><div class="country">🌍 Global</div>
+<h4 data-en="Quick Access" data-bn="দ্রুত প্রবেশ">Quick Access</h4><a href="#" data-live-open>📹 <span data-en="Create Live Stream" data-bn="লাইভ শুরু করুন">Create Live Stream</span></a><a href="#tournaments">🏆 <span data-en="Join Tournament" data-bn="টুর্নামেন্টে যোগ দিন">Join Tournament</span></a><h4 data-en="Popular Regions" data-bn="জনপ্রিয় অঞ্চল">Popular Regions</h4><div class="country">🇧🇩 Bangladesh</div><div class="country">🇮🇳 India</div><div class="country">🇸🇦 Saudi Arabia</div><div class="country">🇵🇰 Pakistan</div><div class="country">🌍 Global</div>
 </aside>
 <main class="main">
 <section class="hero"><div class="hero-content"><div class="eyebrow">THE GLOBAL GAMING ARENA</div><h1>PLAY. STREAM. <span class="gradient">COMPETE.</span></h1><p data-en="The ultimate gaming & esports platform for players around the world." data-bn="সারা বিশ্বের গেমারদের জন্য গেমিং ও ই-স্পোর্টস প্ল্যাটফর্ম।">The ultimate gaming & esports platform for players around the world.</p><div class="feature-row"><div class="feature">🔴 <b data-en="Live Streaming" data-bn="লাইভ স্ট্রিমিং">Live Streaming</b><span data-en="Watch & Go Live" data-bn="দেখুন ও লাইভ করুন">Watch & Go Live</span></div><div class="feature">🏆 <b data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</b><span>Free & Paid</span></div><div class="feature">🎮 <b data-en="Gaming" data-bn="গেমিং">Gaming</b><span>Play & Compete</span></div><div class="feature">🌍 <b data-en="Global Community" data-bn="বিশ্ব কমিউনিটি">Global Community</b><span>Connect worldwide</span></div></div><div class="actions"><button class="btn primary" data-modal="signup" data-en="Get Started Free →" data-bn="ফ্রিতে শুরু করুন →">Get Started Free →</button><button class="btn" onclick="document.querySelector('#live').scrollIntoView({behavior:'smooth'})">▷ Watch Streams</button></div></div></section>
 <section class="section" id="games"><div class="section-head"><h2>🎮 <span data-en="Popular Games" data-bn="জনপ্রিয় গেম">Popular Games</span></h2><button class="textbtn" onclick="toast('More games will be added soon!')">View all →</button></div><div class="games" id="gameGrid"><div class="game"><div class="emoji">🔥</div><b>Free Fire</b></div><div class="game"><div class="emoji">🎯</div><b>PUBG Mobile</b></div><div class="game"><div class="emoji">🪖</div><b>BGMI</b></div><div class="game"><div class="emoji">💥</div><b>Call of Duty</b></div><div class="game"><div class="emoji">⚡</div><b>Valorant</b></div><div class="game"><div class="emoji">⛏️</div><b>Minecraft</b></div></div></section>
-<section class="section" id="live"><div class="section-head"><h2>🔴 <span data-en="Live Streams" data-bn="লাইভ স্ট্রিম">Live Streams</span></h2><button class="textbtn" data-modal="stream">＋ Go Live</button></div><div class="filters"><button class="chip active" data-filter="All">All</button><button class="chip" data-filter="Free Fire">Free Fire</button><button class="chip" data-filter="PUBG Mobile">PUBG Mobile</button><button class="chip" data-filter="BGMI">BGMI</button><button class="chip" data-filter="Other">Other</button></div><div class="cards" id="streamCards" style="margin-top:12px">
-<div class="stream-card" data-game="Free Fire"><div class="thumb">🎮<span class="livebadge">● LIVE</span><span class="viewers">◉ 1.2K</span></div><div class="cardbody"><h3>Free Fire Ranked Push 🔥</h3><p>👤 Rafi Gaming · 🇧🇩 Bangladesh</p><div class="cardactions"><button class="smallbtn like">♡ Like <span>124</span></button><button class="smallbtn" onclick="toast('Stream player demo — connect a streaming provider to watch live video.')">▶ Watch</button></div></div></div>
-<div class="stream-card" data-game="PUBG Mobile"><div class="thumb">🎯<span class="livebadge">● LIVE</span><span class="viewers">◉ 876</span></div><div class="cardbody"><h3>PUBG Mobile | Solo vs Squad</h3><p>👤 Xtreme Gamer · 🇮🇳 India</p><div class="cardactions"><button class="smallbtn like">♡ Like <span>98</span></button><button class="smallbtn" onclick="toast('Stream player demo — connect a streaming provider to watch live video.')">▶ Watch</button></div></div></div>
-<div class="stream-card" data-game="BGMI"><div class="thumb">🪖<span class="livebadge">● LIVE</span><span class="viewers">◉ 532</span></div><div class="cardbody"><h3>BGMI Full Rush Gameplay</h3><p>👤 Techno Gaming · 🇮🇳 India</p><div class="cardactions"><button class="smallbtn like">♡ Like <span>76</span></button><button class="smallbtn" onclick="toast('Stream player demo — connect a streaming provider to watch live video.')">▶ Watch</button></div></div></div>
-</div></section>
+<section class="section" id="live"><div class="section-head"><h2>🔴 <span data-en="Live Streams" data-bn="লাইভ স্ট্রিম">Live Streams</span></h2><button class="textbtn" data-live-open>＋ Go Live</button></div><div class="sub">Currently showing all active streams</div><div class="cards" id="streamCards" style="margin-top:12px"><p class="sub" id="streamLoading">Loading live streams…</p></div></section>
 <section class="section" id="tournaments"><div class="section-head"><h2>🏆 <span data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</span></h2><div class="filters"><button class="chip active" data-tour="Free">Free</button><button class="chip" data-tour="Paid">Paid</button></div></div><div class="tournaments" id="tourCards">
 <div class="tourney" data-type="Free"><div class="tour-icon">🔥</div><div class="tour-info"><h3>Free Fire Solo Cup</h3><p>👥 Solo · 🌍 Global</p><p>Prize pool: <b style="color:var(--green)">Free entry</b></p><div class="tour-foot"><span class="sub">Starts soon</span><button class="btn primary smallbtn join">Join Now</button></div></div></div>
 <div class="tourney" data-type="Free"><div class="tour-icon">🎯</div><div class="tour-info"><h3>PUBG Mobile Weekly</h3><p>👥 Squad · 🇮🇳 India</p><p>Prize pool: <b style="color:var(--green)">Free entry</b></p><div class="tour-foot"><span class="sub">Registration open</span><button class="btn primary smallbtn join">Join Now</button></div></div></div>
-<div class="tourney" data-type="Paid" style="display:none"><div class="tour-icon">⚡</div><div class="tour-info"><h3>Pro Squad Championship</h3><p>👥 Squad · 🌍 Global</p><p>Entry: <b style="color:#ffd166">$2 demo</b></p><div class="tour-foot"><span class="sub">Demo listing</span><button class="btn primary smallbtn join">Details</button></div></div></div>
-<div class="tourney" data-type="Paid" style="display:none"><div class="tour-icon">🪖</div><div class="tour-info"><h3>BGMI Champions Cup</h3><p>👥 Squad · 🇮🇳 India</p><p>Entry: <b style="color:#ffd166">$1 demo</b></p><div class="tour-foot"><span class="sub">Demo listing</span><button class="btn primary smallbtn join">Details</button></div></div></div>
+<div class="tourney" data-type="Paid" style="display:none"><div class="tour-icon">⚡</div><div class="tour-info"><h3>Pro Squad Championship</h3><p>👥 Squad · 🌍 Global</p><p>Entry: <b style="color:#ffd166">$2 demo</b></p><div class="tour-foot"><span class="sub">Demo listing</span><button class="btn smallbtn" disabled>Coming soon</button></div></div></div>
+<div class="tourney" data-type="Paid" style="display:none"><div class="tour-icon">🪖</div><div class="tour-info"><h3>BGMI Champions Cup</h3><p>👥 Squad · 🇮🇳 India</p><p>Entry: <b style="color:#ffd166">$1 demo</b></p><div class="tour-foot"><span class="sub">Demo listing</span><button class="btn smallbtn" disabled>Coming soon</button></div></div></div>
+</div>
+<div id="organizerTournamentPanel" style="display:none;margin-top:16px;padding:14px;border:1px solid #315b83;border-radius:12px;background:#0b1020">
+  <div class="section-head"><h3 style="margin:0">Organizer · My Tournaments</h3><span class="sub">Available to every signed-in user</span></div>
+  <p class="sub">Create free or organizer-hosted tournaments. Hosted tournaments use simulated demo points only; invited players pay 0 entry fee. DEMO / NOT REAL PAYMENT.</p>
+  <form id="organizerTournamentForm" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+    <input id="organizerTourTitle" required minlength="3" maxlength="120" placeholder="Tournament title" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+    <input id="organizerTourPrize" type="number" min="0" max="100000000" step="0.01" placeholder="Prize pool (display only)" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+    <input id="organizerTourStarts" type="datetime-local" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+    <select id="organizerTourStatus" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="upcoming">Upcoming</option><option value="registration_open">Registration open</option></select>
+    <select id="organizerTourMode" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="free">Free tournament</option><option value="hosted">Organizer-hosted · Demo</option></select>
+    <select id="organizerTourDemoTier" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="10">Basic · 10 Demo Points</option><option value="25">Standard · 25 Demo Points</option><option value="50">Premium · 50 Demo Points</option></select>
+    <button class="btn primary" type="submit" style="grid-column:1/-1;justify-self:start">Create tournament</button>
+  </form>
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:14px">
+    <select id="organizerInviteTournament" style="background:#11182a;color:white;border:1px solid #293451;border-radius:9px;padding:10px"><option value="">Select your tournament</option></select>
+    <input id="organizerInviteUsername" maxlength="80" placeholder="Player username" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+  </div>
+  <button class="btn" id="organizerInviteBtn" type="button" style="margin-top:8px">Invite player</button>
+  <div id="organizerTournamentList" style="margin-top:12px"></div>
+  <h4>Demo hosting payment history</h4><p class="sub">All records are simulated. No money is charged or transferred.</p><div id="organizerDemoPayments" style="margin-top:8px"></div>
+  <div id="playerTournamentInvites" style="margin-top:12px"></div>
+</div>
+<div id="adminTournamentPanel" style="display:none;margin-top:16px;padding:14px;border:1px solid #5745a8;border-radius:12px;background:#0b1020">
+  <div class="section-head"><h3 style="margin:0">Admin · Tournament Management</h3><span class="sub">Admin role required</span></div>
+  <p class="sub">Review tournament registrations and simulated organizer-hosting transactions. All demo records are marked NOT REAL PAYMENT.</p>
+  <form id="adminTournamentForm" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+    <input id="adminTourTitle" required maxlength="120" placeholder="Tournament title" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+    <input id="adminTourPrize" type="number" min="0" max="100000000" step="0.01" placeholder="Prize pool (display amount)" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+    <input id="adminTourStarts" type="datetime-local" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+    <select id="adminTourStatus" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="upcoming">Upcoming</option><option value="registration_open">Registration open</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select>
+    <button class="btn primary" type="submit" style="grid-column:1/-1;justify-self:start">Create free tournament</button>
+  </form>
+  <div id="adminTournamentList" style="margin-top:12px"></div>
+  <div id="adminRegistrationList" style="margin-top:12px"></div><h4>All demo hosting transactions</h4><div id="adminDemoPayments" style="margin-top:8px"></div>
 </div></section>
-</main>
+<section class="section" id="help">
+<div class="section-head"><h2>Help Center & Support</h2><span class="sub">Account help · Support tickets</span></div>
+<div class="sub" style="margin-bottom:12px">Frequently asked questions</div>
+<details style="padding:10px;border-bottom:1px solid var(--line)"><summary>How do I create an account?</summary><p class="sub">Use Sign Up, enter a unique username, email and password. Confirm your email if confirmation is enabled.</p></details>
+<details style="padding:10px;border-bottom:1px solid var(--line)"><summary>Why can't I start a live stream?</summary><p class="sub">Live streaming uses LiveKit. Sign in, allow camera and microphone access, then select Go Live. If a stream will not connect, check browser permissions and the streaming service configuration.</p></details>
+<details style="padding:10px;border-bottom:1px solid var(--line)"><summary>How do tournament registrations work?</summary><p class="sub">Free tournaments allow direct registration. Organizer-hosted tournaments require an invitation; invited players accept or decline and pay 0 entry fee. Any hosting payment shown in this prototype is simulated Demo Points only, never real money.</p></details>
+<form id="supportForm" style="display:grid;gap:8px;margin-top:16px">
+<h3 style="margin:0">Create a support ticket</h3>
+<input id="supportSubject" maxlength="160" required placeholder="Subject" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+<textarea id="supportMessage" maxlength="5000" required rows="4" placeholder="Describe your issue..." style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white;font:inherit"></textarea>
+<button class="btn primary" type="submit" style="justify-self:start">Submit ticket</button>
+</form>
+<div style="margin-top:18px"><h3>My support tickets</h3><div id="supportTickets" class="sub">Sign in to view your tickets.</div></div>
+</section></main>
 <aside class="rightcol">
-<div class="rightbox"><div class="user"><div class="avatar">👾</div><div><b>Guest Player</b><small>Welcome to StreamArena!</small></div></div><div style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" data-modal="login">Login</button><button class="btn primary" style="flex:1" data-modal="signup">Sign Up</button></div></div>
-<div class="rightbox" id="community"><div class="section-head"><h2>🔴 Live Chat</h2><span class="sub">Demo</span></div><div id="chatLines"><div class="chatline"><b>RafiGaming</b> Nice gameplay bro! 🔥</div><div class="chatline"><b>ShadowQueen</b> Can I join your squad?</div><div class="chatline"><b>GamingPro</b> What's your UID?</div><div class="chatline"><b>Nusrat_99</b> Keep going! 💜</div></div><form class="chat-input" id="chatForm"><input id="chatText" placeholder="Type a message..." maxlength="180"><button class="btn primary">➤</button></form></div>
-<div class="rightbox" id="leaderboard"><div class="section-head"><h2>♛ Top Streamers</h2><span class="sub">This week</span></div><div class="rank"><span class="num">1</span><div class="avatar">🧑🏽‍🚀</div><div><b>Rafi Gaming</b><div class="sub">2.4M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">2</span><div class="avatar">👩🏻‍🎤</div><div><b>Liza Gaming</b><div class="sub">1.8M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">3</span><div class="avatar">🧔🏽</div><div><b>Xtreme Gamer</b><div class="sub">1.5M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">4</span><div class="avatar">🎧</div><div><b>Techno Gaming</b><div class="sub">1.2M followers</div></div><button class="btn primary follow">Follow</button></div></div>
+<div class="rightbox"><div class="user"><div class="avatar">👾</div><div><b id="accountName">Guest Player</b><small id="authStatus">Not signed in</small></div></div><div id="guestActions" style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" data-modal="login">Login</button><button class="btn primary" style="flex:1" data-modal="signup">Sign Up</button></div><button class="btn" id="logoutBtn" style="display:none;width:100%;margin-top:13px">Log out</button></div>
+<div class="rightbox" id="community"><div class="section-head"><h2>🔴 Live Chat</h2><span class="sub">Live chat</span></div><div id="chatLines"></div><form class="chat-input" id="chatForm"><input id="chatText" placeholder="Type a message..." maxlength="180"><button class="btn primary">➤</button></form></div>
+<div class="rightbox" id="leaderboard"><div class="section-head"><h2>♛ Featured Streamers</h2><span class="sub">Sample data · Not live rankings</span></div><div class="rank"><span class="num">1</span><div class="avatar">🧑🏽‍🚀</div><div><b>Rafi Gaming</b><div class="sub">2.4M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">2</span><div class="avatar">👩🏻‍🎤</div><div><b>Liza Gaming</b><div class="sub">1.8M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">3</span><div class="avatar">🧔🏽</div><div><b>Xtreme Gamer</b><div class="sub">1.5M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">4</span><div class="avatar">🎧</div><div><b>Techno Gaming</b><div class="sub">1.2M followers</div></div><button class="btn primary follow">Follow</button></div></div>
 </aside></div>
-<footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div>About · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
-<div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password (demo only)" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit" >Continue</button></form><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
+<footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div><a href="#help" style="color:inherit">Help Center</a> · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit">Continue</button></form><p class="sub" id="forgotPasswordRow" style="display:none;margin:10px 0 0"><button type="button" id="forgotPasswordBtn" class="textbtn">Forgot password / Reset password</button></p><p class="sub" id="authSwitchRow" style="margin:10px 0 0"></p><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
 <div class="toast" id="toast"></div>
+<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div><div id="liveSetup" style="display:grid;gap:9px;margin-top:12px">
+  <label class="sub" for="liveTitle">Stream title</label>
+  <input id="liveTitle" maxlength="120" placeholder="Stream title" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+  <label class="sub" for="liveCaption">Live caption / description (up to 500 characters)</label>
+  <textarea id="liveCaption" maxlength="500" rows="3" placeholder="Tell viewers what this stream is about..." style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white;font:inherit"></textarea>
+  <label class="sub" for="liveTournament">Link this live stream to one of your tournaments (optional)</label>
+  <select id="liveTournament" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="">No tournament link</option></select>
+  <label class="sub" for="liveThumbnailFile">Custom thumbnail (JPG, PNG or WebP · max 5 MB)</label>
+  <input id="liveThumbnailFile" type="file" accept="image/jpeg,image/png,image/webp" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <img id="liveThumbnailPreview" alt="Thumbnail preview" style="display:none;width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid #394466">
+    <button class="smallbtn" id="clearLiveThumbnail" type="button">Remove thumbnail</button>
+    <span class="sub" id="liveSettingsStatus">These details are saved for your next live stream.</span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" id="saveLiveSettingsBtn" type="button">Save live setup</button>
+    <button class="btn primary" id="startLiveBtn" type="button">Preview Thumbnail</button>
+  </div>
+</div>
+<div id="livePreflight" style="display:none;gap:10px;margin-top:14px;padding:14px;border:1px solid #394466;border-radius:12px;background:#0b1020">
+  <h3 style="margin:0">Review before going live</h3>
+  <img id="livePreflightImage" alt="Live thumbnail preview" style="display:none;width:100%;max-height:320px;aspect-ratio:16/9;object-fit:contain;background:#03050a;border-radius:10px">
+  <div id="livePreflightNoImage" class="sub" style="display:none;padding:20px;text-align:center">No thumbnail selected. Your live stream will start without a custom thumbnail.</div>
+  <h3 id="livePreflightTitle" style="margin:0"></h3>
+  <p id="livePreflightCaption" class="sub" style="margin:0;white-space:pre-wrap"></p>
+  <p id="livePreflightTournament" class="sub" style="margin:0"></p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" id="editLiveSetupBtn" type="button">Edit thumbnail / details</button>
+    <button class="btn primary" id="goLiveNowBtn" type="button">Go Live Now</button>
+  </div>
+</div>
+<button class="btn" id="endLiveBtn" type="button" style="display:none;margin-top:10px">End Live</button>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
 <script>
@@ -53,64 +138,761 @@ let language='en';console.log("STREAMARENA SCRIPT STARTED");
 
 const supabaseClient = window.supabase.createClient(
   window.STREAMARENA_SUPABASE_URL,
-  window.STREAMARENA_SUPABASE_PUBLISHABLE_KEY
+  window.STREAMARENA_SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: window.localStorage
+    }
+  }
 );
 let currentUser = null;
-async function refreshSession(){
-  const { data } = await supabaseClient.auth.getSession();
-  currentUser = data.session?.user || null;
+function renderAuthState(){
   const status = document.getElementById('authStatus');
-  if(status) status.textContent = currentUser ? `Signed in: ${currentUser.email}` : 'Not signed in';
+  const accountName = document.getElementById('accountName');
+  if(status) status.textContent = currentUser ? currentUser.email : 'Not signed in';
+  if(accountName) accountName.textContent = currentUser ? (currentUser.user_metadata?.username || 'Player') : 'Guest Player';
+  const guestActions=document.getElementById('guestActions');
+  const logoutBtn=document.getElementById('logoutBtn');
+  if(guestActions)guestActions.style.display=currentUser?'none':'flex';
+  if(logoutBtn)logoutBtn.style.display=currentUser?'block':'none';
+  const headerLogin=document.querySelector('.top-actions [data-modal="login"]');
+  const headerSignup=document.querySelector('.top-actions [data-modal="signup"]');
+  const accountMenu=document.getElementById('headerAccountMenu');
+  if(headerLogin)headerLogin.style.display=currentUser?'none':'';
+  if(headerSignup)headerSignup.style.display=currentUser?'none':'';
+  if(accountMenu)accountMenu.style.display=currentUser?'block':'none';
+  const accountDropdown=document.getElementById('accountDropdown');
+  const accountToggle=document.getElementById('accountMenuToggle');
+  if(!currentUser&&accountDropdown){accountDropdown.classList.remove('open');if(accountToggle)accountToggle.setAttribute('aria-expanded','false');}
+  const profile=currentUser?.user_metadata||{};
+  const headerName=document.getElementById('headerAccountName');
+  const headerEmail=document.getElementById('headerAccountEmail');
+  const headerUsername=document.getElementById('headerAccountUsername');
+  const headerCountry=document.getElementById('headerAccountCountry');
+  if(headerName)headerName.textContent=profile.full_name||profile.username||'Player';
+  if(headerEmail)headerEmail.textContent=currentUser?.email||'';
+  if(headerUsername)headerUsername.textContent=profile.username||'Not set';
+  if(headerCountry)headerCountry.textContent=profile.country||'Not set';
+  const avatarInitials=document.getElementById('accountAvatarInitials');
+  if(avatarInitials){const label=profile.full_name||profile.username||currentUser?.email||'';const initials=label.trim().split(/[\\s._@-]+/).filter(Boolean).slice(0,2).map(part=>part[0].toUpperCase()).join('');avatarInitials.textContent=initials||'👤';}
+  const chatInput=document.getElementById('chatText');
+  if(chatInput) chatInput.placeholder=currentUser?'Type a message...':'Log in to chat';
 }
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display='none',3000)}
-document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();const type=b.dataset.modal;document.getElementById('modalTitle').textContent=type==='login'?'Welcome back':type==='stream'?'Create a live stream':'Join StreamArena';document.getElementById('modalDesc').textContent=type==='stream'?'Sign in first; live streaming provider setup will be required.':'Create your account to join the arena.';document.getElementById('modalBackdrop').style.display='grid'}));
-document.getElementById('closeModal').onclick=()=>document.getElementById('modalBackdrop').style.display='none';document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')e.currentTarget.style.display='none'};
-document.getElementById('modalForm').onsubmit=async (e) => {
-
-  e.preventDefault();
-  
-  const type = document.getElementById('modalTitle').textContent === 'Welcome back' ? 'login' : 'signup';
-  console.log("FORM SUBMITTED:", type);
-  const username = document.getElementById('modalName').value.trim();
-  const email = document.getElementById('modalEmail').value.trim();
-  const password = document.getElementById('modalPassword').value;
-  const country = document.getElementById('modalCountry').value;
-  const submit = document.getElementById('modalSubmit');
-  submit.disabled = true; submit.textContent = 'Please wait...';
-  try {
-    let result;
-    if(type === 'login') {
-      result = await supabaseClient.auth.signInWithPassword({email, password});
-    } else {
- result = await supabaseClient.auth.signUp({
-  email,
-  password,
-  options: {
-    data: {
-      username,
-      full_name: username,
-      country
-    },
-    emailRedirectTo: 'https://streamarena-nu.vercel.app'
+async function refreshSession(){
+  const { data, error } = await supabaseClient.auth.getSession();
+  if(error) console.warn('Could not refresh auth session:',error.message);
+  currentUser = data?.session?.user || null;
+  renderAuthState();
+  if(typeof loadSupportTickets==='function') loadSupportTickets();
+}
+supabaseClient.auth.onAuthStateChange((event, session)=>{
+  currentUser = session?.user || null;
+  renderAuthState();
+  if(event==='PASSWORD_RECOVERY'){
+    authMode='password-update';document.getElementById('modalTitle').textContent='Set a new password';document.getElementById('modalDesc').textContent='Choose a new password for your account.';
+    document.getElementById('modalName').style.display='none';document.getElementById('modalName').required=false;document.getElementById('modalCountry').style.display='none';
+    document.getElementById('modalPassword').style.display='';document.getElementById('modalPassword').required=true;document.getElementById('modalPassword').value='';
+    document.getElementById('modalSubmit').textContent='Update password';document.getElementById('forgotPasswordRow').style.display='none';document.getElementById('authSwitchRow').style.display='none';document.getElementById('modalBackdrop').style.display='grid';
+  }
+  if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='INITIAL_SESSION'){
+    Promise.resolve().then(()=>{
+      if(typeof loadSupportTickets==='function')loadSupportTickets();
+      if(typeof loadOrganizerTournamentPanel==='function')loadOrganizerTournamentPanel();
+      if(typeof refreshAdminTournamentPanel==='function')refreshAdminTournamentPanel();
+    });
   }
 });
+document.getElementById('logoutBtn').addEventListener('click',async()=>{
+  const button=document.getElementById('logoutBtn');button.disabled=true;
+  const result=await supabaseClient.auth.signOut();
+  button.disabled=false;
+  if(result.error){toast(result.error.message||'Could not log out.');return;}
+  await refreshSession();toast('Logged out.');
+});
+async function signOutFromAccount(button){
+  if(button)button.disabled=true;
+  const result=await supabaseClient.auth.signOut();
+  if(button)button.disabled=false;
+  if(result.error){toast(result.error.message||'Could not log out.');return;}
+  document.getElementById('accountDropdown')?.classList.remove('open');
+  await refreshSession();toast('Logged out.');
+}
+document.getElementById('headerLogoutBtn').addEventListener('click',event=>signOutFromAccount(event.currentTarget));
+document.getElementById('accountMenuToggle').addEventListener('click',()=>{
+  const menu=document.getElementById('accountDropdown');
+  const button=document.getElementById('accountMenuToggle');
+  const open=menu.classList.toggle('open');
+  button.setAttribute('aria-expanded',String(open));
+});
+document.addEventListener('click',event=>{
+  const wrapper=document.getElementById('headerAccountMenu');
+  if(wrapper&&!wrapper.contains(event.target)){
+    document.getElementById('accountDropdown')?.classList.remove('open');
+    document.getElementById('accountMenuToggle')?.setAttribute('aria-expanded','false');
+  }
+});
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display='none',3000)}
+let authMode='signup';
+function openAuthModal(type='signup'){
+ authMode=type;const login=type==='login';
+ document.getElementById('modalTitle').textContent=login?'Welcome back':'Join StreamArena';
+ document.getElementById('modalDesc').textContent=login?'Sign in with your email and password.':'Create your account to join the arena.';
+ const username=document.getElementById('modalName'),country=document.getElementById('modalCountry'),password=document.getElementById('modalPassword');
+ username.required=!login;username.style.display=login?'none':'';country.style.display=login?'none':'';password.style.display='';password.required=true;
+ document.getElementById('modalSubmit').textContent=login?'Log in':'Create account';document.getElementById('forgotPasswordRow').style.display=login?'block':'none';
+ document.getElementById('authSwitchRow').innerHTML=login?'New here? <button type="button" data-auth-switch class="textbtn">Create an account</button>':'Already registered? <button type="button" data-auth-switch class="textbtn">Log in</button>';
+ username.value='';document.getElementById('modalEmail').value='';password.value='';document.getElementById('modalBackdrop').style.display='grid';
+}
+document.getElementById('forgotPasswordBtn').addEventListener('click',async()=>{
+ const email=document.getElementById('modalEmail').value.trim();if(!email){toast('Enter your account email first.');document.getElementById('modalEmail').focus();return;}
+ const button=document.getElementById('forgotPasswordBtn');button.disabled=true;
+ try{const result=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});if(result.error)throw result.error;toast('If this email has an account, a password reset link has been sent. Check your inbox.');}
+ catch(err){toast(err.message||'Could not request password reset.');}finally{button.disabled=false;}
+});
+document.getElementById('authSwitchRow').addEventListener('click',event=>{if(event.target.hasAttribute('data-auth-switch'))openAuthModal(authMode==='login'?'signup':'login');});
+document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();openAuthModal(b.dataset.modal)}));
+function closeAuthModal(){document.getElementById('modalBackdrop').style.display='none';document.getElementById('modalForm').reset();document.getElementById('modalName').required=true;document.getElementById('modalName').style.display='';document.getElementById('modalCountry').style.display='';document.getElementById('modalPassword').style.display='';document.getElementById('modalPassword').required=true;}
+document.getElementById('closeModal').onclick=closeAuthModal;
+document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')closeAuthModal()};
+document.getElementById('modalForm').onsubmit=async (e) => {
+  e.preventDefault();
+  const title=document.getElementById('modalTitle').textContent;
+  const type=authMode==='password-update'?'password-update':title==='Welcome back'?'login':title==='Create a live stream'?'stream':'signup';
+  const username=document.getElementById('modalName').value.trim();
+  const email=document.getElementById('modalEmail').value.trim();
+  const password=document.getElementById('modalPassword').value;
+  const country=document.getElementById('modalCountry').value;
+  const submit=document.getElementById('modalSubmit');
+  submit.disabled=true;submit.textContent='Please wait...';
+  try {
+    let result;
+    if(type==='stream') {
+      if(!currentUser)throw new Error('Please log in before creating a stream.');
+      document.getElementById('modalBackdrop').style.display='none';openLivePanel('start');return;
+    } else if(type==='password-update') {
+      result=await supabaseClient.auth.updateUser({password});
+    } else if(type==='login') {
+      result=await supabaseClient.auth.signInWithPassword({email,password});
+    } else {
+      if(!username)throw new Error('Username is required.');
+      const {data:matchingProfiles,error:usernameCheckError}=await supabaseClient.from('profiles').select('id').eq('username',username).limit(1);
+      if(usernameCheckError)throw usernameCheckError;
+      if(matchingProfiles?.length)throw new Error('Username already taken. Please choose another one.');
+      result=await supabaseClient.auth.signUp({email,password,options:{data:{username,full_name:username,country}}});
+      if(result.error)throw result.error;
+      if(result.data?.user&&!result.data?.session) {
+        document.getElementById('modalBackdrop').style.display='none';
+        e.currentTarget.reset();
+        toast('Signup submitted. Check your email and click the confirmation link to activate your account, then log in.');
+        return;
+      }
     }
-    if(result.error) throw result.error;
+    if(result.error)throw result.error;
     await refreshSession();
     document.getElementById('modalBackdrop').style.display='none';
-    toast(type === 'login' ? 'Login successful.' : 'Signup submitted. Check your email if confirmation is enabled.');
+    toast(type==='login'?'Login successful.':type==='password-update'?'Password updated successfully.':'Signup successful.');authMode='signup';
   } catch(err) {
-    toast(err.message || 'Authentication failed.');
+    toast(type==='login'&&/invalid login credentials/i.test(err.message||'')?'Incorrect email or password. If you have not confirmed your email, check your inbox first.':(err.message||'Authentication failed.'));
   } finally {
-    submit.disabled = false; submit.textContent = 'Continue';
+    submit.disabled=false;
+    submit.textContent='Continue';
   }
 };
-document.querySelectorAll('.like').forEach(b=>b.onclick=()=>{b.classList.toggle('liked');const s=b.querySelector('span');s.textContent=Number(s.textContent)+(b.classList.contains('liked')?1:-1);b.firstChild.textContent=b.classList.contains('liked')?'♥ Like ':'♡ Like '});
-document.querySelectorAll('.follow').forEach(b=>b.onclick=()=>{b.textContent=b.textContent==='Follow'?'Following':'Follow';toast(b.textContent==='Following'?'Following streamer (demo)':'Unfollowed (demo)')});
-document.querySelectorAll('.join').forEach(b=>b.onclick=()=>{toast('Tournament registration demo — connect user accounts and tournament database to save entries.')});
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.stream-card').forEach(c=>c.style.display=b.dataset.filter==='All'||c.dataset.game===b.dataset.filter?'':'none')});
 document.querySelectorAll('[data-tour]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tour]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tourney').forEach(c=>c.style.display=c.dataset.type===b.dataset.tour?'flex':'none')});
-document.getElementById('chatForm').onsubmit=e=>{e.preventDefault();const input=document.getElementById('chatText');if(!input.value.trim())return;const line=document.createElement('div');line.className='chatline';const name=document.createElement('b');name.textContent='You';line.append(name,document.createTextNode(' '+input.value.trim()));document.getElementById('chatLines').append(line);input.value='';toast('Demo chat message added locally.')};
+document.querySelectorAll('.like').forEach(b=>b.onclick=()=>toast('These are sample streams. Likes become available when real streams are published.'));
+document.querySelectorAll('.follow').forEach(b=>b.onclick=()=>toast('This sample streamer is not linked to a registered account yet.'));
+async function refreshAdminTournamentPanel(){
+ const panel=document.getElementById('adminTournamentPanel');if(!panel)return;
+ const isAdmin=currentUser?.app_metadata?.role==='admin';panel.style.display=isAdmin?'block':'none';
+ if(!isAdmin)return;
+ const list=document.getElementById('adminTournamentList');list.textContent='Loading tournaments…';
+ const q=await supabaseClient.from('tournaments').select('id,title,entry_type,entry_fee,prize_pool,status,starts_at').order('created_at',{ascending:false}).limit(50);
+ if(q.error){list.textContent='Could not load tournaments: '+q.error.message;return;}
+ list.replaceChildren();
+ for(const t of q.data||[]){
+  const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #26304a';
+  const label=document.createElement('span');label.style.cssText='flex:1;min-width:150px';label.textContent=t.title+' · '+(t.entry_type||'free')+' · '+(t.status||'upcoming');
+  const count=document.createElement('span');count.className='sub';count.textContent='Loading registrations';
+  const status=document.createElement('select');['upcoming','registration_open','completed','cancelled'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;o.selected=v===t.status;status.append(o);});
+  status.style.cssText='background:#11182a;color:white;border:1px solid #293451;border-radius:8px;padding:6px';
+  status.onchange=async()=>{status.disabled=true;const u=await supabaseClient.from('tournaments').update({status:status.value}).eq('id',t.id);status.disabled=false;if(u.error){toast(u.error.message);status.value=t.status;}else{t.status=status.value;label.textContent=t.title+' · '+t.entry_type+' · '+t.status;toast('Tournament status updated.');}};
+  const regs=await supabaseClient.from('tournament_registrations').select('id,user_id,created_at').eq('tournament_id',t.id).order('created_at',{ascending:false}).limit(100);
+  count.textContent=(regs.error?'Registration count unavailable':(regs.data?.length||0)+' registrations');
+  const show=document.createElement('button');show.type='button';show.className='smallbtn';show.textContent='View players';
+  show.onclick=async()=>{
+   const out=document.getElementById('adminRegistrationList');out.replaceChildren();
+   const heading=document.createElement('h4');heading.textContent='Registrations · '+t.title;out.append(heading);
+   if(regs.error){out.append(document.createTextNode(regs.error.message));return;}
+   const ids=[...new Set((regs.data||[]).map(x=>x.user_id).filter(Boolean))];
+   let profiles=[];if(ids.length){const p=await supabaseClient.from('profiles').select('id,username').in('id',ids);if(!p.error)profiles=p.data||[];}
+   const names=new Map(profiles.map(p=>[p.id,p.username||'Player']));
+   if(!ids.length){out.append(document.createTextNode('No registrations yet.'));return;}
+   ids.forEach(id=>{const line=document.createElement('p');line.className='sub';line.textContent=(names.get(id)||'Player')+' · '+id;out.append(line);});
+  };
+  row.append(label,count,status,show);list.append(row);
+ }
+ const paymentBox=document.getElementById('adminDemoPayments');
+ if(paymentBox){
+  const p=await supabaseClient.from('tournament_demo_payments').select('id,tournament_id,organizer_id,demo_points,status,created_at').order('created_at',{ascending:false}).limit(100);
+  paymentBox.replaceChildren();
+  if(p.error)paymentBox.textContent='Could not load demo payments: '+p.error.message;
+  else if(!p.data?.length)paymentBox.textContent='No demo hosting transactions.';
+  else{
+   const ids=[...new Set(p.data.map(x=>x.tournament_id))];
+   const tours=await supabaseClient.from('tournaments').select('id,title').in('id',ids);
+   const titles=new Map((tours.data||[]).map(x=>[x.id,x.title]));
+   p.data.forEach(x=>{const line=document.createElement('p');line.className='sub';line.textContent=(titles.get(x.tournament_id)||'Tournament')+' · '+x.demo_points+' Demo Points · '+x.status.toUpperCase()+' · DEMO / NOT REAL PAYMENT';paymentBox.append(line);});
+  }
+ }
+}
+
+async function completeDemoHostingPayment(tournamentId,demoPoints){
+ const r=await supabaseClient.rpc('complete_tournament_demo_hosting',{p_tournament_id:tournamentId,p_demo_points:Number(demoPoints)});
+ if(r.error)throw r.error;if(!r.data?.success||r.data?.demo!==true)throw new Error('Demo payment confirmation missing.');return r.data;
+}
+async function loadOrganizerDemoPayments(){
+ const box=document.getElementById('organizerDemoPayments');if(!box||!currentUser)return;
+ const q=await supabaseClient.from('tournament_demo_payments').select('tournament_id,demo_points,status,created_at').eq('organizer_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
+ box.replaceChildren();if(q.error){box.textContent=q.error.message;return;}if(!q.data?.length){box.textContent='No demo transactions yet.';return;}
+ const ids=[...new Set(q.data.map(x=>x.tournament_id))];const t=await supabaseClient.from('tournaments').select('id,title').in('id',ids);const names=new Map((t.data||[]).map(x=>[x.id,x.title]));
+ q.data.forEach(p=>{const line=document.createElement('p');line.className='sub';line.textContent=(names.get(p.tournament_id)||'Tournament')+' · '+p.demo_points+' Demo Points · '+p.status.toUpperCase()+' · DEMO / NOT REAL PAYMENT';box.append(line);});
+}
+async function loadOrganizerTournamentPanel(){
+ const panel=document.getElementById('organizerTournamentPanel');if(!panel)return;panel.style.display=currentUser?'block':'none';if(!currentUser)return;
+ const list=document.getElementById('organizerTournamentList'),select=document.getElementById('organizerInviteTournament');
+ list.textContent='Loading your tournaments…';select.replaceChildren(new Option('Select your tournament',''));
+ const q=await supabaseClient.from('tournaments').select('id,title,entry_type,status,hosting_payment_status,hosting_fee_amount').eq('organizer_id',currentUser.id).order('created_at',{ascending:false}).limit(100);
+ if(q.error){list.textContent='Could not load your tournaments: '+q.error.message;return;}list.replaceChildren();
+ (q.data||[]).forEach(t=>{
+  const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid #26304a';
+  const label=document.createElement('span');label.className='sub';label.style.flex='1';label.textContent=t.title+' · '+t.status+(t.entry_type==='paid'?' · hosting '+t.hosting_payment_status+' · players pay 0':' · free');row.append(label);
+  if(t.entry_type==='paid'&&t.hosting_payment_status==='pending'){const pay=document.createElement('button');pay.type='button';pay.className='smallbtn';pay.textContent='Complete demo payment';pay.onclick=async()=>{pay.disabled=true;try{await completeDemoHostingPayment(t.id,t.hosting_fee_amount);toast('DEMO payment complete. No real money charged.');await Promise.all([loadOrganizerTournamentPanel(),loadTournamentCards()]);}catch(e){toast(e.message||'Demo payment failed.');pay.disabled=false;}};row.append(pay);}
+  list.append(row);
+  if(['upcoming','registration_open'].includes(t.status)&&(t.entry_type==='free'||t.hosting_payment_status==='paid'))select.add(new Option(t.title+(t.entry_type==='paid'?' · Hosted · Invite only':' · Free'),t.id));
+ });
+ if(!q.data?.length)list.textContent='You have not created any tournaments yet.';
+ await Promise.all([loadPlayerTournamentInvites(),loadOrganizerDemoPayments()]);
+}
+async function loadPlayerTournamentInvites(){
+ const box=document.getElementById('playerTournamentInvites');if(!box||!currentUser)return;box.replaceChildren();
+ const q=await supabaseClient.from('tournament_invites').select('id,tournament_id,status,created_at').eq('invited_user_id',currentUser.id).eq('status','pending').order('created_at',{ascending:false}).limit(30);
+ const h=document.createElement('h4');h.textContent='Pending tournament invitations';box.append(h);
+ if(q.error){box.append(document.createTextNode(q.error.message));return;}if(!q.data?.length){box.append(document.createTextNode('No pending invitations.'));return;}
+ const ids=[...new Set(q.data.map(x=>x.tournament_id))];const tours=await supabaseClient.from('tournaments').select('id,title,entry_type').in('id',ids);const titles=new Map((tours.data||[]).map(t=>[t.id,t.title+(t.entry_type==='paid'?' · Hosted · 0 entry fee':' · Free')]));
+ q.data.forEach(inv=>{const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #26304a';const label=document.createElement('span');label.style.flex='1';label.textContent=titles.get(inv.tournament_id)||'Tournament invitation';
+ const accept=document.createElement('button');accept.type='button';accept.className='smallbtn';accept.textContent='Accept';const decline=document.createElement('button');decline.type='button';decline.className='smallbtn';decline.textContent='Decline';
+ const respond=async accepted=>{accept.disabled=true;decline.disabled=true;const r=await supabaseClient.rpc('respond_tournament_invite',{p_invite_id:inv.id,p_accept:accepted});if(r.error){toast(r.error.message);accept.disabled=false;decline.disabled=false;return;}toast(accepted?'Registered. Entry fee: 0.':'Invitation declined.');await Promise.all([loadPlayerTournamentInvites(),loadTournamentCards()]);};
+ accept.onclick=()=>respond(true);decline.onclick=()=>respond(false);row.append(label,accept,decline);box.append(row);});
+}
+document.getElementById('organizerTournamentForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!currentUser){toast('Log in first.');return;}const form=e.currentTarget,button=form.querySelector('button[type="submit"]');button.disabled=true;
+ const title=document.getElementById('organizerTourTitle').value.trim(),prize=Number(document.getElementById('organizerTourPrize').value||0),starts=document.getElementById('organizerTourStarts').value,status=document.getElementById('organizerTourStatus').value,hosted=document.getElementById('organizerTourMode').value==='hosted',points=Number(document.getElementById('organizerTourDemoTier').value);
+ if(title.length<3||title.length>120||!Number.isFinite(prize)||prize<0){toast('Check tournament title and prize pool.');button.disabled=false;return;}
+ try{
+  const payload={title,organizer_id:currentUser.id,entry_type:hosted?'paid':'free',entry_fee:0,hosting_payment_status:hosted?'pending':'not_required',hosting_fee_amount:hosted?points:null,prize_pool:prize,status,starts_at:starts?new Date(starts).toISOString():null};
+  const saved=await supabaseClient.from('tournaments').insert(payload).select('id').single();if(saved.error)throw saved.error;
+  if(hosted){await completeDemoHostingPayment(saved.data.id,points);toast('Hosted tournament ready. DEMO / NOT REAL PAYMENT. Invitees pay 0.');}else toast('Free tournament created.');
+  form.reset();await Promise.all([loadOrganizerTournamentPanel(),loadTournamentCards()]);
+ }catch(err){toast(err.message||'Creation failed. If hosting remains pending, retry demo payment from your tournament list.');await loadOrganizerTournamentPanel();}
+ finally{button.disabled=false;}
+});
+document.getElementById('organizerInviteBtn').addEventListener('click',async()=>{
+ if(!currentUser){toast('Log in first.');return;}
+ const tournamentId=document.getElementById('organizerInviteTournament').value;
+ const username=document.getElementById('organizerInviteUsername').value.trim();
+ const button=document.getElementById('organizerInviteBtn');
+ if(!tournamentId||!username){toast('Choose a tournament and enter a player username.');return;}
+ button.disabled=true;
+ try{
+   const player=await supabaseClient.from('profiles').select('id,username').ilike('username',username).limit(2);
+   if(player.error)throw player.error;
+   if(player.data?.length!==1)throw new Error(player.data?.length?'Username is not unique.':'No registered player found with that username.');
+   if(player.data[0].id===currentUser.id)throw new Error('You cannot invite yourself.');
+   const invited=await supabaseClient.from('tournament_invites').insert({tournament_id:tournamentId,inviter_id:currentUser.id,invited_user_id:player.data[0].id});
+   if(invited.error)throw invited.error;
+   document.getElementById('organizerInviteUsername').value='';toast('Tournament invitation sent.');
+ }catch(err){toast(err.message||'Could not send invitation.');}
+ finally{button.disabled=false;}
+});
+
+document.getElementById('adminTournamentForm').onsubmit=async e=>{
+ e.preventDefault();if(currentUser?.app_metadata?.role!=='admin'){toast('Admin access required.');return;}
+ const form=e.currentTarget,button=form.querySelector('button[type="submit"]');
+ const title=document.getElementById('adminTourTitle').value.trim();
+ const prize=Number(document.getElementById('adminTourPrize').value||0);
+ const starts=document.getElementById('adminTourStarts').value;
+ const status=document.getElementById('adminTourStatus').value;
+ if(title.length<3||title.length>120||!Number.isFinite(prize)||prize<0){toast('Check the tournament title and prize amount.');return;}
+ button.disabled=true;
+ try{
+  const payload={title,organizer_id:currentUser.id,entry_type:'free',entry_fee:0,prize_pool:prize,status,starts_at:starts?new Date(starts).toISOString():null};
+  const saved=await supabaseClient.from('tournaments').insert(payload);
+  if(saved.error)throw saved.error;
+  form.reset();toast('Free tournament created.');await Promise.all([refreshAdminTournamentPanel(),loadTournamentCards()]);
+ }catch(err){toast(err.message||'Tournament could not be created.');}
+ finally{button.disabled=false;}
+};
+async function loadTournamentCards(){
+ const box=document.getElementById('tourCards');if(!box)return;
+ const q=await supabaseClient.from('tournaments').select('id,title,entry_type,entry_fee,prize_pool,status,starts_at,hosting_payment_status').order('starts_at',{ascending:true,nullsFirst:false}).limit(100);
+ box.replaceChildren();
+ if(q.error){const p=document.createElement('p');p.className='sub';p.textContent='Could not load tournaments: '+q.error.message;box.append(p);return;}
+ if(!q.data?.length){const p=document.createElement('p');p.className='sub';p.textContent='No tournaments are available right now.';box.append(p);return;}
+ q.data.forEach(t=>{
+  const card=document.createElement('article');card.className='tourney';card.dataset.type=t.entry_type==='paid'?'Paid':'Free';
+  const icon=document.createElement('div');icon.className='tour-icon';icon.textContent=t.entry_type==='paid'?'🏆':'🎮';
+  const info=document.createElement('div');info.className='tour-info';
+  const heading=document.createElement('h3');heading.textContent=t.title;
+  const details=document.createElement('p');details.textContent=t.entry_type==='paid'?(t.hosting_payment_status==='paid'?'Organizer-hosted · invited players pay 0':'Organizer hosting pending'):'Free entry';
+  const prize=document.createElement('p');prize.textContent='Prize pool: '+(Number(t.prize_pool||0).toLocaleString());
+  const foot=document.createElement('div');foot.className='tour-foot';
+  const status=document.createElement('span');status.className='sub';status.textContent=(t.status||'upcoming').replaceAll('_',' ');
+  foot.append(status);
+  const join=document.createElement('button');join.className='btn primary smallbtn';
+  const open=t.entry_type==='free'&&['upcoming','registration_open'].includes(t.status);
+  join.textContent=t.entry_type==='paid'?'Invite only':open?'Join Now':'Registration closed';
+  join.disabled=!open;
+  if(open)join.addEventListener('click',()=>registerForTournament(t,join));
+  foot.append(join);info.append(heading,details,prize,foot);card.append(icon,info);box.append(card);
+ });
+ const active=document.querySelector('[data-tour].active')?.dataset.tour||'Free';
+ box.querySelectorAll('.tourney').forEach(c=>c.style.display=c.dataset.type===active?'flex':'none');
+}
+async function registerForTournament(t,button){
+ if(!currentUser){toast('Please log in before registering.');document.querySelector('[data-modal="login"]').click();return;}
+ button.disabled=true;
+ try{
+  const saved=await supabaseClient.from('tournament_registrations').insert({tournament_id:t.id,user_id:currentUser.id});
+  if(saved.error?.code==='23505')throw new Error('You are already registered.');
+  if(saved.error)throw saved.error;
+  button.textContent='Registered';toast('Registration saved.');
+ }catch(err){toast(err.message||'Registration failed.');button.disabled=false;}
+}
+document.querySelectorAll('.join').forEach(b=>b.onclick=()=>toast('Tournament list is refreshing. Please select the tournament again.'));
+loadTournamentCards();
+supabaseClient.channel('tournament-updates').on('postgres_changes',{event:'*',schema:'public',table:'tournaments'},()=>loadTournamentCards()).subscribe();
+async function loadChat(){
+  const box=document.getElementById('chatLines');
+  const result=await supabaseClient.from('chat_messages').select('id,user_id,message,created_at').is('stream_id',null).order('created_at',{ascending:true}).limit(60);
+  if(result.error){console.error(result.error);return;}
+  const ids=[...new Set((result.data||[]).map(m=>m.user_id))];let profiles=[];
+  if(ids.length){const p=await supabaseClient.from('profiles').select('id,username').in('id',ids);if(!p.error)profiles=p.data||[];}
+  const names=new Map(profiles.map(p=>[p.id,p.username||'Player']));box.replaceChildren();
+  (result.data||[]).forEach(m=>{const line=document.createElement('div');line.className='chatline';const name=document.createElement('b');name.textContent=names.get(m.user_id)||'Player';line.append(name,document.createTextNode(' '+m.message));box.append(line);});
+}
+document.getElementById('chatText').maxLength=2000;
+document.getElementById('chatForm').onsubmit=async e=>{
+  e.preventDefault();
+  const input=document.getElementById('chatText'),message=input.value.trim();
+  if(!message)return;
+  if(!currentUser){toast('Please log in to send messages.');return;}
+  if(message.length>2000){toast('Chat messages must be 2,000 characters or fewer.');return;}
+  const send=e.currentTarget.querySelector('button');send.disabled=true;
+  try{
+    const saved=await supabaseClient.from('chat_messages').insert({user_id:currentUser.id,message});
+    if(saved.error)throw saved.error;
+    input.value='';
+  }catch(err){toast(err.message||'Message could not be sent.');}
+  finally{send.disabled=false;}
+};
+supabaseClient.channel('public-chat').on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},()=>loadChat()).subscribe();
+loadChat();
+async function loadSupportTickets(){
+ const list=document.getElementById('supportTickets');if(!currentUser){list.textContent='Sign in to view your tickets.';return;}
+ const admin=currentUser.app_metadata?.role==='admin';
+ const q=await supabaseClient.from('support_tickets').select('id,subject,message,status,created_at,user_id').order('updated_at',{ascending:false}).limit(30);
+ if(q.error){list.textContent='Could not load tickets: '+q.error.message;return;}
+ list.replaceChildren();
+ if(!q.data?.length){list.textContent='No support tickets yet.';return;}
+ for(const t of q.data){
+  const card=document.createElement('div');card.style.cssText='border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0';
+  const h=document.createElement('b');h.textContent=t.subject+' · '+t.status;card.append(h);
+  const p=document.createElement('p');p.className='sub';p.textContent=t.message;card.append(p);
+  const replies=await supabaseClient.from('support_replies').select('sender_id,message,created_at').eq('ticket_id',t.id).order('created_at');
+  if(!replies.error)(replies.data||[]).forEach(r=>{const line=document.createElement('p');line.className='sub';line.textContent=(r.sender_id===currentUser.id?'You: ':'Support: ')+r.message;card.append(line);});
+  const form=document.createElement('form');form.style.cssText='display:flex;gap:6px;margin-top:8px';
+  const input=document.createElement('input');input.required=true;input.maxLength=5000;input.placeholder='Write a reply';input.style.cssText='min-width:0;flex:1;background:#11182a;border:1px solid #293451;border-radius:8px;padding:8px;color:white';
+  const send=document.createElement('button');send.className='smallbtn';send.textContent='Reply';form.append(input,send);
+  form.onsubmit=async ev=>{
+   ev.preventDefault();const message=input.value.trim();if(!message)return;
+   send.disabled=true;
+   try{
+    const saved=await supabaseClient.from('support_replies').insert({ticket_id:t.id,sender_id:currentUser.id,message});
+    if(saved.error)throw saved.error;
+    input.value='';await loadSupportTickets();
+   }catch(err){toast(err.message||'Reply could not be sent.');}
+   finally{send.disabled=false;}
+  };
+  card.append(form);
+  if(admin){const select=document.createElement('select');['open','in_progress','resolved','closed'].forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;o.selected=s===t.status;select.append(o);});select.onchange=async()=>{const upd=await supabaseClient.from('support_tickets').update({status:select.value,updated_at:new Date().toISOString()}).eq('id',t.id);if(upd.error)toast(upd.error.message);else toast('Ticket status updated.');};card.append(select);}
+  list.append(card);
+ }
+}
+document.getElementById('supportForm').onsubmit=async e=>{
+ e.preventDefault();
+ if(!currentUser){toast('Please log in to submit a ticket.');return;}
+ const form=e.currentTarget,button=form.querySelector('button[type="submit"]');
+ const subject=document.getElementById('supportSubject').value.trim();
+ const message=document.getElementById('supportMessage').value.trim();
+ if(!subject||!message){toast('Enter both a subject and a message.');return;}
+ if(subject.length>160||message.length>5000){toast('Your ticket is too long.');return;}
+ button.disabled=true;button.textContent='Submitting…';
+ try{
+  const saved=await supabaseClient.from('support_tickets').insert({user_id:currentUser.id,subject,message});
+  if(saved.error)throw saved.error;
+  form.reset();toast('Support ticket submitted.');await loadSupportTickets();
+ }catch(err){toast(err.message||'Support ticket could not be submitted.');}
+ finally{button.disabled=false;button.textContent='Submit ticket';}
+};
+supabaseClient.channel('support-updates').on('postgres_changes',{event:'*',schema:'public',table:'support_replies'},()=>loadSupportTickets()).on('postgres_changes',{event:'*',schema:'public',table:'support_tickets'},()=>loadSupportTickets()).subscribe();
+loadSupportTickets();
 document.getElementById('langBtn').onclick=()=>{language=language==='en'?'bn':'en';document.documentElement.lang=language;document.getElementById('langBtn').textContent='🌐 '+language.toUpperCase();document.querySelectorAll('[data-en][data-bn]').forEach(el=>el.textContent=el.dataset[language]);document.querySelector('.search').placeholder=language==='bn'?'গেম, স্ট্রিমার খুঁজুন...':'⌕ Search games, streamers...'};
 refreshSession();document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('.game').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none');document.querySelectorAll('.stream-card').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none')});
+
+/* LiveKit browser integration */
+let activeLiveRoom = null;
+let activeStreamId = null;
+let activeStreamOwner = null;
+let liveMode = null;
+
+function openLivePanel(mode = 'start') {
+  document.getElementById('liveBackdrop').style.display = 'grid';
+  document.getElementById('liveHeading').textContent = mode === 'start' ? 'Start a live stream' : 'Watch live stream';
+  document.getElementById('liveStatus').textContent = currentUser ? 'Ready.' : 'Please log in first.';
+  document.getElementById('liveSetup').style.display = mode === 'start' ? 'grid' : 'none';
+  document.getElementById('startLiveBtn').style.display = mode === 'start' ? '' : 'none';
+  document.getElementById('livePreflight').style.display='none';
+  if(mode === 'start') loadStreamSettings();
+  document.getElementById('endLiveBtn').style.display = 'none';
+  document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'), {className:'sub', textContent:'Video will appear here'}));
+  liveMode = mode;
+}
+function renderLiveThumbnail(url) {
+  const preview=document.getElementById('liveThumbnailPreview');
+  if(url){preview.src=url;preview.style.display='block';}
+  else{preview.removeAttribute('src');preview.style.display='none';}
+}
+let savedLiveThumbnailUrl=null;
+let clearSavedLiveThumbnail=false;
+async function loadStreamSettings() {
+  if(!currentUser)return;
+  const status=document.getElementById('liveSettingsStatus');
+  const startButton=document.getElementById('startLiveBtn');
+  startButton.disabled=true;
+  status.textContent='Loading your saved live setup…';
+  try{
+    const result=await supabaseClient.from('stream_settings').select('title,caption,thumbnail_url').eq('user_id',currentUser.id).maybeSingle();
+    if(result.error)throw result.error;
+    const settings=result.data||{};
+    document.getElementById('liveTitle').value=settings.title||'';
+    document.getElementById('liveCaption').value=settings.caption||'';
+    savedLiveThumbnailUrl=settings.thumbnail_url||null;
+    clearSavedLiveThumbnail=false;
+    document.getElementById('liveThumbnailFile').value='';
+    renderLiveThumbnail(savedLiveThumbnailUrl);
+    await loadOrganizerTournaments();
+    status.textContent='Your saved setup will be reused the next time you go live.';
+  }catch(err){status.textContent='Could not load saved setup: '+(err.message||'Unknown error');}
+  finally{startButton.disabled=false;}
+}
+async function loadOrganizerTournaments() {
+  const select=document.getElementById('liveTournament');
+  select.replaceChildren(new Option('No tournament link',''));
+  if(!currentUser)return;
+  const result=await supabaseClient.from('tournaments').select('id,title,status').eq('organizer_id',currentUser.id).order('created_at',{ascending:false}).limit(100);
+  if(result.error){document.getElementById('liveSettingsStatus').textContent='Could not load your tournaments: '+result.error.message;return;}
+  (result.data||[]).forEach(t=>select.add(new Option(t.title+' · '+(t.status||'upcoming').replaceAll('_',' '),t.id)));
+}
+async function showLivePreflight() {
+  const button=document.getElementById('startLiveBtn');
+  button.disabled=true;
+  try {
+    const details=await saveLiveSettings({silent:true});
+    const image=document.getElementById('livePreflightImage');
+    const noImage=document.getElementById('livePreflightNoImage');
+    if(details.thumbnail_url){image.src=details.thumbnail_url;image.style.display='block';noImage.style.display='none';}
+    else{image.removeAttribute('src');image.style.display='none';noImage.style.display='block';}
+    document.getElementById('livePreflightTitle').textContent=details.title;
+    document.getElementById('livePreflightCaption').textContent=details.caption||'No caption';
+    const tournament=document.getElementById('liveTournament');
+    const tournamentLabel=tournament.selectedOptions[0]?.textContent||'No tournament link';
+    document.getElementById('livePreflightTournament').textContent=tournament.value?'Tournament: '+tournamentLabel:'Not linked to a tournament';
+    document.getElementById('liveSetup').style.display='none';
+    document.getElementById('livePreflight').style.display='grid';
+    document.getElementById('liveStatus').textContent='Check your thumbnail and stream details. Edit them or continue to Go Live.';
+  } catch(err){toast(err.message||'Could not prepare live preview.');document.getElementById('liveSettingsStatus').textContent=err.message||'Could not save setup.';}
+  finally{button.disabled=false;}
+}
+document.getElementById('startLiveBtn').addEventListener('click',showLivePreflight);
+document.getElementById('editLiveSetupBtn').addEventListener('click',()=>{
+  document.getElementById('livePreflight').style.display='none';
+  document.getElementById('liveSetup').style.display='grid';
+});
+document.getElementById('goLiveNowBtn').addEventListener('click',()=>{
+  document.getElementById('livePreflight').style.display='none';
+  startLiveBroadcast();
+});
+async function saveLiveSettings(options={}) {
+  if(!currentUser)throw new Error('Please log in first.');
+  const title=document.getElementById('liveTitle').value.trim();
+  const caption=document.getElementById('liveCaption').value.trim();
+  if(title.length<3||title.length>120)throw new Error('Stream title must be 3–120 characters.');
+  if(caption.length>500)throw new Error('Caption must be 500 characters or fewer.');
+  const fileInput=document.getElementById('liveThumbnailFile');
+  const file=fileInput.files?.[0];
+  let thumbnailUrl=clearSavedLiveThumbnail?null:savedLiveThumbnailUrl;
+  if(file){
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPG, PNG or WebP image.');
+    if(file.size>5*1024*1024)throw new Error('Thumbnail must be 5 MB or smaller.');
+    const extension=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+    const path=currentUser.id+'/'+Date.now()+'.'+extension;
+    const upload=await supabaseClient.storage.from('stream-thumbnails').upload(path,file,{contentType:file.type,upsert:false});
+    if(upload.error)throw upload.error;
+    thumbnailUrl=supabaseClient.storage.from('stream-thumbnails').getPublicUrl(path).data.publicUrl;
+  }
+  const saved=await supabaseClient.from('stream_settings').upsert({
+    user_id:currentUser.id,title,caption,thumbnail_url:thumbnailUrl,updated_at:new Date().toISOString()
+  },{onConflict:'user_id'});
+  if(saved.error)throw saved.error;
+  savedLiveThumbnailUrl=thumbnailUrl;clearSavedLiveThumbnail=false;fileInput.value='';
+  renderLiveThumbnail(thumbnailUrl);
+  document.getElementById('liveSettingsStatus').textContent='Live setup saved. It will be reused for your next stream.';
+  if(!options.silent)toast('Live setup saved.');
+  return {title,caption,thumbnail_url:thumbnailUrl};
+}
+document.getElementById('saveLiveSettingsBtn').addEventListener('click',async()=>{
+  const button=document.getElementById('saveLiveSettingsBtn');button.disabled=true;
+  document.getElementById('liveSettingsStatus').textContent='Saving…';
+  try{await saveLiveSettings();}
+  catch(err){document.getElementById('liveSettingsStatus').textContent=err.message||'Could not save live setup.';toast(err.message||'Could not save live setup.');}
+  finally{button.disabled=false;}
+});
+document.getElementById('liveThumbnailFile').addEventListener('change',event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024){
+    event.target.value='';toast('Choose a JPG, PNG or WebP image up to 5 MB.');return;
+  }
+  clearSavedLiveThumbnail=false;renderLiveThumbnail(URL.createObjectURL(file));
+});
+document.getElementById('clearLiveThumbnail').addEventListener('click',()=>{
+  document.getElementById('liveThumbnailFile').value='';clearSavedLiveThumbnail=true;renderLiveThumbnail(null);
+});
+function closeLivePanel() {
+  if (activeStreamId) {
+    toast('End your live stream before closing this panel.');
+    return;
+  }
+  if (activeLiveRoom) {
+    activeLiveRoom.disconnect();
+    activeLiveRoom = null;
+  }
+  document.getElementById('liveBackdrop').style.display = 'none';
+}
+document.querySelectorAll('[data-live-open]').forEach(el => el.addEventListener('click', e => {
+  e.preventDefault();
+  if (!currentUser) {
+    toast('Please log in before starting a stream.');
+    document.querySelector('[data-modal="login"]')?.click();
+    return;
+  }
+  openLivePanel('start');
+}));
+document.getElementById('liveClose').addEventListener('click', closeLivePanel);
+document.getElementById('liveBackdrop').addEventListener('click', e => { if (e.target.id === 'liveBackdrop') closeLivePanel(); });
+
+async function requestLiveKitToken(roomName, role) {
+  const {data:{session}} = await supabaseClient.auth.getSession();
+  if (!session?.access_token) throw new Error('Your login session has expired. Please sign in again.');
+  const response = await fetch(window.STREAMARENA_SUPABASE_URL + '/functions/v1/livekit-token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': window.STREAMARENA_SUPABASE_PUBLISHABLE_KEY,
+      'Authorization': 'Bearer ' + session.access_token
+    },
+    body: JSON.stringify({roomName, role})
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || 'Could not create a streaming session.');
+  return payload;
+}
+function attachLiveTrack(track, stage, muted = false) {
+  const element = track.attach();
+  if (element.tagName === 'VIDEO') {
+    element.autoplay = true;
+    element.playsInline = true;
+    element.muted = muted;
+    element.style.cssText = 'width:100%;height:100%;max-height:520px;object-fit:contain';
+  } else if (element.tagName === 'AUDIO') {
+    element.autoplay = true;
+  }
+  stage.append(element);
+}
+async function loadLiveStreams() {
+  const cards = document.getElementById('streamCards');
+  if (!cards) return;
+  const freshAfter = new Date(Date.now()-120000).toISOString();
+  const result = await supabaseClient.from('streams')
+    .select('id,user_id,title,caption,thumbnail_url,tournament_id,created_at,last_heartbeat_at')
+    .eq('is_live', true)
+    .gt('last_heartbeat_at', freshAfter)
+    .order('last_heartbeat_at', {ascending:false})
+    .limit(30);
+  cards.replaceChildren();
+  if (result.error) {
+    const p=document.createElement('p');p.className='sub';p.textContent='Could not load live streams: '+result.error.message;cards.append(p);return;
+  }
+  const streams=result.data||[];
+  if (!streams.length) {
+    const p=document.createElement('p');p.className='sub';p.textContent='No one is live right now. Sign in and select Go Live to start the first stream.';cards.append(p);return;
+  }
+  const ids=[...new Set(streams.map(s=>s.user_id))];
+  const profileResult=await supabaseClient.from('profiles').select('id,username').in('id',ids);
+  const names=new Map((profileResult.data||[]).map(p=>[p.id,p.username||'Player']));
+  const tournamentIds=[...new Set(streams.map(s=>s.tournament_id).filter(Boolean))];
+  let tournamentNames=new Map();
+  if(tournamentIds.length){const tq=await supabaseClient.from('tournaments').select('id,title').in('id',tournamentIds);if(!tq.error)tournamentNames=new Map((tq.data||[]).map(t=>[t.id,t.title]));}
+  streams.forEach(stream=>{
+    const card=document.createElement('article');card.className='stream-card';
+    const thumb=document.createElement('div');thumb.className='thumb';
+    if(stream.thumbnail_url){const image=document.createElement('img');image.src=stream.thumbnail_url;image.alt=stream.title+' thumbnail';image.loading='lazy';image.style.cssText='width:100%;height:100%;object-fit:cover';thumb.append(image);}
+    const liveTag=document.createElement('span');liveTag.className='livebadge';liveTag.textContent='LIVE';thumb.append(liveTag);
+    const body=document.createElement('div');body.className='cardbody';
+    const title=document.createElement('h3');title.textContent=stream.title;
+    const owner=document.createElement('p');owner.textContent='By '+(names.get(stream.user_id)||'Player');
+    if(stream.caption){const caption=document.createElement('p');caption.textContent=stream.caption;body.append(caption);}
+    if(stream.tournament_id&&tournamentNames.has(stream.tournament_id)){const linked=document.createElement('p');linked.className='sub';linked.textContent='Tournament: '+tournamentNames.get(stream.tournament_id);body.append(linked);}
+    const actions=document.createElement('div');actions.className='cardactions';
+    const watch=document.createElement('button');watch.className='smallbtn';watch.textContent='▶ Watch';
+    watch.addEventListener('click',()=>watchLiveStream(stream));
+    actions.append(watch);body.append(title,owner,actions);card.append(thumb,body);cards.append(card);
+  });
+}
+async function watchLiveStream(stream) {
+  if (!currentUser) { toast('Please log in to watch live streams.'); return; }
+  if (activeStreamId) { toast('End your live stream before watching another stream.'); return; }
+  if (!window.LivekitClient) { toast('LiveKit browser SDK did not load. Refresh and try again.'); return; }
+  if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch(disconnectError){console.warn('Previous viewer room disconnect:',disconnectError);}activeLiveRoom=null;}
+  openLivePanel('watch');
+  const stage=document.getElementById('liveStage');
+  stage.replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Connecting to stream…'}));
+  document.getElementById('liveHeading').textContent=stream.title;
+  document.getElementById('liveStatus').textContent='Connecting to live stream…';
+  document.getElementById('startLiveBtn').style.display='none';
+  activeStreamOwner=stream.user_id;
+  try {
+    const roomName='stream-'+stream.user_id;
+    const credentials=await requestLiveKitToken(roomName,'viewer');
+    const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
+    activeLiveRoom=room;
+    room.on(LivekitClient.RoomEvent.TrackSubscribed,(track)=>attachLiveTrack(track,document.getElementById('liveStage')));
+    room.on(LivekitClient.RoomEvent.Disconnected,()=>{
+      document.getElementById('liveStatus').textContent='Disconnected.';
+      if(activeLiveRoom===room)document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Stream disconnected.'}));
+    });
+    await room.connect(credentials.serverUrl,credentials.token);
+    document.getElementById('liveStatus').textContent='Connected · '+room.numParticipants+' participant(s)';
+    room.remoteParticipants.forEach(p=>p.trackPublications.forEach(pub=>{if(pub.isSubscribed&&pub.track)attachLiveTrack(pub.track,document.getElementById('liveStage'));}));
+  } catch(err) {
+    document.getElementById('liveStatus').textContent=err.message||'Unable to join this stream.';
+    toast(err.message||'Unable to join stream.');
+    if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch{}activeLiveRoom=null;}
+    stage.replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Unable to connect to this stream.'}));
+  }
+}
+async function startLiveBroadcast(){
+  if(!currentUser){toast('Please log in first.');return;}
+  if(activeStreamId){toast('You already have an active live stream. End it before starting another.');return;}
+  if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch(disconnectError){console.warn('Previous viewer room disconnect:',disconnectError);}activeLiveRoom=null;}
+  if(!window.LivekitClient){toast('LiveKit browser SDK did not load. Refresh and try again.');return;}
+  const title=document.getElementById('liveTitle').value.trim();
+  if(title.length<3){toast('Enter a stream title (at least 3 characters).');return;}
+  const button=document.getElementById('goLiveNowBtn');button.disabled=true;
+  document.getElementById('liveStatus').textContent='Preparing stream…';
+  let createdId=null;
+  try {
+    const freshAfter=new Date(Date.now()-120000).toISOString();
+    const stale=await supabaseClient.from('streams').update({is_live:false}).eq('user_id',currentUser.id).eq('is_live',true).or('last_heartbeat_at.is.null,last_heartbeat_at.lt.'+freshAfter);
+    if(stale.error)throw stale.error;
+    const existing=await supabaseClient.from('streams').select('id').eq('user_id',currentUser.id).eq('is_live',true).gt('last_heartbeat_at',freshAfter).limit(1);
+    if(existing.error)throw existing.error;
+    if(existing.data?.length){throw new Error('You already have a live stream. End it before starting another.');}
+    const liveSettings=await saveLiveSettings({silent:true});
+    const created=await supabaseClient.from('streams').insert({
+      user_id:currentUser.id,title:liveSettings.title,caption:liveSettings.caption,
+      thumbnail_url:liveSettings.thumbnail_url,
+      tournament_id:document.getElementById('liveTournament').value||null,
+      is_live:false
+    }).select('id').single();
+    if(created.error)throw created.error;
+    createdId=created.data.id;activeStreamId=createdId;
+    const marked=await supabaseClient.from('streams').update({is_live:true,last_heartbeat_at:new Date().toISOString()}).eq('id',createdId).eq('user_id',currentUser.id);
+    if(marked.error)throw marked.error;
+    const credentials=await requestLiveKitToken('stream-'+currentUser.id,'publisher');
+    const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
+    activeLiveRoom=room;
+    await room.connect(credentials.serverUrl,credentials.token);
+    await room.localParticipant.enableCameraAndMicrophone();
+    const stage=document.getElementById('liveStage');stage.replaceChildren();
+    const camera=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+    if(camera?.track)attachLiveTrack(camera.track,stage,true);
+    document.getElementById('liveHeading').textContent=title;
+    document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.';
+    if(window.streamHeartbeatTimer)clearInterval(window.streamHeartbeatTimer);
+    window.streamHeartbeatTimer=setInterval(async()=>{
+      if(!activeStreamId||!currentUser)return;
+      const beat=await supabaseClient.from('streams').update({last_heartbeat_at:new Date().toISOString()}).eq('id',activeStreamId).eq('user_id',currentUser.id).eq('is_live',true);
+      if(beat.error)console.warn('Stream heartbeat failed:',beat.error.message);
+    },25000);
+    document.getElementById('liveSetup').style.display='none';
+    document.getElementById('livePreflight').style.display='none';
+    button.style.display='none';document.getElementById('endLiveBtn').style.display='';
+    await loadLiveStreams();
+  } catch(err) {
+    if(window.streamHeartbeatTimer){clearInterval(window.streamHeartbeatTimer);window.streamHeartbeatTimer=null;}
+    if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch{} activeLiveRoom=null;}
+    if(createdId) await supabaseClient.from('streams').update({is_live:false}).eq('id',createdId).eq('user_id',currentUser.id);
+    activeStreamId=null;
+    document.getElementById('endLiveBtn').style.display='none';
+    document.getElementById('startLiveBtn').style.display='';
+    document.getElementById('liveSetup').style.display='grid';
+    document.getElementById('livePreflight').style.display='none';
+    const startError=err.code==='23505'?'You already have an active live stream. End it before starting another.':(err.message||'Could not start stream.');
+    document.getElementById('liveStatus').textContent=startError;
+    toast(startError);
+    await loadLiveStreams();
+  } finally {button.disabled=false;}
+}
+document.getElementById('endLiveBtn').addEventListener('click',async()=>{
+  const button=document.getElementById('endLiveBtn');button.disabled=true;
+  try {
+    if(activeStreamId){
+      const result=await supabaseClient.from('streams').update({is_live:false}).eq('id',activeStreamId).eq('user_id',currentUser.id);
+      if(result.error)throw result.error;
+    }
+    if(window.streamHeartbeatTimer){clearInterval(window.streamHeartbeatTimer);window.streamHeartbeatTimer=null;}
+    if(activeLiveRoom){
+      try{await activeLiveRoom.disconnect();}
+      catch(disconnectError){console.warn('LiveKit disconnect after ending stream:',disconnectError);}
+      finally{activeLiveRoom=null;}
+    }
+    activeStreamId=null;
+    document.getElementById('liveStatus').textContent='Stream ended.';
+    document.getElementById('endLiveBtn').style.display='none';
+    document.getElementById('startLiveBtn').style.display='';
+    document.getElementById('liveSetup').style.display='grid';
+    await loadLiveStreams();
+  } catch(err){toast(err.message||'Could not end stream.');}
+  finally{button.disabled=false;}
+});
+const previousRefreshSession=refreshSession;
+refreshSession=async function(){await previousRefreshSession();await loadLiveStreams();await refreshAdminTournamentPanel();await loadOrganizerTournamentPanel();};
+refreshSession();
+loadLiveStreams();
+setInterval(()=>{if(document.visibilityState!=='hidden')loadLiveStreams();},15000);
+
 </script></body></html>

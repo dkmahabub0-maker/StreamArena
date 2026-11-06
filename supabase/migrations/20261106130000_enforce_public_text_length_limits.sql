@@ -1,0 +1,1 @@
+-- No-op compatibility marker. The applied migration is 20261106115653_enforce_public_text_length_limits.sql.
