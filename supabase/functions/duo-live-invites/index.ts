@@ -7,6 +7,7 @@ const exactOrigins = new Set([
   "http://127.0.0.1:5500",
 ]);
 const previewOrigin = /^https:\/\/streamarena(?:-[a-z0-9-]+)?\.vercel\.app$/i;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function allowedOrigin(origin: string | null): boolean {
   return !origin || exactOrigins.has(origin) || previewOrigin.test(origin);
@@ -35,7 +36,11 @@ function requiredEnv(name: string): string {
 
 async function readJson(response: Response) {
   const text = await response.text();
-  if (!response.ok) throw new Error(`Supabase request failed (${response.status}): ${text.slice(0, 300)}`);
+  if (!response.ok) {
+    const error = new Error(`Supabase request failed (${response.status}): ${text.slice(0, 300)}`) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
+  }
   return text ? JSON.parse(text) : null;
 }
 
@@ -94,7 +99,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "invite") {
       const inviteeUserId = typeof body?.inviteeUserId === "string" ? body.inviteeUserId : "";
-      if (!/^[0-9a-f-]{36}$/i.test(inviteeUserId) || inviteeUserId === user.id) {
+      if (!uuidPattern.test(inviteeUserId) || inviteeUserId === user.id) {
         return reply({ error: "Choose another valid StreamArena user" }, 400, origin);
       }
       const stream = await activeStreamFor(user.id);
@@ -114,7 +119,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const invitationId = typeof body?.invitationId === "string" ? body.invitationId : "";
-    if (!/^[0-9a-f-]{36}$/i.test(invitationId)) {
+    if (!uuidPattern.test(invitationId)) {
       return reply({ error: "A valid invitation ID is required" }, 400, origin);
     }
     const inviteRows = await rest(
@@ -179,7 +184,9 @@ Deno.serve(async (req: Request) => {
 
     return reply({ error: "Unsupported action" }, 400, origin);
   } catch (error) {
+    const status = typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 0;
     console.error("Duo Live invitation request failed:", error instanceof Error ? error.message : "unknown error");
+    if (status === 409) return reply({ error: "A pending or accepted co-host invitation already exists for this Live" }, 409, origin);
     return reply({ error: "Unable to process Duo Live invitation" }, 500, origin);
   }
 });
