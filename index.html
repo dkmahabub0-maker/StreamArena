@@ -78,6 +78,7 @@ async function refreshSession(){
   if(accountName) accountName.textContent = currentUser ? (currentUser.user_metadata?.username || 'Player') : 'Guest Player';
   const chatInput=document.getElementById('chatText');
   if(chatInput) chatInput.placeholder=currentUser?'Type a message...':'Log in to chat';
+  if(typeof loadSupportTickets==='function') loadSupportTickets();
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display='none',3000)}
 document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();const type=b.dataset.modal;document.getElementById('modalTitle').textContent=type==='login'?'Welcome back':type==='stream'?'Create a live stream':'Join StreamArena';document.getElementById('modalDesc').textContent=type==='stream'?'Sign in first; live streaming provider setup will be required.':'Create your account to join the arena.';document.getElementById('modalBackdrop').style.display='grid'}));
@@ -86,7 +87,8 @@ document.getElementById('modalForm').onsubmit=async (e) => {
 
   e.preventDefault();
   
-  const type = document.getElementById('modalTitle').textContent === 'Welcome back' ? 'login' : 'signup';
+  const modalTitle = document.getElementById('modalTitle').textContent;
+  const type = modalTitle === 'Welcome back' ? 'login' : modalTitle === 'Create a live stream' ? 'stream' : 'signup';
   console.log("FORM SUBMITTED:", type);
   const username = document.getElementById('modalName').value.trim();
   const email = document.getElementById('modalEmail').value.trim();
@@ -96,7 +98,10 @@ document.getElementById('modalForm').onsubmit=async (e) => {
   submit.disabled = true; submit.textContent = 'Please wait...';
   try {
     let result;
-    if(type === 'login') {
+    if(type === 'stream') {
+      if(!currentUser) throw new Error('Please log in before creating a stream.');
+      throw new Error('Live streaming provider is not configured yet.');
+    } else if(type === 'login') {
       result = await supabaseClient.auth.signInWithPassword({email, password});
     } else {
       if (!username) throw new Error('Username is required.');
