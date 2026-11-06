@@ -952,7 +952,9 @@ document.getElementById('liveClose').addEventListener('click', closeLivePanel);
 document.getElementById('liveBackdrop').addEventListener('click', e => { if (e.target.id === 'liveBackdrop') closeLivePanel(); });
 
 async function requestLiveKitToken(roomName, role) {
-  const {data:{session}} = await supabaseClient.auth.getSession();
+  const {data,error} = await supabaseClient.auth.getSession();
+  if (error) throw new Error('Could not verify your login session: '+(error.message||'Please sign in again.'));
+  const session=data?.session;
   if (!session?.access_token) throw new Error('Your login session has expired. Please sign in again.');
   const response = await fetch(window.STREAMARENA_SUPABASE_URL + '/functions/v1/livekit-token', {
     method: 'POST',
