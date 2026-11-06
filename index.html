@@ -4,6 +4,9 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#070912">
+<meta name="description" content="Watch and share gaming live streams with StreamArena.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./pwa-icon.svg" type="image/svg+xml">
 <title>StreamArena — Your Game. Your Stream. Your Arena.</title>
 <style>
 :root{--bg:#060811;--panel:#0c1120;--panel2:#10172a;--line:#222d4a;--text:#f4f6ff;--muted:#99a6c5;--purple:#6844ff;--blue:#3287ff;--red:#ff435c;--green:#3be0a0}
@@ -1221,4 +1224,12 @@ refreshSession();
 loadLiveStreams();
 setInterval(()=>{if(document.visibilityState!=='hidden')loadLiveStreams();},15000);
 
+</script><script>
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(error => {
+      console.warn("StreamArena offline support could not be registered:", error);
+    });
+  });
+}
 </script><script src="./family.js"></script></body></html>
