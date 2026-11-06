@@ -35,13 +35,15 @@
 </div>
 <div id="organizerTournamentPanel" style="display:none;margin-top:16px;padding:14px;border:1px solid #315b83;border-radius:12px;background:#0b1020">
   <div class="section-head"><h3 style="margin:0">Organizer · My Tournaments</h3><span class="sub">Available to every signed-in user</span></div>
-  <p class="sub">Create free tournaments and invite registered players. Paid hosting stays locked until the hosting fee and payment provider are configured.</p>
+  <p class="sub">Create free or organizer-hosted tournaments. Hosted tournaments use simulated demo points only; invited players pay 0 entry fee. DEMO / NOT REAL PAYMENT.</p>
   <form id="organizerTournamentForm" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
     <input id="organizerTourTitle" required minlength="3" maxlength="120" placeholder="Tournament title" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
     <input id="organizerTourPrize" type="number" min="0" max="100000000" step="0.01" placeholder="Prize pool (display only)" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
     <input id="organizerTourStarts" type="datetime-local" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
     <select id="organizerTourStatus" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="upcoming">Upcoming</option><option value="registration_open">Registration open</option></select>
-    <button class="btn primary" type="submit" style="grid-column:1/-1;justify-self:start">Create free tournament</button>
+    <select id="organizerTourMode" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="free">Free tournament</option><option value="hosted">Organizer-hosted · Demo</option></select>
+    <select id="organizerTourDemoTier" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="10">Basic · 10 Demo Points</option><option value="25">Standard · 25 Demo Points</option><option value="50">Premium · 50 Demo Points</option></select>
+    <button class="btn primary" type="submit" style="grid-column:1/-1;justify-self:start">Create tournament</button>
   </form>
   <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:14px">
     <select id="organizerInviteTournament" style="background:#11182a;color:white;border:1px solid #293451;border-radius:9px;padding:10px"><option value="">Select your tournament</option></select>
@@ -49,11 +51,12 @@
   </div>
   <button class="btn" id="organizerInviteBtn" type="button" style="margin-top:8px">Invite player</button>
   <div id="organizerTournamentList" style="margin-top:12px"></div>
+  <h4>Demo hosting payment history</h4><p class="sub">All records are simulated. No money is charged or transferred.</p><div id="organizerDemoPayments" style="margin-top:8px"></div>
   <div id="playerTournamentInvites" style="margin-top:12px"></div>
 </div>
 <div id="adminTournamentPanel" style="display:none;margin-top:16px;padding:14px;border:1px solid #5745a8;border-radius:12px;background:#0b1020">
   <div class="section-head"><h3 style="margin:0">Admin · Tournament Management</h3><span class="sub">Admin role required</span></div>
-  <p class="sub">Only free tournaments can be created here. Paid entry remains disabled until payment processing and verification are implemented.</p>
+  <p class="sub">Review tournament registrations and simulated organizer-hosting transactions. All demo records are marked NOT REAL PAYMENT.</p>
   <form id="adminTournamentForm" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
     <input id="adminTourTitle" required maxlength="120" placeholder="Tournament title" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
     <input id="adminTourPrize" type="number" min="0" max="100000000" step="0.01" placeholder="Prize pool (display amount)" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
@@ -62,7 +65,7 @@
     <button class="btn primary" type="submit" style="grid-column:1/-1;justify-self:start">Create free tournament</button>
   </form>
   <div id="adminTournamentList" style="margin-top:12px"></div>
-  <div id="adminRegistrationList" style="margin-top:12px"></div>
+  <div id="adminRegistrationList" style="margin-top:12px"></div><h4>All demo hosting transactions</h4><div id="adminDemoPayments" style="margin-top:8px"></div>
 </div></section>
 <section class="section" id="help">
 <div class="section-head"><h2>Help Center & Support</h2><span class="sub">Account help · Support tickets</span></div>
@@ -249,77 +252,54 @@ async function refreshAdminTournamentPanel(){
  }
 }
 
+async function completeDemoHostingPayment(tournamentId,demoPoints){
+ const r=await supabaseClient.rpc('complete_tournament_demo_hosting',{p_tournament_id:tournamentId,p_demo_points:Number(demoPoints)});
+ if(r.error)throw r.error;if(!r.data?.success||r.data?.demo!==true)throw new Error('Demo payment confirmation missing.');return r.data;
+}
+async function loadOrganizerDemoPayments(){
+ const box=document.getElementById('organizerDemoPayments');if(!box||!currentUser)return;
+ const q=await supabaseClient.from('tournament_demo_payments').select('tournament_id,demo_points,status,created_at').eq('organizer_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
+ box.replaceChildren();if(q.error){box.textContent=q.error.message;return;}if(!q.data?.length){box.textContent='No demo transactions yet.';return;}
+ const ids=[...new Set(q.data.map(x=>x.tournament_id))];const t=await supabaseClient.from('tournaments').select('id,title').in('id',ids);const names=new Map((t.data||[]).map(x=>[x.id,x.title]));
+ q.data.forEach(p=>{const line=document.createElement('p');line.className='sub';line.textContent=(names.get(p.tournament_id)||'Tournament')+' · '+p.demo_points+' Demo Points · '+p.status.toUpperCase()+' · DEMO / NOT REAL PAYMENT';box.append(line);});
+}
 async function loadOrganizerTournamentPanel(){
- const panel=document.getElementById('organizerTournamentPanel');
- if(!panel)return;
- panel.style.display=currentUser?'block':'none';
- if(!currentUser)return;
- const list=document.getElementById('organizerTournamentList');
- const select=document.getElementById('organizerInviteTournament');
- list.textContent='Loading your tournaments…';
- select.replaceChildren(new Option('Select your tournament',''));
- const q=await supabaseClient.from('tournaments').select('id,title,entry_type,status,hosting_payment_status').eq('organizer_id',currentUser.id).order('created_at',{ascending:false}).limit(100);
- if(q.error){list.textContent='Could not load your tournaments: '+q.error.message;return;}
- list.replaceChildren();
+ const panel=document.getElementById('organizerTournamentPanel');if(!panel)return;panel.style.display=currentUser?'block':'none';if(!currentUser)return;
+ const list=document.getElementById('organizerTournamentList'),select=document.getElementById('organizerInviteTournament');
+ list.textContent='Loading your tournaments…';select.replaceChildren(new Option('Select your tournament',''));
+ const q=await supabaseClient.from('tournaments').select('id,title,entry_type,status,hosting_payment_status,hosting_fee_amount').eq('organizer_id',currentUser.id).order('created_at',{ascending:false}).limit(100);
+ if(q.error){list.textContent='Could not load your tournaments: '+q.error.message;return;}list.replaceChildren();
  (q.data||[]).forEach(t=>{
-   const row=document.createElement('p');row.className='sub';
-   row.textContent=t.title+' · '+t.entry_type+' · '+t.status+(t.entry_type==='paid'?' · hosting '+t.hosting_payment_status:'');
-   list.append(row);
-   if(t.status==='upcoming'||t.status==='registration_open'){
-     const option=new Option(t.title+' · '+t.entry_type,t.id);
-     option.disabled=t.entry_type==='paid'&&t.hosting_payment_status!=='paid';
-     select.add(option);
-   }
+  const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid #26304a';
+  const label=document.createElement('span');label.className='sub';label.style.flex='1';label.textContent=t.title+' · '+t.status+(t.entry_type==='paid'?' · hosting '+t.hosting_payment_status+' · players pay 0':' · free');row.append(label);
+  if(t.entry_type==='paid'&&t.hosting_payment_status==='pending'){const pay=document.createElement('button');pay.type='button';pay.className='smallbtn';pay.textContent='Complete demo payment';pay.onclick=async()=>{pay.disabled=true;try{await completeDemoHostingPayment(t.id,t.hosting_fee_amount);toast('DEMO payment complete. No real money charged.');await Promise.all([loadOrganizerTournamentPanel(),loadTournamentCards()]);}catch(e){toast(e.message||'Demo payment failed.');pay.disabled=false;}};row.append(pay);}
+  list.append(row);
+  if(['upcoming','registration_open'].includes(t.status)&&(t.entry_type==='free'||t.hosting_payment_status==='paid'))select.add(new Option(t.title+(t.entry_type==='paid'?' · Hosted · Invite only':' · Free'),t.id));
  });
  if(!q.data?.length)list.textContent='You have not created any tournaments yet.';
- await loadPlayerTournamentInvites();
+ await Promise.all([loadPlayerTournamentInvites(),loadOrganizerDemoPayments()]);
 }
 async function loadPlayerTournamentInvites(){
- const box=document.getElementById('playerTournamentInvites');if(!box||!currentUser)return;
- box.replaceChildren();
- const q=await supabaseClient.from('tournament_invites').select('id,tournament_id,inviter_id,status,created_at').eq('invited_user_id',currentUser.id).eq('status','pending').order('created_at',{ascending:false}).limit(30);
- const heading=document.createElement('h4');heading.textContent='Pending tournament invitations';box.append(heading);
- if(q.error){box.append(document.createTextNode(q.error.message));return;}
- if(!q.data?.length){box.append(document.createTextNode('No pending invitations.'));return;}
- const ids=[...new Set(q.data.map(x=>x.tournament_id))];
- const tours=await supabaseClient.from('tournaments').select('id,title').in('id',ids);
- const titles=new Map((tours.data||[]).map(t=>[t.id,t.title]));
- q.data.forEach(inv=>{
-   const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #26304a';
-   const label=document.createElement('span');label.style.flex='1';label.textContent=titles.get(inv.tournament_id)||'Tournament invitation';
-   const accept=document.createElement('button');accept.type='button';accept.className='smallbtn';accept.textContent='Accept';
-   const decline=document.createElement('button');decline.type='button';decline.className='smallbtn';decline.textContent='Decline';
-   accept.onclick=async()=>{
-     accept.disabled=true;decline.disabled=true;
-     const reg=await supabaseClient.from('tournament_registrations').insert({tournament_id:inv.tournament_id,user_id:currentUser.id});
-     if(reg.error&&reg.error.code!=='23505'){toast(reg.error.message);accept.disabled=false;decline.disabled=false;return;}
-     const upd=await supabaseClient.from('tournament_invites').update({status:'accepted',responded_at:new Date().toISOString()}).eq('id',inv.id).eq('status','pending');
-     if(upd.error){toast(upd.error.message);accept.disabled=false;decline.disabled=false;return;}
-     toast('Invitation accepted. You are registered.');await Promise.all([loadPlayerTournamentInvites(),loadTournamentCards()]);
-   };
-   decline.onclick=async()=>{
-     accept.disabled=true;decline.disabled=true;
-     const upd=await supabaseClient.from('tournament_invites').update({status:'declined',responded_at:new Date().toISOString()}).eq('id',inv.id).eq('status','pending');
-     if(upd.error){toast(upd.error.message);accept.disabled=false;decline.disabled=false;return;}
-     await loadPlayerTournamentInvites();
-   };
-   row.append(label,accept,decline);box.append(row);
- });
+ const box=document.getElementById('playerTournamentInvites');if(!box||!currentUser)return;box.replaceChildren();
+ const q=await supabaseClient.from('tournament_invites').select('id,tournament_id,status,created_at').eq('invited_user_id',currentUser.id).eq('status','pending').order('created_at',{ascending:false}).limit(30);
+ const h=document.createElement('h4');h.textContent='Pending tournament invitations';box.append(h);
+ if(q.error){box.append(document.createTextNode(q.error.message));return;}if(!q.data?.length){box.append(document.createTextNode('No pending invitations.'));return;}
+ const ids=[...new Set(q.data.map(x=>x.tournament_id))];const tours=await supabaseClient.from('tournaments').select('id,title,entry_type').in('id',ids);const titles=new Map((tours.data||[]).map(t=>[t.id,t.title+(t.entry_type==='paid'?' · Hosted · 0 entry fee':' · Free')]));
+ q.data.forEach(inv=>{const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #26304a';const label=document.createElement('span');label.style.flex='1';label.textContent=titles.get(inv.tournament_id)||'Tournament invitation';
+ const accept=document.createElement('button');accept.type='button';accept.className='smallbtn';accept.textContent='Accept';const decline=document.createElement('button');decline.type='button';decline.className='smallbtn';decline.textContent='Decline';
+ const respond=async accepted=>{accept.disabled=true;decline.disabled=true;const r=await supabaseClient.rpc('respond_tournament_invite',{p_invite_id:inv.id,p_accept:accepted});if(r.error){toast(r.error.message);accept.disabled=false;decline.disabled=false;return;}toast(accepted?'Registered. Entry fee: 0.':'Invitation declined.');await Promise.all([loadPlayerTournamentInvites(),loadTournamentCards()]);};
+ accept.onclick=()=>respond(true);decline.onclick=()=>respond(false);row.append(label,accept,decline);box.append(row);});
 }
 document.getElementById('organizerTournamentForm').addEventListener('submit',async e=>{
- e.preventDefault();if(!currentUser){toast('Log in first.');return;}
- const form=e.currentTarget,button=form.querySelector('button[type="submit"]');button.disabled=true;
- const title=document.getElementById('organizerTourTitle').value.trim();
- const prize=Number(document.getElementById('organizerTourPrize').value||0);
- const starts=document.getElementById('organizerTourStarts').value;
- const status=document.getElementById('organizerTourStatus').value;
+ e.preventDefault();if(!currentUser){toast('Log in first.');return;}const form=e.currentTarget,button=form.querySelector('button[type="submit"]');button.disabled=true;
+ const title=document.getElementById('organizerTourTitle').value.trim(),prize=Number(document.getElementById('organizerTourPrize').value||0),starts=document.getElementById('organizerTourStarts').value,status=document.getElementById('organizerTourStatus').value,hosted=document.getElementById('organizerTourMode').value==='hosted',points=Number(document.getElementById('organizerTourDemoTier').value);
  if(title.length<3||title.length>120||!Number.isFinite(prize)||prize<0){toast('Check tournament title and prize pool.');button.disabled=false;return;}
  try{
-   const saved=await supabaseClient.from('tournaments').insert({title,organizer_id:currentUser.id,entry_type:'free',entry_fee:0,hosting_payment_status:'not_required',prize_pool:prize,status,starts_at:starts?new Date(starts).toISOString():null});
-   if(saved.error)throw saved.error;
-   form.reset();toast('Free tournament created.');
-   await Promise.all([loadOrganizerTournamentPanel(),loadTournamentCards()]);
- }catch(err){toast(err.message||'Tournament could not be created.');}
+  const payload={title,organizer_id:currentUser.id,entry_type:hosted?'paid':'free',entry_fee:0,hosting_payment_status:hosted?'pending':'not_required',hosting_fee_amount:hosted?points:null,prize_pool:prize,status,starts_at:starts?new Date(starts).toISOString():null};
+  const saved=await supabaseClient.from('tournaments').insert(payload).select('id').single();if(saved.error)throw saved.error;
+  if(hosted){await completeDemoHostingPayment(saved.data.id,points);toast('Hosted tournament ready. DEMO / NOT REAL PAYMENT. Invitees pay 0.');}else toast('Free tournament created.');
+  form.reset();await Promise.all([loadOrganizerTournamentPanel(),loadTournamentCards()]);
+ }catch(err){toast(err.message||'Creation failed. If hosting remains pending, retry demo payment from your tournament list.');await loadOrganizerTournamentPanel();}
  finally{button.disabled=false;}
 });
 document.getElementById('organizerInviteBtn').addEventListener('click',async()=>{
@@ -360,7 +340,7 @@ document.getElementById('adminTournamentForm').onsubmit=async e=>{
 };
 async function loadTournamentCards(){
  const box=document.getElementById('tourCards');if(!box)return;
- const q=await supabaseClient.from('tournaments').select('id,title,entry_type,entry_fee,prize_pool,status,starts_at').order('starts_at',{ascending:true,nullsFirst:false}).limit(100);
+ const q=await supabaseClient.from('tournaments').select('id,title,entry_type,entry_fee,prize_pool,status,starts_at,hosting_payment_status').order('starts_at',{ascending:true,nullsFirst:false}).limit(100);
  box.replaceChildren();
  if(q.error){const p=document.createElement('p');p.className='sub';p.textContent='Could not load tournaments: '+q.error.message;box.append(p);return;}
  if(!q.data?.length){const p=document.createElement('p');p.className='sub';p.textContent='No tournaments are available right now.';box.append(p);return;}
@@ -369,14 +349,14 @@ async function loadTournamentCards(){
   const icon=document.createElement('div');icon.className='tour-icon';icon.textContent=t.entry_type==='paid'?'🏆':'🎮';
   const info=document.createElement('div');info.className='tour-info';
   const heading=document.createElement('h3');heading.textContent=t.title;
-  const details=document.createElement('p');details.textContent=t.entry_type==='paid'?'Paid entry':'Free entry';
+  const details=document.createElement('p');details.textContent=t.entry_type==='paid'?(t.hosting_payment_status==='paid'?'Organizer-hosted · invited players pay 0':'Organizer hosting pending'):'Free entry';
   const prize=document.createElement('p');prize.textContent='Prize pool: '+(Number(t.prize_pool||0).toLocaleString());
   const foot=document.createElement('div');foot.className='tour-foot';
   const status=document.createElement('span');status.className='sub';status.textContent=(t.status||'upcoming').replaceAll('_',' ');
   foot.append(status);
   const join=document.createElement('button');join.className='btn primary smallbtn';
   const open=t.entry_type==='free'&&['upcoming','registration_open'].includes(t.status);
-  join.textContent=t.entry_type==='paid'?'Coming soon':open?'Join Now':'Registration closed';
+  join.textContent=t.entry_type==='paid'?'Invite only':open?'Join Now':'Registration closed';
   join.disabled=!open;
   if(open)join.addEventListener('click',()=>registerForTournament(t,join));
   foot.append(join);info.append(heading,details,prize,foot);card.append(icon,info);box.append(card);
