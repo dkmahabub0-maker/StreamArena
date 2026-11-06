@@ -39,8 +39,8 @@
 </div></section>
 </main>
 <aside class="rightcol">
-<div class="rightbox"><div class="user"><div class="avatar">👾</div><div><b>Guest Player</b><small>Welcome to StreamArena!</small></div></div><div style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" data-modal="login">Login</button><button class="btn primary" style="flex:1" data-modal="signup">Sign Up</button></div></div>
-<div class="rightbox" id="community"><div class="section-head"><h2>🔴 Live Chat</h2><span class="sub">Demo</span></div><div id="chatLines"><div class="chatline"><b>RafiGaming</b> Nice gameplay bro! 🔥</div><div class="chatline"><b>ShadowQueen</b> Can I join your squad?</div><div class="chatline"><b>GamingPro</b> What's your UID?</div><div class="chatline"><b>Nusrat_99</b> Keep going! 💜</div></div><form class="chat-input" id="chatForm"><input id="chatText" placeholder="Type a message..." maxlength="180"><button class="btn primary">➤</button></form></div>
+<div class="rightbox"><div class="user"><div class="avatar">👾</div><div><b id="accountName">Guest Player</b><small id="authStatus">Not signed in</small></div></div><div style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" data-modal="login">Login</button><button class="btn primary" style="flex:1" data-modal="signup">Sign Up</button></div></div>
+<div class="rightbox" id="community"><div class="section-head"><h2>🔴 Live Chat</h2><span class="sub">Live chat</span></div><div id="chatLines"></div><form class="chat-input" id="chatForm"><input id="chatText" placeholder="Type a message..." maxlength="180"><button class="btn primary">➤</button></form></div>
 <div class="rightbox" id="leaderboard"><div class="section-head"><h2>♛ Top Streamers</h2><span class="sub">This week</span></div><div class="rank"><span class="num">1</span><div class="avatar">🧑🏽‍🚀</div><div><b>Rafi Gaming</b><div class="sub">2.4M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">2</span><div class="avatar">👩🏻‍🎤</div><div><b>Liza Gaming</b><div class="sub">1.8M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">3</span><div class="avatar">🧔🏽</div><div><b>Xtreme Gamer</b><div class="sub">1.5M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">4</span><div class="avatar">🎧</div><div><b>Techno Gaming</b><div class="sub">1.2M followers</div></div><button class="btn primary follow">Follow</button></div></div>
 </aside></div>
 <footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div>About · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
@@ -60,7 +60,11 @@ async function refreshSession(){
   const { data } = await supabaseClient.auth.getSession();
   currentUser = data.session?.user || null;
   const status = document.getElementById('authStatus');
-  if(status) status.textContent = currentUser ? `Signed in: ${currentUser.email}` : 'Not signed in';
+  const accountName = document.getElementById('accountName');
+  if(status) status.textContent = currentUser ? currentUser.email : 'Not signed in';
+  if(accountName) accountName.textContent = currentUser ? (currentUser.user_metadata?.username || 'Player') : 'Guest Player';
+  const chatInput=document.getElementById('chatText');
+  if(chatInput) chatInput.placeholder=currentUser?'Type a message...':'Log in to chat';
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display='none',3000)}
 document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();const type=b.dataset.modal;document.getElementById('modalTitle').textContent=type==='login'?'Welcome back':type==='stream'?'Create a live stream':'Join StreamArena';document.getElementById('modalDesc').textContent=type==='stream'?'Sign in first; live streaming provider setup will be required.':'Create your account to join the arena.';document.getElementById('modalBackdrop').style.display='grid'}));
@@ -122,6 +126,40 @@ document.querySelectorAll('.join').forEach(b=>b.onclick=()=>{toast('Tournament r
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.stream-card').forEach(c=>c.style.display=b.dataset.filter==='All'||c.dataset.game===b.dataset.filter?'':'none')});
 document.querySelectorAll('[data-tour]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tour]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tourney').forEach(c=>c.style.display=c.dataset.type===b.dataset.tour?'flex':'none')});
 document.getElementById('chatForm').onsubmit=e=>{e.preventDefault();const input=document.getElementById('chatText');if(!input.value.trim())return;const line=document.createElement('div');line.className='chatline';const name=document.createElement('b');name.textContent='You';line.append(name,document.createTextNode(' '+input.value.trim()));document.getElementById('chatLines').append(line);input.value='';toast('Demo chat message added locally.')};
+document.querySelectorAll('.like').forEach(b=>b.onclick=()=>toast('These are sample streams. Likes become available when real streams are published.'));
+document.querySelectorAll('.follow').forEach(b=>b.onclick=()=>toast('This sample streamer is not linked to a registered account yet.'));
+document.querySelectorAll('.join').forEach(b=>b.onclick=async()=>{
+  if(!currentUser){toast('Please log in before registering.');document.querySelector('[data-modal="login"]').click();return;}
+  const card=b.closest('.tourney');const title=card?.querySelector('h3')?.textContent?.trim();if(!title)return;
+  b.disabled=true;
+  try{
+    const found=await supabaseClient.from('tournaments').select('id,entry_type,status').eq('title',title).maybeSingle();
+    if(found.error)throw found.error;if(!found.data)throw new Error('Tournament not found.');
+    if(found.data.entry_type!=='free')throw new Error('Paid registration is not enabled yet.');
+    if(!['upcoming','registration_open'].includes(found.data.status))throw new Error('Registration is closed.');
+    const saved=await supabaseClient.from('tournament_registrations').insert({tournament_id:found.data.id,user_id:currentUser.id});
+    if(saved.error?.code==='23505')throw new Error('You are already registered.');if(saved.error)throw saved.error;
+    b.textContent='Registered';toast('Registration saved.');
+  }catch(err){toast(err.message||'Registration failed.');}finally{b.disabled=false;}
+});
+async function loadChat(){
+  const box=document.getElementById('chatLines');
+  const result=await supabaseClient.from('chat_messages').select('id,user_id,message,created_at').is('stream_id',null).order('created_at',{ascending:true}).limit(60);
+  if(result.error){console.error(result.error);return;}
+  const ids=[...new Set((result.data||[]).map(m=>m.user_id))];let profiles=[];
+  if(ids.length){const p=await supabaseClient.from('profiles').select('id,username').in('id',ids);if(!p.error)profiles=p.data||[];}
+  const names=new Map(profiles.map(p=>[p.id,p.username||'Player']));box.replaceChildren();
+  (result.data||[]).forEach(m=>{const line=document.createElement('div');line.className='chatline';const name=document.createElement('b');name.textContent=names.get(m.user_id)||'Player';line.append(name,document.createTextNode(' '+m.message));box.append(line);});
+}
+document.getElementById('chatForm').onsubmit=async e=>{
+  e.preventDefault();const input=document.getElementById('chatText');const message=input.value.trim();if(!message)return;
+  if(!currentUser){toast('Please log in to send messages.');return;}
+  const send=e.currentTarget.querySelector('button');send.disabled=true;
+  const saved=await supabaseClient.from('chat_messages').insert({user_id:currentUser.id,message});send.disabled=false;
+  if(saved.error){toast(saved.error.message||'Message could not be sent.');return;}input.value='';
+};
+supabaseClient.channel('public-chat').on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},()=>loadChat()).subscribe();
+loadChat();
 document.getElementById('langBtn').onclick=()=>{language=language==='en'?'bn':'en';document.documentElement.lang=language;document.getElementById('langBtn').textContent='🌐 '+language.toUpperCase();document.querySelectorAll('[data-en][data-bn]').forEach(el=>el.textContent=el.dataset[language]);document.querySelector('.search').placeholder=language==='bn'?'গেম, স্ট্রিমার খুঁজুন...':'⌕ Search games, streamers...'};
 refreshSession();document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('.game').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none');document.querySelectorAll('.stream-card').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none')});
 </script></body></html>
