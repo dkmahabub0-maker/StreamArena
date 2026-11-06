@@ -377,6 +377,8 @@ let clearSavedLiveThumbnail=false;
 async function loadStreamSettings() {
   if(!currentUser)return;
   const status=document.getElementById('liveSettingsStatus');
+  const startButton=document.getElementById('startLiveBtn');
+  startButton.disabled=true;
   status.textContent='Loading your saved live setup…';
   try{
     const result=await supabaseClient.from('stream_settings').select('title,caption,thumbnail_url').eq('user_id',currentUser.id).maybeSingle();
@@ -390,6 +392,7 @@ async function loadStreamSettings() {
     renderLiveThumbnail(savedLiveThumbnailUrl);
     status.textContent='Your saved setup will be reused the next time you go live.';
   }catch(err){status.textContent='Could not load saved setup: '+(err.message||'Unknown error');}
+  finally{startButton.disabled=false;}
 }
 async function saveLiveSettings(options={}) {
   if(!currentUser)throw new Error('Please log in first.');
