@@ -37,13 +37,26 @@
 <div class="tourney" data-type="Paid" style="display:none"><div class="tour-icon">⚡</div><div class="tour-info"><h3>Pro Squad Championship</h3><p>👥 Squad · 🌍 Global</p><p>Entry: <b style="color:#ffd166">$2 demo</b></p><div class="tour-foot"><span class="sub">Demo listing</span><button class="btn primary smallbtn join">Details</button></div></div></div>
 <div class="tourney" data-type="Paid" style="display:none"><div class="tour-icon">🪖</div><div class="tour-info"><h3>BGMI Champions Cup</h3><p>👥 Squad · 🇮🇳 India</p><p>Entry: <b style="color:#ffd166">$1 demo</b></p><div class="tour-foot"><span class="sub">Demo listing</span><button class="btn primary smallbtn join">Details</button></div></div></div>
 </div></section>
-</main>
+<section class="section" id="help">
+<div class="section-head"><h2>Help Center & Support</h2><span class="sub">Account help · Support tickets</span></div>
+<div class="sub" style="margin-bottom:12px">Frequently asked questions</div>
+<details style="padding:10px;border-bottom:1px solid var(--line)"><summary>How do I create an account?</summary><p class="sub">Use Sign Up, enter a unique username, email and password. Confirm your email if confirmation is enabled.</p></details>
+<details style="padding:10px;border-bottom:1px solid var(--line)"><summary>Why can't I start a live stream?</summary><p class="sub">Live video requires an external streaming provider and configured credentials. The current site does not yet have that provider connected.</p></details>
+<details style="padding:10px;border-bottom:1px solid var(--line)"><summary>How do tournament registrations work?</summary><p class="sub">Sign in and select Join Now on an open free tournament. Paid entry is not enabled.</p></details>
+<form id="supportForm" style="display:grid;gap:8px;margin-top:16px">
+<h3 style="margin:0">Create a support ticket</h3>
+<input id="supportSubject" maxlength="160" required placeholder="Subject" style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+<textarea id="supportMessage" maxlength="5000" required rows="4" placeholder="Describe your issue..." style="background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white;font:inherit"></textarea>
+<button class="btn primary" type="submit" style="justify-self:start">Submit ticket</button>
+</form>
+<div style="margin-top:18px"><h3>My support tickets</h3><div id="supportTickets" class="sub">Sign in to view your tickets.</div></div>
+</section></main>
 <aside class="rightcol">
 <div class="rightbox"><div class="user"><div class="avatar">👾</div><div><b id="accountName">Guest Player</b><small id="authStatus">Not signed in</small></div></div><div style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" data-modal="login">Login</button><button class="btn primary" style="flex:1" data-modal="signup">Sign Up</button></div></div>
 <div class="rightbox" id="community"><div class="section-head"><h2>🔴 Live Chat</h2><span class="sub">Live chat</span></div><div id="chatLines"></div><form class="chat-input" id="chatForm"><input id="chatText" placeholder="Type a message..." maxlength="180"><button class="btn primary">➤</button></form></div>
 <div class="rightbox" id="leaderboard"><div class="section-head"><h2>♛ Top Streamers</h2><span class="sub">This week</span></div><div class="rank"><span class="num">1</span><div class="avatar">🧑🏽‍🚀</div><div><b>Rafi Gaming</b><div class="sub">2.4M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">2</span><div class="avatar">👩🏻‍🎤</div><div><b>Liza Gaming</b><div class="sub">1.8M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">3</span><div class="avatar">🧔🏽</div><div><b>Xtreme Gamer</b><div class="sub">1.5M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">4</span><div class="avatar">🎧</div><div><b>Techno Gaming</b><div class="sub">1.2M followers</div></div><button class="btn primary follow">Follow</button></div></div>
 </aside></div>
-<footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div>About · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
+<footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div><a href="#help" style="color:inherit">Help Center</a> · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password (demo only)" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit" >Continue</button></form><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -160,6 +173,31 @@ document.getElementById('chatForm').onsubmit=async e=>{
 };
 supabaseClient.channel('public-chat').on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},()=>loadChat()).subscribe();
 loadChat();
+async function loadSupportTickets(){
+ const list=document.getElementById('supportTickets');if(!currentUser){list.textContent='Sign in to view your tickets.';return;}
+ const admin=currentUser.app_metadata?.role==='admin';
+ const q=await supabaseClient.from('support_tickets').select('id,subject,message,status,created_at,user_id').order('updated_at',{ascending:false}).limit(30);
+ if(q.error){list.textContent='Could not load tickets: '+q.error.message;return;}
+ list.replaceChildren();
+ if(!q.data?.length){list.textContent='No support tickets yet.';return;}
+ for(const t of q.data){
+  const card=document.createElement('div');card.style.cssText='border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0';
+  const h=document.createElement('b');h.textContent=t.subject+' · '+t.status;card.append(h);
+  const p=document.createElement('p');p.className='sub';p.textContent=t.message;card.append(p);
+  const replies=await supabaseClient.from('support_replies').select('sender_id,message,created_at').eq('ticket_id',t.id).order('created_at');
+  if(!replies.error)(replies.data||[]).forEach(r=>{const line=document.createElement('p');line.className='sub';line.textContent=(r.sender_id===currentUser.id?'You: ':'Support: ')+r.message;card.append(line);});
+  const form=document.createElement('form');form.style.cssText='display:flex;gap:6px;margin-top:8px';
+  const input=document.createElement('input');input.required=true;input.maxLength=5000;input.placeholder='Write a reply';input.style.cssText='min-width:0;flex:1;background:#11182a;border:1px solid #293451;border-radius:8px;padding:8px;color:white';
+  const send=document.createElement('button');send.className='smallbtn';send.textContent='Reply';form.append(input,send);
+  form.onsubmit=async ev=>{ev.preventDefault();send.disabled=true;const saved=await supabaseClient.from('support_replies').insert({ticket_id:t.id,sender_id:currentUser.id,message:input.value.trim()});send.disabled=false;if(saved.error){toast(saved.error.message);return;}await loadSupportTickets();};
+  card.append(form);
+  if(admin){const select=document.createElement('select');['open','in_progress','resolved','closed'].forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;o.selected=s===t.status;select.append(o);});select.onchange=async()=>{const upd=await supabaseClient.from('support_tickets').update({status:select.value,updated_at:new Date().toISOString()}).eq('id',t.id);if(upd.error)toast(upd.error.message);else toast('Ticket status updated.');};card.append(select);}
+  list.append(card);
+ }
+}
+document.getElementById('supportForm').onsubmit=async e=>{e.preventDefault();if(!currentUser){toast('Please log in to submit a ticket.');return;}const subject=document.getElementById('supportSubject').value.trim();const message=document.getElementById('supportMessage').value.trim();const saved=await supabaseClient.from('support_tickets').insert({user_id:currentUser.id,subject,message});if(saved.error){toast(saved.error.message);return;}e.currentTarget.reset();toast('Support ticket submitted.');loadSupportTickets();};
+supabaseClient.channel('support-updates').on('postgres_changes',{event:'*',schema:'public',table:'support_replies'},()=>loadSupportTickets()).on('postgres_changes',{event:'*',schema:'public',table:'support_tickets'},()=>loadSupportTickets()).subscribe();
+loadSupportTickets();
 document.getElementById('langBtn').onclick=()=>{language=language==='en'?'bn':'en';document.documentElement.lang=language;document.getElementById('langBtn').textContent='🌐 '+language.toUpperCase();document.querySelectorAll('[data-en][data-bn]').forEach(el=>el.textContent=el.dataset[language]);document.querySelector('.search').placeholder=language==='bn'?'গেম, স্ট্রিমার খুঁজুন...':'⌕ Search games, streamers...'};
 refreshSession();document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('.game').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none');document.querySelectorAll('.stream-card').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none')});
 </script></body></html>
