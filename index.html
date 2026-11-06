@@ -718,6 +718,7 @@ function showLocalBroadcastVideo(source) {
     if(!grid||!grid.querySelector('.duo-camera-tile'))stage.append(Object.assign(document.createElement('span'),{className:'sub',textContent:'Your camera is off. Viewers can still hear your microphone.'}));
     return;
   }
+  if(source===LivekitClient.Track.Source.Camera){restoreDuoCameraTracks(activeLiveRoom,stage,true);return;}
   const publication=activeLiveRoom.localParticipant.getTrackPublication(source);
   if(publication?.track){
     if(source===LivekitClient.Track.Source.Camera)attachDuoRoomTrack(publication.track,stage,activeLiveRoom.localParticipant,true);
@@ -814,9 +815,10 @@ async function toggleLiveMicrophone() {
   } finally {button.disabled=false;updateLiveControlLabels();}
 }
 document.getElementById('liveEnableAudioBtn').addEventListener('click',async()=>{
-  if(!activeLiveRoom)return;
+  const room=activeLiveRoom||activeDuoCohostRoom;
+  if(!room)return;
   const button=document.getElementById('liveEnableAudioBtn');button.disabled=true;
-  try{await activeLiveRoom.startAudio();button.style.display='none';}
+  try{await room.startAudio();button.style.display='none';}
   catch(err){toast(err.message||'Tap again to enable stream audio in this browser.');}
   finally{button.disabled=false;}
 });
@@ -1200,6 +1202,18 @@ function removeDuoRoomTrack(track,participant,stage) {
     if(grid&&!grid.querySelector('.duo-camera-tile')){grid.remove();stage.dataset.videoSource='';}
   }
 }
+function restoreDuoCameraTracks(room,stage,includeLocal=false) {
+  const audio=[...stage.querySelectorAll('audio')];
+  stage.replaceChildren(...audio);stage.dataset.videoSource='camera';
+  if(includeLocal){
+    const local=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+    if(local?.track)attachDuoRoomTrack(local.track,stage,room.localParticipant,true);
+  }
+  room.remoteParticipants.forEach(participant=>{
+    const camera=participant.getTrackPublication(LivekitClient.Track.Source.Camera);
+    if(camera?.isSubscribed&&camera.track)attachDuoRoomTrack(camera.track,stage,participant);
+  });
+}
 async function joinDuoLiveAsCohost(invite,button) {
   if(!currentUser){toast('Sign in again before joining Duo Live.');return;}
   if(activeStreamId){toast('End your own Live before joining as a co-host.');return;}
@@ -1217,6 +1231,8 @@ async function joinDuoLiveAsCohost(invite,button) {
     const credentials=await requestLiveKitToken(roomName,'cohost');
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
     activeDuoCohostRoom=room;
+    const audioButton=document.getElementById('liveEnableAudioBtn');
+    room.on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged,()=>{if(audioButton)audioButton.style.display=room.canPlaybackAudio?'none':'inline-block';});
     room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>attachDuoRoomTrack(track,stage,participant));
     room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>removeDuoRoomTrack(track,participant,stage));
     room.on(LivekitClient.RoomEvent.Disconnected,()=>{
@@ -1327,10 +1343,7 @@ async function watchLiveStream(stream) {
     room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>{
       const target=document.getElementById('liveStage');
       removeDuoRoomTrack(track,participant,target);
-      if(publication?.source===LivekitClient.Track.Source.ScreenShare){
-        const camera=participant?.getTrackPublication(LivekitClient.Track.Source.Camera);
-        if(camera?.isSubscribed&&camera.track){target.replaceChildren();target.dataset.videoSource='camera';attachDuoRoomTrack(camera.track,target,participant);}
-      }
+      if(publication?.source===LivekitClient.Track.Source.ScreenShare)restoreDuoCameraTracks(room,target,false);
     });
     room.on(LivekitClient.RoomEvent.Disconnected,()=>{
       const enableAudio=document.getElementById('liveEnableAudioBtn');if(enableAudio)enableAudio.style.display='none';
