@@ -112,6 +112,37 @@ Deno.serve(async (req: Request) => {
       return reply({ users: Array.isArray(matches) ? matches : [] }, 200, origin);
     }
 
+    if (action === "host-inbox") {
+      const stream = await activeStreamFor(user.id);
+      if (!stream) return reply({ invitations: [] }, 200, origin);
+      const params = new URLSearchParams({
+        select: "id,stream_id,invitee_user_id,status,expires_at,created_at,accepted_at",
+        host_user_id: `eq.${user.id}`,
+        stream_id: `eq.${stream.id}`,
+        status: "in.(pending,accepted)",
+        order: "created_at.desc",
+        limit: "20",
+      });
+      const invitations = await rest(`stream_cohost_invites?${params}`);
+      const rows = Array.isArray(invitations) ? invitations : [];
+      const activeRows = rows.filter((row: {status:string;expires_at:string}) =>
+        row.status === "accepted" || Date.parse(row.expires_at) > Date.now()
+      );
+      const inviteeIds = [...new Set(activeRows.map((row: {invitee_user_id:string}) => row.invitee_user_id))];
+      let invitees: Array<{id:string;username:string}> = [];
+      if (inviteeIds.length) {
+        const inviteeParams = new URLSearchParams({select:"id,username",id:`in.(${inviteeIds.join(",")})`});
+        invitees = await rest(`profiles?${inviteeParams}`);
+      }
+      const names = new Map(invitees.map((profile: {id:string;username:string}) => [profile.id, profile.username]));
+      return reply({
+        invitations: activeRows.map((row: {invitee_user_id:string}) => ({
+          ...row,
+          invitee_username: names.get(row.invitee_user_id) || "Player",
+        })),
+      }, 200, origin);
+    }
+
     if (action === "inbox") {
       const params = new URLSearchParams({
         select: "id,stream_id,host_user_id,expires_at,created_at",
