@@ -13,6 +13,7 @@ create table if not exists public.family_members (
  primary key(family_id,user_id)
 );
 create index if not exists family_members_user_id_idx on public.family_members(user_id);
+create unique index if not exists family_members_one_owned_family_idx on public.family_members(user_id) where role='owner';
 create table if not exists public.family_invites (
  id uuid primary key default gen_random_uuid(),
  family_id uuid not null references public.families(id) on delete cascade,
@@ -104,6 +105,8 @@ begin
  if not found or v_invite.invitee_id<>auth.uid() then raise exception 'Invitation not found.'; end if;
  if v_invite.status<>'pending' then raise exception 'This invitation has already been answered.'; end if;
  if p_accept then
+  perform 1 from public.families where id=v_invite.family_id for update;
+  if not found then raise exception 'This Family no longer exists.'; end if;
   if exists(select 1 from public.family_members where family_id=v_invite.family_id and user_id=auth.uid()) then raise exception 'You are already a member of this Family.'; end if;
   if (select count(*) from public.family_members where family_id=v_invite.family_id)>=50 then raise exception 'This Family is full (50 members).'; end if;
   insert into public.family_members(family_id,user_id,role) values(v_invite.family_id,auth.uid(),'member');
