@@ -50,6 +50,8 @@ async function loadFamilyWorkspace(){
     const sendInvite=make('button','btn smallbtn','Invite player');sendInvite.type='submit';inviteForm.append(username,sendInvite);
     inviteForm.onsubmit=async event=>{event.preventDefault();sendInvite.disabled=true;try{await rpc('invite_family_member',{p_family_id:family.id,p_username:username.value});username.value='';toast('Invitation sent.');}catch(error){toast(error.message||'Invitation failed.');}finally{sendInvite.disabled=false;}};
     card.append(inviteForm);
+   }else if(membership.role==='owner'){
+    card.append(btn('Delete Family','btn smallbtn',async()=>{if(!confirm('Delete '+family.name+' and its chat/invitations for all members?'))return;try{await rpc('delete_family',{p_family_id:family.id});await loadFamilyWorkspace();}catch(error){toast(error.message||'Could not delete Family.');}}));
    }else{
     card.append(btn('Leave Family','btn smallbtn',async()=>{if(!confirm('Leave '+family.name+'?'))return;try{await rpc('leave_family',{p_family_id:family.id});await loadFamilyWorkspace();}catch(error){toast(error.message||'Could not leave Family.');}}));
    }
@@ -64,6 +66,8 @@ async function loadFamilyWorkspace(){
     const display=profile.username||profile.full_name||member.user_id.slice(0,8);
     const line=make('div','family-member-row');line.append(make('span',null,display+' · '+member.role));
     const canRemove=['owner','admin'].includes(membership.role)&&member.role!=='owner'&&(membership.role==='owner'||member.role==='member');
+    if(membership.role==='owner'&&member.role==='member')line.append(btn('Make admin','textbtn',async()=>{try{await rpc('set_family_member_role',{p_family_id:family.id,p_user_id:member.user_id,p_role:'admin'});await loadFamilyWorkspace();}catch(error){toast(error.message||'Could not update role.');}}));
+    if(membership.role==='owner'&&member.role==='admin')line.append(btn('Remove admin','textbtn',async()=>{try{await rpc('set_family_member_role',{p_family_id:family.id,p_user_id:member.user_id,p_role:'member'});await loadFamilyWorkspace();}catch(error){toast(error.message||'Could not update role.');}}));
     if(canRemove)line.append(btn('Remove','textbtn',async()=>{if(!confirm('Remove '+display+' from this Family?'))return;try{await rpc('remove_family_member',{p_family_id:family.id,p_user_id:member.user_id});await loadFamilyWorkspace();}catch(error){toast(error.message||'Could not remove member.');}}));
     memberBox.append(line);
    }
