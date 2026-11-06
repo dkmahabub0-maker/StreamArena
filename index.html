@@ -427,8 +427,9 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
     document.getElementById('endLiveBtn').style.display='none';
     document.getElementById('startLiveBtn').style.display='';
     document.getElementById('liveTitle').style.display='';
-    document.getElementById('liveStatus').textContent=err.message||'Could not start stream.';
-    toast(err.message||'Could not start stream.');
+    const startError=err.code==='23505'?'You already have an active live stream. End it before starting another.':(err.message||'Could not start stream.');
+    document.getElementById('liveStatus').textContent=startError;
+    toast(startError);
     await loadLiveStreams();
   } finally {button.disabled=false;}
 });
