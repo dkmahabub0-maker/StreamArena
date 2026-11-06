@@ -45,5 +45,11 @@ jobs:
           ]) {
             if (!html.includes(required)) throw new Error('Missing Duo Live browser contract: ' + required);
           }
-          console.log('Validated ' + scripts.length + ' inline script(s) and ' + ids.length + ' unique HTML IDs.');
+          if (!html.includes("tile.dataset.participantId=identity")) {
+            throw new Error('Every camera tile must be keyed by participant identity for correct unsubscribe cleanup.');
+          }
+          if (!html.includes("const identity=participant?.identity||'participant'")) {
+            throw new Error('Camera tile creation must retain the LiveKit participant identity.');
+          }
+                    console.log('Validated ' + scripts.length + ' inline script(s), ' + ids.length + ' unique HTML IDs and participant-keyed camera tiles.');
           NODE
