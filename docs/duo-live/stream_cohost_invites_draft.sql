@@ -33,3 +33,6 @@ alter table public.stream_cohost_invites enable row level security;
 -- All reads/writes go through the authenticated Edge Function.
 -- Never expose this table to browser roles; service_role is server-only.
 revoke all on table public.stream_cohost_invites from anon, authenticated;
+
+-- Explicit server-only access for the Edge Function's service-role client.
+grant all on table public.stream_cohost_invites to service_role;
