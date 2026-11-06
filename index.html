@@ -56,7 +56,6 @@
 #liveThumbnailEditor label{display:block;margin:5px 0}
 #liveThumbnailEditor input[type=range],#liveThumbnailEditor input[type=text],#liveThumbnailEditor select{width:100%;min-height:40px;background:#11182a;color:white;border:1px solid #394466;border-radius:8px;padding:8px}
 @media(max-width:760px){#liveBackdrop{padding:8px!important}#liveBackdrop>.modal{max-height:calc(100dvh - 16px)!important;width:100%!important;margin:0!important}#liveStage{min-height:180px!important}}
-
 #families .family-workspace{display:grid;gap:16px;margin-top:14px}
 #families .family-create,#families .family-invite-form,#families .family-chat-form{display:flex;gap:8px;flex-wrap:wrap}
 #families input{min-width:0;flex:1;background:#11182a;border:1px solid #394466;border-radius:9px;padding:10px;color:white}
@@ -86,10 +85,10 @@
 <h4 data-en="Quick Access" data-bn="দ্রুত প্রবেশ">Quick Access</h4><a href="#" data-live-open>📹 <span data-en="Create Live Stream" data-bn="লাইভ শুরু করুন">Create Live Stream</span></a><a href="#tournaments">🏆 <span data-en="Join Tournament" data-bn="টুর্নামেন্টে যোগ দিন">Join Tournament</span></a><h4 data-en="Popular Regions" data-bn="জনপ্রিয় অঞ্চল">Popular Regions</h4><div class="country">🇧🇩 Bangladesh</div><div class="country">🇮🇳 India</div><div class="country">🇸🇦 Saudi Arabia</div><div class="country">🇵🇰 Pakistan</div><div class="country">🌍 Global</div>
 </aside>
 <main class="main">
-<section class="hero"><div class="hero-content"><div class="eyebrow">THE GLOBAL GAMING ARENA</div><h1>PLAY. STREAM. <span class="gradient">COMPETE.</span></h1><p data-en="The ultimate gaming & esports platform for players around the world." data-bn="সারা বিশ্বের গেমারদের জন্য গেমিং ও ই-স্পোর্টস প্ল্যাটফর্ম।">The ultimate gaming & esports platform for players around the world.</p><div class="feature-row"><div class="feature">🔴 <b data-en="Live Streaming" data-bn="লাইভ স্ট্রিমিং">Live Streaming</b><span data-en="Watch & Go Live" data-bn="দেখুন ও লাইভ করুন">Watch & Go Live</span></div><div class="feature">🏆 <b data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</b><span>Free & Paid</span></div><div class="feature">🎮 <b data-en="Gaming" data-bn="গেমিং">Gaming</b><span>Play & Compete</span></div><div class="feature">🌍 <b data-en="Global Community" data-bn="বিশ্ব কমিউনিটি">Global Community</b><span>Connect worldwide</span></div></div><div class="actions"><button class="btn primary" data-modal="signup" data-en="Get Started Free →" data-bn="ফ্রিতে শুরু করুন →">Get Started Free →</button><button class="btn" onclick="document.querySelector('#live').scrollIntoView({behavior:'smooth'})">▷ Watch Streams</button></div></div></section>
-<section class="section" id="games"><div class="section-head"><h2>🎮 <span data-en="Popular Games" data-bn="জনপ্রিয় গেম">Popular Games</span></h2><button class="textbtn" onclick="toast('More games will be added soon!')">View all →</button></div><div class="games" id="gameGrid"><div class="game"><div class="emoji">🔥</div><b>Free Fire</b></div><div class="game"><div class="emoji">🎯</div><b>PUBG Mobile</b></div><div class="game"><div class="emoji">🪖</div><b>BGMI</b></div><div class="game"><div class="emoji">💥</div><b>Call of Duty</b></div><div class="game"><div class="emoji">⚡</div><b>Valorant</b></div><div class="game"><div class="emoji">⛏️</div><b>Minecraft</b></div></div></section>
+<section class="hero"><div class="hero-content"><div class="eyebrow">THE GLOBAL GAMING ARENA</div><h1>PLAY. STREAM. <span class="gradient">COMPETE.</span></h1><p data-en="The ultimate gaming & esports platform for players around the world." data-bn="সারা বিশ্বের গেমারদের জন্য গেমিং ও ই-স্পোর্টস প্ল্যাটফর্ম।">The ultimate gaming & esports platform for players around the world.</p><div class="feature-row"><div class="feature">🔴 <b data-en="Live Streaming" data-bn="লাইভ স্ট্রিমিং">Live Streaming</b><span data-en="Watch & Go Live" data-bn="দেখুন ও লাইভ করুন">Watch & Go Live</span></div><div class="feature">🏆 <b data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</b><span>Free & Paid</span></div><div class="feature">🎮 <b data-en="Gaming" data-bn="গেমিং">Gaming</b><span>Play & Compete</span></div><div class="feature">🌍 <b data-en="Global Community" data-bn="বিশ্ব কমিউনিটি">Global Community</b><span>Connect worldwide</span></div></div><div class="actions"><button class="btn primary" data-start-action data-en="Get Started Free →" data-bn="ফ্রিতে শুরু করুন →">Get Started Free →</button><button class="btn" onclick="document.querySelector('#live').scrollIntoView({behavior:'smooth'})">▷ Watch Streams</button></div></div></section>
+<section class="section" id="games"><div class="section-head"><h2>🎮 <span data-en="Popular Games" data-bn="জনপ্রিয় গেম">Popular Games</span></h2><button class="textbtn" onclick="toast('More games will be added soon!')">View all →</button></div><p class="sub" id="gameBrowseHint">Select a game to find matching streams and tournaments. Games are played in their own apps; StreamArena does not launch these games.</p><div class="games" id="gameGrid"><div class="game" role="button" tabindex="0" aria-label="Find Free Fire streams and tournaments"><div class="emoji">🔥</div><b>Free Fire</b></div><div class="game" role="button" tabindex="0" aria-label="Find PUBG Mobile streams and tournaments"><div class="emoji">🎯</div><b>PUBG Mobile</b></div><div class="game" role="button" tabindex="0" aria-label="Find BGMI streams and tournaments"><div class="emoji">🪖</div><b>BGMI</b></div><div class="game" role="button" tabindex="0" aria-label="Find Call of Duty streams and tournaments"><div class="emoji">💥</div><b>Call of Duty</b></div><div class="game" role="button" tabindex="0" aria-label="Find Valorant streams and tournaments"><div class="emoji">⚡</div><b>Valorant</b></div><div class="game" role="button" tabindex="0" aria-label="Find Minecraft streams and tournaments"><div class="emoji">⛏️</div><b>Minecraft</b></div></div></section>
 <section class="section" id="live"><div class="section-head"><h2>🔴 <span data-en="Live Streams" data-bn="লাইভ স্ট্রিম">Live Streams</span></h2><button class="textbtn" data-live-open>＋ Go Live</button></div><div class="sub">Currently showing all active streams</div><div class="cards" id="streamCards" style="margin-top:12px"><p class="sub" id="streamLoading">Loading live streams…</p></div></section>
-<section class="section" id="tournaments"><div class="section-head"><h2>🏆 <span data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</span></h2><div class="filters"><button class="chip active" data-tour="Free">Free</button><button class="chip" data-tour="Paid">Paid</button></div></div><div class="tournaments" id="tourCards">
+<section class="section" id="tournaments"><div class="section-head"><h2>🏆 <span data-en="Tournaments" data-bn="টুর্নামেন্ট">Tournaments</span></h2><div class="filters"><button class="chip active" data-tour="Free">Free</button><button class="chip" data-tour="Paid">Paid</button><button class="chip" id="hostingPaymentLink" type="button">Host / Demo Payment</button></div></div><p class="sub">Free tournaments: sign in and select Join Now to register. Organizer-hosted tournaments are invitation-only. Hosting transactions are simulated Demo Points only — DEMO / NOT REAL PAYMENT.</p><div class="tournaments" id="tourCards">
 <div class="tourney" data-type="Free"><div class="tour-icon">🔥</div><div class="tour-info"><h3>Free Fire Solo Cup</h3><p>👥 Solo · 🌍 Global</p><p>Prize pool: <b style="color:var(--green)">Free entry</b></p><div class="tour-foot"><span class="sub">Starts soon</span><button class="btn primary smallbtn join">Join Now</button></div></div></div>
 <div class="tourney" data-type="Free"><div class="tour-icon">🎯</div><div class="tour-info"><h3>PUBG Mobile Weekly</h3><p>👥 Squad · 🇮🇳 India</p><p>Prize pool: <b style="color:var(--green)">Free entry</b></p><div class="tour-foot"><span class="sub">Registration open</span><button class="btn primary smallbtn join">Join Now</button></div></div></div>
 <div class="tourney" data-type="Paid" style="display:none"><div class="tour-icon">⚡</div><div class="tour-info"><h3>Pro Squad Championship</h3><p>👥 Squad · 🌍 Global</p><p>Entry: <b style="color:#ffd166">$2 demo</b></p><div class="tour-foot"><span class="sub">Demo listing</span><button class="btn smallbtn" disabled>Coming soon</button></div></div></div>
@@ -113,7 +112,7 @@
   </div>
   <button class="btn" id="organizerInviteBtn" type="button" style="margin-top:8px">Invite player</button>
   <div id="organizerTournamentList" style="margin-top:12px"></div>
-  <h4>Demo hosting payment history</h4><p class="sub">All records are simulated. No money is charged or transferred.</p><div id="organizerDemoPayments" style="margin-top:8px"></div>
+  <h4>Demo hosting payment history</h4><p class="sub">DEMO / NOT REAL PAYMENT. These records are simulated only; there is no real checkout, payment provider, withdrawal or money transfer.</p><div id="organizerDemoPayments" style="margin-top:8px"></div>
   <div id="playerTournamentInvites" style="margin-top:12px"></div>
 </div>
 <div id="adminTournamentPanel" style="display:none;margin-top:16px;padding:14px;border:1px solid #5745a8;border-radius:12px;background:#0b1020">
@@ -152,7 +151,7 @@
 <footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div><a href="#help" style="color:inherit">Help Center</a> · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit">Continue</button></form><p class="sub" id="forgotPasswordRow" style="display:none;margin:10px 0 0"><button type="button" id="forgotPasswordBtn" class="textbtn">Forgot password / Reset password</button></p><p class="sub" id="authSwitchRow" style="margin:10px 0 0"></p><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
 <div class="toast" id="toast"></div>
-<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div>
+<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div><button class="btn" id="livePlayMediaBtn" type="button" style="display:none;margin:8px 0">Tap to play stream video</button>
 <button class="btn" id="liveEnableAudioBtn" type="button" style="display:none;margin:8px 0">Enable stream audio</button><div id="liveSetup" style="display:grid;gap:9px;margin-top:12px">
   <label class="sub" for="liveTitle">Stream title</label>
   <input id="liveTitle" maxlength="120" placeholder="Stream title" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
@@ -327,6 +326,7 @@ document.getElementById('forgotPasswordBtn').addEventListener('click',async()=>{
 });
 document.getElementById('authSwitchRow').addEventListener('click',event=>{if(event.target.hasAttribute('data-auth-switch'))openAuthModal(authMode==='login'?'signup':'login');});
 document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();openAuthModal(b.dataset.modal)}));
+document.querySelector('[data-start-action]').addEventListener('click',()=>{if(currentUser){document.getElementById('tournaments').scrollIntoView({behavior:'smooth',block:'start'});loadTournamentCards();}else openAuthModal('signup');});
 function closeAuthModal(){document.getElementById('modalBackdrop').style.display='none';document.getElementById('modalForm').reset();document.getElementById('modalName').required=true;document.getElementById('modalName').style.display='';document.getElementById('modalCountry').style.display='';document.getElementById('modalPassword').style.display='';document.getElementById('modalPassword').required=true;}
 document.getElementById('closeModal').onclick=closeAuthModal;
 document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')closeAuthModal()};
@@ -623,7 +623,30 @@ document.getElementById('supportForm').onsubmit=async e=>{
 supabaseClient.channel('support-updates').on('postgres_changes',{event:'*',schema:'public',table:'support_replies'},()=>loadSupportTickets()).on('postgres_changes',{event:'*',schema:'public',table:'support_tickets'},()=>loadSupportTickets()).subscribe();
 loadSupportTickets();
 document.getElementById('langBtn').onclick=()=>{language=language==='en'?'bn':'en';document.documentElement.lang=language;document.getElementById('langBtn').textContent='🌐 '+language.toUpperCase();document.querySelectorAll('[data-en][data-bn]').forEach(el=>el.textContent=el.dataset[language]);document.querySelector('.search').placeholder=language==='bn'?'গেম, স্ট্রিমার খুঁজুন...':'⌕ Search games, streamers...'};
-refreshSession();document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('.game').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none');document.querySelectorAll('.stream-card').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none')});
+refreshSession();
+function applyStreamArenaSearch(value) {
+  const q=(value||'').trim().toLowerCase();
+  document.querySelectorAll('.game').forEach(card=>card.style.display=!q||card.textContent.toLowerCase().includes(q)?'':'none');
+  document.querySelectorAll('.stream-card,.tourney').forEach(card=>card.style.display=!q||card.textContent.toLowerCase().includes(q)?'':'none');
+  if(!q){const active=document.querySelector('[data-tour].active')?.dataset.tour||'Free';document.querySelectorAll('.tourney').forEach(card=>card.style.display=card.dataset.type===active?'flex':'none');}
+}
+document.getElementById('search').addEventListener('input',event=>applyStreamArenaSearch(event.target.value));
+const gameGrid=document.getElementById('gameGrid');
+function selectGameForBrowsing(card) {
+  const game=card.querySelector('b')?.textContent?.trim();
+  if(!game)return;
+  document.getElementById('search').value=game;
+  applyStreamArenaSearch(game);
+  const hint=document.getElementById('gameBrowseHint');
+  if(hint)hint.textContent='Showing listings whose title or description mentions '+game+'. This selects a category; it does not launch the game.';
+  document.getElementById('live').scrollIntoView({behavior:'smooth',block:'start'});
+}
+gameGrid.addEventListener('click',event=>{const card=event.target.closest('.game');if(card)selectGameForBrowsing(card);});
+gameGrid.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.closest('.game')){event.preventDefault();selectGameForBrowsing(event.target.closest('.game'));}});
+document.getElementById('hostingPaymentLink').addEventListener('click',()=>{
+  if(!currentUser){toast('Log in to create a tournament or view your Demo Hosting Payment history.');openAuthModal('login');return;}
+  document.getElementById('organizerTournamentPanel').scrollIntoView({behavior:'smooth',block:'start'});
+});
 
 /* LiveKit browser integration */
 let activeLiveRoom = null;
@@ -647,6 +670,7 @@ function openLivePanel(mode = 'start') {
   document.getElementById('endLiveBtn').style.display = 'none';
   document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'), {className:'sub', textContent:'Video will appear here'}));
   const enableAudio=document.getElementById('liveEnableAudioBtn');if(enableAudio)enableAudio.style.display='none';
+  const playMedia=document.getElementById('livePlayMediaBtn');if(playMedia)playMedia.style.display='none';
   liveMode = mode;
 }
 function updateLiveControlLabels() {
@@ -943,17 +967,36 @@ async function requestLiveKitToken(roomName, role) {
   if (!response.ok) throw new Error(payload.error || 'Could not create a streaming session.');
   return payload;
 }
+function showViewerPlaybackFallback() {
+  const button=document.getElementById('livePlayMediaBtn');
+  if(button)button.style.display='inline-block';
+}
+async function playViewerMediaFromGesture() {
+  const stage=document.getElementById('liveStage');
+  const media=[...stage.querySelectorAll('video,audio')];
+  if(!media.length){toast('The broadcaster has not published a video or audio track yet.');return;}
+  const results=await Promise.allSettled(media.map(element=>element.play()));
+  const failed=results.some(result=>result.status==='rejected');
+  const button=document.getElementById('livePlayMediaBtn');
+  if(button)button.style.display=failed?'inline-block':'none';
+  if(failed)toast('Playback is still blocked. Check Safari site settings and tap Enable stream audio if shown.');
+}
+document.getElementById('livePlayMediaBtn').addEventListener('click',playViewerMediaFromGesture);
 function attachLiveTrack(track, stage, muted = false) {
   const element = track.attach();
   if (element.tagName === 'VIDEO') {
     element.autoplay = true;
     element.playsInline = true;
+    element.setAttribute('playsinline','');
+    element.setAttribute('webkit-playsinline','');
     element.muted = muted;
     element.style.cssText = 'width:100%;height:100%;max-height:520px;object-fit:contain';
   } else if (element.tagName === 'AUDIO') {
     element.autoplay = true;
   }
   stage.append(element);
+  const playback=element.play?.();
+  if(playback&&typeof playback.catch==='function')playback.catch(()=>showViewerPlaybackFallback());
 }
 async function loadLiveStreams() {
   const cards = document.getElementById('streamCards');
@@ -1034,6 +1077,28 @@ async function watchLiveStream(stream) {
     stage.replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Unable to connect to this stream.'}));
   }
 }
+async function preflightBrowserMediaPermissions() {
+  const issues=[];
+  if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia) {
+    const message='This page cannot request camera/microphone access. Open StreamArena over HTTPS in an up-to-date browser and check site permissions.';
+    return ['Camera unavailable: '+message,'Microphone unavailable: '+message];
+  }
+  for(const kind of ['video','audio']) {
+    try {
+      const stream=await navigator.mediaDevices.getUserMedia(kind==='video'?{video:true}:{audio:true});
+      stream.getTracks().forEach(track=>track.stop());
+    } catch(error) {
+      const label=kind==='video'?'Camera':'Microphone';
+      const detail=error.name==='NotAllowedError'
+        ?'Permission is blocked for this website. Open the browser site settings, allow '+kind+', then reload StreamArena.'
+        :error.name==='NotFoundError'
+          ?'No '+kind+' device was found.'
+          :(error.message||'Browser permission request failed.');
+      issues.push(label+' unavailable: '+detail);
+    }
+  }
+  return issues;
+}
 async function startLiveBroadcast(){
   if(!currentUser){toast('Please log in first.');return;}
   if(activeStreamId){toast('You already have an active live stream. End it before starting another.');return;}
@@ -1042,9 +1107,11 @@ async function startLiveBroadcast(){
   const title=document.getElementById('liveTitle').value.trim();
   if(title.length<3){toast('Enter a stream title (at least 3 characters).');return;}
   const button=document.getElementById('goLiveNowBtn');button.disabled=true;
-  document.getElementById('liveStatus').textContent='Preparing stream…';
+  document.getElementById('liveStatus').textContent='Requesting browser camera and microphone access…';
   let createdId=null;
   try {
+    const permissionIssues=await preflightBrowserMediaPermissions();
+    document.getElementById('liveStatus').textContent='Preparing streaming connection…';
     const freshAfter=new Date(Date.now()-120000).toISOString();
     const stale=await supabaseClient.from('streams').update({is_live:false}).eq('user_id',currentUser.id).eq('is_live',true).or('last_heartbeat_at.is.null,last_heartbeat_at.lt.'+freshAfter);
     if(stale.error)throw stale.error;
@@ -1074,7 +1141,7 @@ async function startLiveBroadcast(){
     await room.connect(credentials.serverUrl,credentials.token);
     liveMicEnabled=false;liveCameraEnabled=false;liveScreenShareEnabled=false;liveCameraFacingMode='user';
     const stage=document.getElementById('liveStage');stage.replaceChildren();
-    const startupIssues=[];
+    const startupIssues=[...permissionIssues];
     try {
       const camera=await room.localParticipant.setCameraEnabled(true);
       liveCameraEnabled=!!camera;
