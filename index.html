@@ -1492,6 +1492,8 @@ async function startLiveBroadcast(){
     if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch{} activeLiveRoom=null;}
     liveMicEnabled=true;liveCameraEnabled=true;liveScreenShareEnabled=false;liveCameraFacingMode='user';
     document.getElementById('liveBroadcastControls').style.display='none';
+    document.getElementById('liveControlMenuToggle').style.display='none';
+    setLiveControlMenuOpen(false);
     document.getElementById('duoLiveInvitePanel').style.display='none';
     if(createdId) await supabaseClient.from('streams').update({is_live:false}).eq('id',createdId).eq('user_id',currentUser.id);
     activeStreamId=null;
@@ -1521,6 +1523,8 @@ document.getElementById('endLiveBtn').addEventListener('click',async()=>{
     }
     liveMicEnabled=true;liveCameraEnabled=true;liveScreenShareEnabled=false;liveCameraFacingMode='user';
     document.getElementById('liveBroadcastControls').style.display='none';
+    document.getElementById('liveControlMenuToggle').style.display='none';
+    setLiveControlMenuOpen(false);
     activeStreamId=null;
     document.getElementById('liveStatus').textContent='Stream ended.';
     document.getElementById('endLiveBtn').style.display='none';
