@@ -53,7 +53,7 @@
 <div class="rightbox" id="leaderboard"><div class="section-head"><h2>♛ Top Streamers</h2><span class="sub">This week</span></div><div class="rank"><span class="num">1</span><div class="avatar">🧑🏽‍🚀</div><div><b>Rafi Gaming</b><div class="sub">2.4M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">2</span><div class="avatar">👩🏻‍🎤</div><div><b>Liza Gaming</b><div class="sub">1.8M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">3</span><div class="avatar">🧔🏽</div><div><b>Xtreme Gamer</b><div class="sub">1.5M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">4</span><div class="avatar">🎧</div><div><b>Techno Gaming</b><div class="sub">1.2M followers</div></div><button class="btn primary follow">Follow</button></div></div>
 </aside></div>
 <footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div><a href="#help" style="color:inherit">Help Center</a> · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
-<div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><input id="modalOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit email code" style="display:none"><button type="submit" class="btn primary" id="modalSubmit">Continue</button></form><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit">Continue</button></form><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
 <div class="toast" id="toast"></div>
 <div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div><div id="liveControls" style="display:flex;gap:8px;flex-wrap:wrap"><input id="liveTitle" maxlength="120" placeholder="Stream title" style="flex:1;min-width:180px;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><button class="btn primary" id="startLiveBtn">Start Live</button><button class="btn" id="endLiveBtn" style="display:none">End Live</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
@@ -79,20 +79,7 @@ async function refreshSession(){
   if(typeof loadSupportTickets==='function') loadSupportTickets();
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display='none',3000)}
-let pendingSignupOtp = false;
-function setSignupOtpMode(enabled) {
-  pendingSignupOtp = enabled;
-  const ids=['modalName','modalPassword','modalCountry'];
-  ids.forEach(id=>{const el=document.getElementById(id);el.style.display=enabled?'none':'';el.required=!enabled;});
-  const email=document.getElementById('modalEmail');
-  email.readOnly=enabled;
-  const otp=document.getElementById('modalOtp');
-  otp.style.display=enabled?'':'none';otp.required=enabled;otp.value='';
-  document.getElementById('modalTitle').textContent=enabled?'Verify your email':'Join StreamArena';
-  document.getElementById('modalDesc').textContent=enabled?'Enter the 6-digit code sent to your email address.':'Create your account to join the arena.';
-  document.getElementById('modalSubmit').textContent=enabled?'Verify code':'Continue';
-}
-document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();const type=b.dataset.modal;setSignupOtpMode(false);document.getElementById('modalTitle').textContent=type==='login'?'Welcome back':type==='stream'?'Create a live stream':'Join StreamArena';document.getElementById('modalDesc').textContent=type==='stream'?'Start a LiveKit camera and microphone broadcast.':type==='login'?'Sign in with your email and password.':'Create your account to join the arena.';document.getElementById('modalBackdrop').style.display='grid'}));
+document.querySelectorAll('[data-modal]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();const type=b.dataset.modal;document.getElementById('modalTitle').textContent=type==='login'?'Welcome back':type==='stream'?'Create a live stream':'Join StreamArena';document.getElementById('modalDesc').textContent=type==='stream'?'Start a LiveKit camera and microphone broadcast.':type==='login'?'Sign in with your email and password.':'Create your account to join the arena.';document.getElementById('modalBackdrop').style.display='grid'}));
 document.getElementById('closeModal').onclick=()=>document.getElementById('modalBackdrop').style.display='none';document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')e.currentTarget.style.display='none'};
 document.getElementById('modalForm').onsubmit=async (e) => {
   e.preventDefault();
@@ -106,15 +93,6 @@ document.getElementById('modalForm').onsubmit=async (e) => {
   submit.disabled=true;submit.textContent='Please wait...';
   try {
     let result;
-    if(pendingSignupOtp) {
-      result=await supabaseClient.auth.verifyOtp({email,token:document.getElementById('modalOtp').value.trim(),type:'signup'});
-      if(result.error)throw result.error;
-      await refreshSession();
-      document.getElementById('modalBackdrop').style.display='none';
-      setSignupOtpMode(false);
-      toast('Email verified. Account created successfully.');
-      return;
-    }
     if(type==='stream') {
       if(!currentUser)throw new Error('Please log in before creating a stream.');
       document.getElementById('modalBackdrop').style.display='none';openLivePanel('start');return;
@@ -128,10 +106,9 @@ document.getElementById('modalForm').onsubmit=async (e) => {
       result=await supabaseClient.auth.signUp({email,password,options:{data:{username,full_name:username,country}}});
       if(result.error)throw result.error;
       if(result.data?.user&&!result.data?.session) {
-        setSignupOtpMode(true);
-        document.getElementById('modalEmail').value=email;
-        document.getElementById('modalOtp').focus();
-        toast('A 6-digit verification code was sent to your email. Check the Confirm signup email template if a link is sent instead.');
+        document.getElementById('modalBackdrop').style.display='none';
+        e.currentTarget.reset();
+        toast('Signup submitted. Check your email and click the confirmation link to activate your account, then log in.');
         return;
       }
     }
@@ -143,8 +120,7 @@ document.getElementById('modalForm').onsubmit=async (e) => {
     toast(err.message||'Authentication failed.');
   } finally {
     submit.disabled=false;
-    if(!pendingSignupOtp)submit.textContent='Continue';
-    else submit.textContent='Verify code';
+    submit.textContent='Continue';
   }
 };
 document.querySelectorAll('.like').forEach(b=>b.onclick=()=>{b.classList.toggle('liked');const s=b.querySelector('span');s.textContent=Number(s.textContent)+(b.classList.contains('liked')?1:-1);b.firstChild.textContent=b.classList.contains('liked')?'♥ Like ':'♡ Like '});
