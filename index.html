@@ -21,6 +21,30 @@
 .top-actions.is-authenticated>button[data-modal="login"],
 .top-actions.is-authenticated>button[data-modal="signup"]{display:none!important;}
 .top-actions.is-authenticated>.account-menu{display:block!important;}
+
+/* Keep the signed-in avatar aligned with the StreamArena brand on mobile. */
+@media(max-width:760px){
+  .topbar:has(.top-actions.is-authenticated){position:sticky;}
+  .topbar:has(.top-actions.is-authenticated) .top-actions{
+    position:absolute!important;
+    top:10px!important;
+    right:48px!important;
+    display:flex!important;
+    width:44px!important;
+    min-width:44px!important;
+    flex:0 0 44px!important;
+    margin:0!important;
+    padding:0!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  .topbar:has(.top-actions.is-authenticated) .top-actions>.account-menu{
+    display:block!important;
+    width:44px!important;
+    min-width:44px!important;
+    margin:0!important;
+  }
+}
 </style>
 </head>
 <body>
@@ -297,8 +321,7 @@ document.getElementById('modalForm').onsubmit=async (e) => {
       }
     }
     if(result.error)throw result.error;
-    await refreshSession();
-    document.getElementById('modalBackdrop').style.display='none';
+    await refreshSession();    document.getElementById('modalBackdrop').style.display='none';
     toast(type==='login'?'Login successful.':type==='password-update'?'Password updated successfully.':'Signup successful.');authMode='signup';
   } catch(err) {
     toast(type==='login'&&/invalid login credentials/i.test(err.message||'')?'Incorrect email or password. If you have not confirmed your email, check your inbox first.':(err.message||'Authentication failed.'));
@@ -597,8 +620,7 @@ async function loadStreamSettings() {
     document.getElementById('liveTitle').value=settings.title||'';
     document.getElementById('liveCaption').value=settings.caption||'';
     savedLiveThumbnailUrl=settings.thumbnail_url||null;
-    clearSavedLiveThumbnail=false;
-    document.getElementById('liveThumbnailFile').value='';
+    clearSavedLiveThumbnail=false;    document.getElementById('liveThumbnailFile').value='';
     renderLiveThumbnail(savedLiveThumbnailUrl);
     await loadOrganizerTournaments();
     status.textContent='Your saved setup will be reused the next time you go live.';
