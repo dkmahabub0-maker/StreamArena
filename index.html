@@ -202,13 +202,37 @@ async function loadSupportTickets(){
   const form=document.createElement('form');form.style.cssText='display:flex;gap:6px;margin-top:8px';
   const input=document.createElement('input');input.required=true;input.maxLength=5000;input.placeholder='Write a reply';input.style.cssText='min-width:0;flex:1;background:#11182a;border:1px solid #293451;border-radius:8px;padding:8px;color:white';
   const send=document.createElement('button');send.className='smallbtn';send.textContent='Reply';form.append(input,send);
-  form.onsubmit=async ev=>{ev.preventDefault();send.disabled=true;const saved=await supabaseClient.from('support_replies').insert({ticket_id:t.id,sender_id:currentUser.id,message:input.value.trim()});send.disabled=false;if(saved.error){toast(saved.error.message);return;}await loadSupportTickets();};
+  form.onsubmit=async ev=>{
+   ev.preventDefault();const message=input.value.trim();if(!message)return;
+   send.disabled=true;
+   try{
+    const saved=await supabaseClient.from('support_replies').insert({ticket_id:t.id,sender_id:currentUser.id,message});
+    if(saved.error)throw saved.error;
+    input.value='';await loadSupportTickets();
+   }catch(err){toast(err.message||'Reply could not be sent.');}
+   finally{send.disabled=false;}
+  };
   card.append(form);
   if(admin){const select=document.createElement('select');['open','in_progress','resolved','closed'].forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;o.selected=s===t.status;select.append(o);});select.onchange=async()=>{const upd=await supabaseClient.from('support_tickets').update({status:select.value,updated_at:new Date().toISOString()}).eq('id',t.id);if(upd.error)toast(upd.error.message);else toast('Ticket status updated.');};card.append(select);}
   list.append(card);
  }
 }
-document.getElementById('supportForm').onsubmit=async e=>{e.preventDefault();if(!currentUser){toast('Please log in to submit a ticket.');return;}const subject=document.getElementById('supportSubject').value.trim();const message=document.getElementById('supportMessage').value.trim();const saved=await supabaseClient.from('support_tickets').insert({user_id:currentUser.id,subject,message});if(saved.error){toast(saved.error.message);return;}e.currentTarget.reset();toast('Support ticket submitted.');loadSupportTickets();};
+document.getElementById('supportForm').onsubmit=async e=>{
+ e.preventDefault();
+ if(!currentUser){toast('Please log in to submit a ticket.');return;}
+ const form=e.currentTarget,button=form.querySelector('button[type="submit"]');
+ const subject=document.getElementById('supportSubject').value.trim();
+ const message=document.getElementById('supportMessage').value.trim();
+ if(!subject||!message){toast('Enter both a subject and a message.');return;}
+ if(subject.length>160||message.length>5000){toast('Your ticket is too long.');return;}
+ button.disabled=true;button.textContent='Submitting…';
+ try{
+  const saved=await supabaseClient.from('support_tickets').insert({user_id:currentUser.id,subject,message});
+  if(saved.error)throw saved.error;
+  form.reset();toast('Support ticket submitted.');await loadSupportTickets();
+ }catch(err){toast(err.message||'Support ticket could not be submitted.');}
+ finally{button.disabled=false;button.textContent='Submit ticket';}
+};
 supabaseClient.channel('support-updates').on('postgres_changes',{event:'*',schema:'public',table:'support_replies'},()=>loadSupportTickets()).on('postgres_changes',{event:'*',schema:'public',table:'support_tickets'},()=>loadSupportTickets()).subscribe();
 loadSupportTickets();
 document.getElementById('langBtn').onclick=()=>{language=language==='en'?'bn':'en';document.documentElement.lang=language;document.getElementById('langBtn').textContent='🌐 '+language.toUpperCase();document.querySelectorAll('[data-en][data-bn]').forEach(el=>el.textContent=el.dataset[language]);document.querySelector('.search').placeholder=language==='bn'?'গেম, স্ট্রিমার খুঁজুন...':'⌕ Search games, streamers...'};
