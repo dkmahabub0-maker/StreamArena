@@ -48,7 +48,7 @@
 <div style="margin-top:18px"><h3>My support tickets</h3><div id="supportTickets" class="sub">Sign in to view your tickets.</div></div>
 </section></main>
 <aside class="rightcol">
-<div class="rightbox"><div class="user"><div class="avatar">👾</div><div><b id="accountName">Guest Player</b><small id="authStatus">Not signed in</small></div></div><div style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" data-modal="login">Login</button><button class="btn primary" style="flex:1" data-modal="signup">Sign Up</button></div></div>
+<div class="rightbox"><div class="user"><div class="avatar">👾</div><div><b id="accountName">Guest Player</b><small id="authStatus">Not signed in</small></div></div><div id="guestActions" style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" data-modal="login">Login</button><button class="btn primary" style="flex:1" data-modal="signup">Sign Up</button></div><button class="btn" id="logoutBtn" style="display:none;width:100%;margin-top:13px">Log out</button></div>
 <div class="rightbox" id="community"><div class="section-head"><h2>🔴 Live Chat</h2><span class="sub">Live chat</span></div><div id="chatLines"></div><form class="chat-input" id="chatForm"><input id="chatText" placeholder="Type a message..." maxlength="180"><button class="btn primary">➤</button></form></div>
 <div class="rightbox" id="leaderboard"><div class="section-head"><h2>♛ Top Streamers</h2><span class="sub">This week</span></div><div class="rank"><span class="num">1</span><div class="avatar">🧑🏽‍🚀</div><div><b>Rafi Gaming</b><div class="sub">2.4M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">2</span><div class="avatar">👩🏻‍🎤</div><div><b>Liza Gaming</b><div class="sub">1.8M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">3</span><div class="avatar">🧔🏽</div><div><b>Xtreme Gamer</b><div class="sub">1.5M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">4</span><div class="avatar">🎧</div><div><b>Techno Gaming</b><div class="sub">1.2M followers</div></div><button class="btn primary follow">Follow</button></div></div>
 </aside></div>
@@ -74,10 +74,25 @@ async function refreshSession(){
   const accountName = document.getElementById('accountName');
   if(status) status.textContent = currentUser ? currentUser.email : 'Not signed in';
   if(accountName) accountName.textContent = currentUser ? (currentUser.user_metadata?.username || 'Player') : 'Guest Player';
+  const guestActions=document.getElementById('guestActions');
+  const logoutBtn=document.getElementById('logoutBtn');
+  if(guestActions)guestActions.style.display=currentUser?'none':'flex';
+  if(logoutBtn)logoutBtn.style.display=currentUser?'block':'none';
   const chatInput=document.getElementById('chatText');
   if(chatInput) chatInput.placeholder=currentUser?'Type a message...':'Log in to chat';
   if(typeof loadSupportTickets==='function') loadSupportTickets();
 }
+document.getElementById('logoutBtn').addEventListener('click',async()=>{
+  const button=document.getElementById('logoutBtn');button.disabled=true;
+  const result=await supabaseClient.auth.signOut();
+  button.disabled=false;
+  if(result.error){toast(result.error.message||'Could not log out.');return;}
+  await refreshSession();toast('Logged out.');
+});
+supabaseClient.auth.onAuthStateChange((_event,session)=>{
+  currentUser=session?.user||null;
+  refreshSession();
+});
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display='none',3000)}
 function openAuthModal(type='signup'){
   const login=type==='login';
