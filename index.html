@@ -136,7 +136,8 @@
 <footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div><a href="#help" style="color:inherit">Help Center</a> · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit">Continue</button></form><p class="sub" id="forgotPasswordRow" style="display:none;margin:10px 0 0"><button type="button" id="forgotPasswordBtn" class="textbtn">Forgot password / Reset password</button></p><p class="sub" id="authSwitchRow" style="margin:10px 0 0"></p><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
 <div class="toast" id="toast"></div>
-<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div><div id="liveSetup" style="display:grid;gap:9px;margin-top:12px">
+<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div>
+<button class="btn" id="liveEnableAudioBtn" type="button" style="display:none;margin:8px 0">Enable stream audio</button><div id="liveSetup" style="display:grid;gap:9px;margin-top:12px">
   <label class="sub" for="liveTitle">Stream title</label>
   <input id="liveTitle" maxlength="120" placeholder="Stream title" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
   <label class="sub" for="liveCaption">Live caption / description (up to 500 characters)</label>
@@ -181,7 +182,7 @@
   <button class="btn" id="liveCameraSwitchBtn" type="button">Switch camera</button>
   <button class="btn" id="liveCameraToggleBtn" type="button">Turn camera off</button>
   <button class="btn" id="liveMicToggleBtn" type="button">Mute microphone</button>
-  <p class="sub" id="liveControlsHint" style="flex:1 1 100%;margin:0">Screen sharing depends on browser and device support. Keep this page open while live.</p>
+  <p class="sub" id="liveControlsHint" role="status" aria-live="polite" style="flex:1 1 100%;margin:0">Camera, microphone and screen sharing are separate controls. Screen and system-audio support depends on your browser and device.</p>
 </div>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
@@ -635,9 +636,11 @@ function updateLiveControlLabels() {
   const share=document.getElementById('liveScreenShareBtn');
   const camera=document.getElementById('liveCameraToggleBtn');
   const mic=document.getElementById('liveMicToggleBtn');
+  const switchCamera=document.getElementById('liveCameraSwitchBtn');
   if(share)share.textContent=liveScreenShareEnabled?'Stop screen share':'Share game screen';
   if(camera)camera.textContent=liveCameraEnabled?'Turn camera off':'Turn camera on';
-  if(mic)mic.textContent=liveMicEnabled?'Mute microphone':'Unmute microphone';
+  if(mic)mic.textContent=liveMicEnabled?'Mute microphone':'Enable microphone';
+  if(switchCamera)switchCamera.disabled=!liveCameraEnabled;
 }
 function showLocalBroadcastVideo(source) {
   if(!activeLiveRoom)return;
@@ -651,31 +654,45 @@ function showLocalBroadcastVideo(source) {
 async function toggleLiveScreenShare() {
   if(!activeLiveRoom||!activeStreamId)return;
   const button=document.getElementById('liveScreenShareBtn');button.disabled=true;
+  const hint=document.getElementById('liveControlsHint');
   try {
     if(!liveScreenShareEnabled) {
-      if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('This browser does not support screen sharing. Try a supported Android browser or share from a compatible device.');
-      await activeLiveRoom.localParticipant.setScreenShareEnabled(true);
-      liveScreenShareEnabled=true;
-      const publication=activeLiveRoom.localParticipant.getTrackPublication(LivekitClient.Track.Source.ScreenShare);
-      if(publication?.track) {
-        showLocalBroadcastVideo(LivekitClient.Track.Source.ScreenShare);
-        publication.track.on(LivekitClient.TrackEvent.Ended,async()=>{
-          liveScreenShareEnabled=false;
-          updateLiveControlLabels();
-          if(activeLiveRoom&&liveCameraEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
-        });
+      if(!window.isSecureContext||!navigator.mediaDevices?.getDisplayMedia) {
+        throw new Error('This browser does not expose web screen capture. Use HTTPS and a browser/device that supports getDisplayMedia. iPhone/iPad Safari may require a native iOS app with a ReplayKit Broadcast Extension to share other apps.');
       }
+      hint.textContent='Choose a screen, window or browser tab in the browser dialog. Enable tab/system audio there if the browser offers it.';
+      const publication=await activeLiveRoom.localParticipant.setScreenShareEnabled(true,{
+        audio:true,
+        systemAudio:'include',
+        selfBrowserSurface:'exclude',
+        surfaceSwitching:'include',
+        contentHint:'motion'
+      });
+      const screenPublication=publication||activeLiveRoom.localParticipant.getTrackPublication(LivekitClient.Track.Source.ScreenShare);
+      if(!screenPublication?.track)throw new Error('The browser did not provide a screen video track. Check its screen-capture permission and try again.');
+      liveScreenShareEnabled=true;
+      showLocalBroadcastVideo(LivekitClient.Track.Source.ScreenShare);
+      screenPublication.track.on(LivekitClient.TrackEvent.Ended,()=>{
+        liveScreenShareEnabled=false;
+        updateLiveControlLabels();
+        if(activeLiveRoom&&liveCameraEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
+        hint.textContent='Screen sharing stopped. Camera and microphone controls remain available.';
+      });
+      const audioPublication=activeLiveRoom.localParticipant.getTrackPublication(LivekitClient.Track.Source.ScreenShareAudio);
+      hint.textContent=audioPublication?.track
+        ?'Screen video and shared audio are being sent. Available audio depends on the source you selected.'
+        :'Screen video is being sent. This browser/device did not provide shared system audio; your microphone remains a separate control.';
       document.getElementById('liveStatus').textContent='You are live · sharing your screen.';
     } else {
       await activeLiveRoom.localParticipant.setScreenShareEnabled(false);
       liveScreenShareEnabled=false;
       showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
+      hint.textContent='Screen sharing stopped. Camera and microphone controls remain available.';
       document.getElementById('liveStatus').textContent='You are live · camera broadcast.';
     }
   } catch(err) {
-    const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-    const reason=ios?'Screen sharing may not be available in this iPhone/iPad browser. Use a browser/device that exposes system screen broadcast.':(err.message||'Could not start screen sharing.');
-    document.getElementById('liveControlsHint').textContent=reason;
+    const reason=err.name==='NotAllowedError'?'Screen sharing was cancelled or blocked. Allow screen capture in the browser and try again.':(err.message||'Could not start screen sharing.');
+    hint.textContent=reason;
     toast(reason);
   } finally {button.disabled=false;updateLiveControlLabels();}
 }
@@ -695,25 +712,38 @@ async function switchLiveCamera() {
 }
 async function toggleLiveCamera() {
   if(!activeLiveRoom)return;
+  const button=document.getElementById('liveCameraToggleBtn');button.disabled=true;
+  const next=!liveCameraEnabled;
   try {
-    liveCameraEnabled=!liveCameraEnabled;
-    await activeLiveRoom.localParticipant.setCameraEnabled(liveCameraEnabled);
+    await activeLiveRoom.localParticipant.setCameraEnabled(next);
+    liveCameraEnabled=next;
     if(!liveScreenShareEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
+    document.getElementById('liveControlsHint').textContent=next?'Camera is on.':'Camera is off; microphone and screen sharing can continue.';
   } catch(err) {
-    liveCameraEnabled=!liveCameraEnabled;
-    toast(err.message||'Could not change camera state.');
-  } finally {updateLiveControlLabels();}
+    toast((err.name==='NotAllowedError'?'Camera permission was denied. Allow camera access in browser settings. ': '')+(err.message||'Could not change camera state.'));
+  } finally {button.disabled=false;updateLiveControlLabels();}
 }
 async function toggleLiveMicrophone() {
   if(!activeLiveRoom)return;
+  const button=document.getElementById('liveMicToggleBtn');button.disabled=true;
+  const next=!liveMicEnabled;
   try {
-    liveMicEnabled=!liveMicEnabled;
-    await activeLiveRoom.localParticipant.setMicrophoneEnabled(liveMicEnabled);
+    await activeLiveRoom.localParticipant.setMicrophoneEnabled(next);
+    liveMicEnabled=next;
+    document.getElementById('liveControlsHint').textContent=next?'Microphone is on.':'Microphone is muted; viewers can still see your video or screen.';
   } catch(err) {
-    liveMicEnabled=!liveMicEnabled;
-    toast(err.message||'Could not change microphone state.');
-  } finally {updateLiveControlLabels();}
+    const reason=err.name==='NotAllowedError'?'Microphone permission was denied. Allow microphone access in browser settings. ': '';
+    document.getElementById('liveControlsHint').textContent=reason+(err.message||'Could not change microphone state.');
+    toast(reason+(err.message||'Could not change microphone state.'));
+  } finally {button.disabled=false;updateLiveControlLabels();}
 }
+document.getElementById('liveEnableAudioBtn').addEventListener('click',async()=>{
+  if(!activeLiveRoom)return;
+  const button=document.getElementById('liveEnableAudioBtn');button.disabled=true;
+  try{await activeLiveRoom.startAudio();button.style.display='none';}
+  catch(err){toast(err.message||'Tap again to enable stream audio in this browser.');}
+  finally{button.disabled=false;}
+});
 document.getElementById('liveScreenShareBtn').addEventListener('click',toggleLiveScreenShare);
 document.getElementById('liveCameraSwitchBtn').addEventListener('click',switchLiveCamera);
 document.getElementById('liveCameraToggleBtn').addEventListener('click',toggleLiveCamera);
@@ -965,11 +995,16 @@ async function watchLiveStream(stream) {
     room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>{ const target=document.getElementById('liveStage'); if(track.kind==='video'){ if(publication?.source===LivekitClient.Track.Source.ScreenShare){target.replaceChildren();target.dataset.videoSource='screen';} else if(publication?.source===LivekitClient.Track.Source.Camera){if(target.dataset.videoSource==='screen')return;target.querySelectorAll('video').forEach(video=>video.remove());target.dataset.videoSource='camera';} } attachLiveTrack(track,target); });
     room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>{ track.detach().forEach(element=>element.remove()); if(publication?.source===LivekitClient.Track.Source.ScreenShare){const camera=participant?.getTrackPublication(LivekitClient.Track.Source.Camera);if(camera?.isSubscribed&&camera.track){const target=document.getElementById('liveStage');target.replaceChildren();target.dataset.videoSource='camera';attachLiveTrack(camera.track,target);}} });
     room.on(LivekitClient.RoomEvent.Disconnected,()=>{
+      const enableAudio=document.getElementById('liveEnableAudioBtn');if(enableAudio)enableAudio.style.display='none';
       document.getElementById('liveStatus').textContent='Disconnected.';
       if(activeLiveRoom===room)document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Stream disconnected.'}));
     });
     await room.connect(credentials.serverUrl,credentials.token);
     document.getElementById('liveStatus').textContent='Connected · '+room.numParticipants+' participant(s)';
+    const enableAudio=document.getElementById('liveEnableAudioBtn');
+    room.on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged,()=>{
+      if(enableAudio)enableAudio.style.display=room.canPlaybackAudio?'none':'inline-block';
+    });
     room.remoteParticipants.forEach(p=>{const pubs=[...p.trackPublications.values()].filter(pub=>pub.isSubscribed&&pub.track);const screen=pubs.find(pub=>pub.source===LivekitClient.Track.Source.ScreenShare);const camera=pubs.find(pub=>pub.source===LivekitClient.Track.Source.Camera);const target=document.getElementById('liveStage');const video=screen||camera;if(video){target.dataset.videoSource=screen?'screen':'camera';attachLiveTrack(video.track,target);}pubs.filter(pub=>pub.track.kind==='audio').forEach(pub=>attachLiveTrack(pub.track,target));});
   } catch(err) {
     document.getElementById('liveStatus').textContent=err.message||'Unable to join this stream.';
@@ -1009,15 +1044,34 @@ async function startLiveBroadcast(){
     const credentials=await requestLiveKitToken('stream-'+currentUser.id,'publisher');
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
     activeLiveRoom=room;
-    room.on(LivekitClient.RoomEvent.LocalTrackUnpublished, (publication) => { if(publication.source===LivekitClient.Track.Source.ScreenShare){ liveScreenShareEnabled=false; updateLiveControlLabels(); if(activeLiveRoom===room&&liveCameraEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera); } });
+    room.on(LivekitClient.RoomEvent.LocalTrackUnpublished, (publication) => {
+      if(publication.source===LivekitClient.Track.Source.ScreenShare||publication.source===LivekitClient.Track.Source.ScreenShareAudio){
+        liveScreenShareEnabled=false;updateLiveControlLabels();
+        if(activeLiveRoom===room&&liveCameraEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
+      }
+    });
     await room.connect(credentials.serverUrl,credentials.token);
-    await room.localParticipant.enableCameraAndMicrophone();
-    liveMicEnabled=true;liveCameraEnabled=true;liveScreenShareEnabled=false;liveCameraFacingMode='user';
+    liveMicEnabled=false;liveCameraEnabled=false;liveScreenShareEnabled=false;liveCameraFacingMode='user';
     const stage=document.getElementById('liveStage');stage.replaceChildren();
-    const camera=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
-    if(camera?.track)attachLiveTrack(camera.track,stage,true);
+    const startupIssues=[];
+    try {
+      const camera=await room.localParticipant.setCameraEnabled(true);
+      liveCameraEnabled=!!camera;
+      const cameraPublication=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+      if(cameraPublication?.track)attachLiveTrack(cameraPublication.track,stage,true);
+    } catch(cameraError) {
+      startupIssues.push('Camera unavailable: '+(cameraError.message||'permission or device issue'));
+    }
+    try {
+      const microphone=await room.localParticipant.setMicrophoneEnabled(true);
+      liveMicEnabled=!!microphone;
+    } catch(micError) {
+      startupIssues.push('Microphone unavailable: '+(micError.message||'permission or device issue'));
+    }
     document.getElementById('liveBroadcastControls').style.display='flex';
-    document.getElementById('liveControlsHint').textContent='Share your game screen when supported. You can switch between front and back cameras, turn video off, or mute your microphone.';
+    document.getElementById('liveControlsHint').textContent=startupIssues.length
+      ?startupIssues.join(' · ')+'. Use the controls to retry permissions; screen sharing can still be attempted.'
+      :'Camera and microphone are ready. Use Share game screen to capture a supported screen or browser tab.';
     updateLiveControlLabels();
     document.getElementById('liveHeading').textContent=title;
     document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.';
