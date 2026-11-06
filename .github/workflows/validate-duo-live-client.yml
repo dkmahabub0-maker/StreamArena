@@ -54,8 +54,10 @@ jobs:
           for (const id of controlIds) {
             if (!ids.includes(id)) throw new Error('Missing floating live control element: ' + id);
           }
-          const stageShell = html.match(/<div id="liveStageShell"[\\s\\S]*?<\\/div>\\s*<button class="btn" id="livePlayMediaBtn"/);
-          if (!stageShell || !stageShell[0].includes('id="liveControlMenuToggle"') || !stageShell[0].includes('id="liveBroadcastControls"')) {
+          const stageStart = html.indexOf('<div id="liveStageShell"');
+          const stageEnd = html.indexOf('<button class="btn" id="livePlayMediaBtn"', stageStart);
+          const stageShell = stageStart >= 0 && stageEnd > stageStart ? html.slice(stageStart, stageEnd) : '';
+          if (!stageShell.includes('id="liveControlMenuToggle"') || !stageShell.includes('id="liveBroadcastControls"')) {
             throw new Error('Floating controls must remain grouped with the live stage.');
           }
           if (!html.includes("liveControlMenuToggle.getAttribute('aria-expanded')!=='true'")) {
