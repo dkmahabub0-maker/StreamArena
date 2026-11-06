@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - "feat/duo-live-client-and-dual-camera-layout"
+      - "feat/live-floating-control-menu"
     paths:
       - "index.html"
       - ".github/workflows/validate-duo-live-client.yml"
@@ -45,11 +46,37 @@ jobs:
           ]) {
             if (!html.includes(required)) throw new Error('Missing Duo Live browser contract: ' + required);
           }
+          const controlIds = [
+            'liveStageShell', 'liveStage', 'liveControlMenuToggle',
+            'liveBroadcastControls', 'liveScreenShareBtn',
+            'liveCameraSwitchBtn', 'liveCameraToggleBtn', 'liveMicToggleBtn'
+          ];
+          for (const id of controlIds) {
+            if (!ids.includes(id)) throw new Error('Missing floating live control element: ' + id);
+          }
+          const stageStart = html.indexOf('<div id="liveStageShell"');
+          const stageEnd = html.indexOf('<button class="btn" id="livePlayMediaBtn"', stageStart);
+          const stageShell = stageStart >= 0 && stageEnd > stageStart ? html.slice(stageStart, stageEnd) : '';
+          if (!stageShell.includes('id="liveControlMenuToggle"') || !stageShell.includes('id="liveBroadcastControls"')) {
+            throw new Error('Floating controls must remain grouped with the live stage.');
+          }
+          if (!html.includes("liveControlMenuToggle.getAttribute('aria-expanded')!=='true'")) {
+            throw new Error('Floating menu toggle must switch between open and closed states.');
+          }
+          if (!html.includes("event.key==='Escape'") || !html.includes('liveControlPopover?.contains(event.target)')) {
+            throw new Error('Floating menu must support Escape and outside-click dismissal.');
+          }
+          if (!html.includes('setLiveControlMenuOpen(false,true)') || !html.includes('liveControlMenuToggle.focus()')) {
+            throw new Error('Closing the floating menu by keyboard or action must restore trigger focus.');
+          }
+          if (!html.includes("document.getElementById('liveControlMenuToggle').style.display='grid'")) {
+            throw new Error('Only the host startup path should reveal the floating control trigger.');
+          }
           if (!html.includes("tile.dataset.participantId=identity")) {
             throw new Error('Every camera tile must be keyed by participant identity for correct unsubscribe cleanup.');
           }
           if (!html.includes("const identity=participant?.identity||'participant'")) {
             throw new Error('Camera tile creation must retain the LiveKit participant identity.');
           }
-                    console.log('Validated ' + scripts.length + ' inline script(s), ' + ids.length + ' unique HTML IDs and participant-keyed camera tiles.');
+                    console.log('Validated ' + scripts.length + ' inline script(s), ' + ids.length + ' unique HTML IDs, participant-keyed camera tiles and floating controls.');
           NODE
