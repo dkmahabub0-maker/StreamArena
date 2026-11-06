@@ -221,6 +221,10 @@ function openLivePanel(mode = 'start') {
   liveMode = mode;
 }
 function closeLivePanel() {
+  if (activeStreamId) {
+    toast('End your live stream before closing this panel.');
+    return;
+  }
   if (activeLiveRoom) {
     activeLiveRoom.disconnect();
     activeLiveRoom = null;
