@@ -171,6 +171,16 @@ Deno.serve(async (req: Request) => {
       }
       const stream = await activeStreamFor(user.id);
       if (!stream) return reply({ error: "Start your Live before inviting a co-host" }, 409, origin);
+
+      // Expired pending rows otherwise keep the partial unique index occupied
+      // and prevent the host from sending a replacement invitation.
+      const expiredBefore = new Date().toISOString();
+      await rest(
+        `stream_cohost_invites?stream_id=eq.${stream.id}&host_user_id=eq.${user.id}&status=eq.pending&expires_at=lte.${encodeURIComponent(expiredBefore)}`,
+        "PATCH",
+        { status: "revoked" },
+      );
+
       const profiles = await rest(`profiles?select=id&id=eq.${inviteeUserId}&limit=1`);
       if (!Array.isArray(profiles) || profiles.length !== 1) {
         return reply({ error: "That StreamArena user was not found" }, 404, origin);
