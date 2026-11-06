@@ -66,6 +66,9 @@ jobs:
           if (!html.includes("event.key==='Escape'") || !html.includes('liveControlPopover?.contains(event.target)')) {
             throw new Error('Floating menu must support Escape and outside-click dismissal.');
           }
+          if (!html.includes('setLiveControlMenuOpen(false,true)') || !html.includes('liveControlMenuToggle.focus()')) {
+            throw new Error('Closing the floating menu by keyboard or action must restore trigger focus.');
+          }
           if (!html.includes("document.getElementById('liveControlMenuToggle').style.display='grid'")) {
             throw new Error('Only the host startup path should reveal the floating control trigger.');
           }
