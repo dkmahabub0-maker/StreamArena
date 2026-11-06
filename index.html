@@ -211,24 +211,49 @@ document.getElementById('adminTournamentForm').onsubmit=async e=>{
   const payload={title,entry_type:'free',entry_fee:0,prize_pool:prize,status,starts_at:starts?new Date(starts).toISOString():null};
   const saved=await supabaseClient.from('tournaments').insert(payload);
   if(saved.error)throw saved.error;
-  form.reset();toast('Free tournament created.');await refreshAdminTournamentPanel();
+  form.reset();toast('Free tournament created.');await Promise.all([refreshAdminTournamentPanel(),loadTournamentCards()]);
  }catch(err){toast(err.message||'Tournament could not be created.');}
  finally{button.disabled=false;}
 };
-document.querySelectorAll('.join').forEach(b=>b.onclick=async()=>{
-  if(!currentUser){toast('Please log in before registering.');document.querySelector('[data-modal="login"]').click();return;}
-  const card=b.closest('.tourney');const title=card?.querySelector('h3')?.textContent?.trim();if(!title)return;
-  b.disabled=true;
-  try{
-    const found=await supabaseClient.from('tournaments').select('id,entry_type,status').eq('title',title).maybeSingle();
-    if(found.error)throw found.error;if(!found.data)throw new Error('Tournament not found.');
-    if(found.data.entry_type!=='free')throw new Error('Paid registration is not enabled yet.');
-    if(!['upcoming','registration_open'].includes(found.data.status))throw new Error('Registration is closed.');
-    const saved=await supabaseClient.from('tournament_registrations').insert({tournament_id:found.data.id,user_id:currentUser.id});
-    if(saved.error?.code==='23505')throw new Error('You are already registered.');if(saved.error)throw saved.error;
-    b.textContent='Registered';toast('Registration saved.');
-  }catch(err){toast(err.message||'Registration failed.');}finally{b.disabled=false;}
-});
+async function loadTournamentCards(){
+ const box=document.getElementById('tourCards');if(!box)return;
+ const q=await supabaseClient.from('tournaments').select('id,title,entry_type,entry_fee,prize_pool,status,starts_at').order('starts_at',{ascending:true,nullsFirst:false}).limit(100);
+ box.replaceChildren();
+ if(q.error){const p=document.createElement('p');p.className='sub';p.textContent='Could not load tournaments: '+q.error.message;box.append(p);return;}
+ if(!q.data?.length){const p=document.createElement('p');p.className='sub';p.textContent='No tournaments are available right now.';box.append(p);return;}
+ q.data.forEach(t=>{
+  const card=document.createElement('article');card.className='tourney';card.dataset.type=t.entry_type==='paid'?'Paid':'Free';
+  const icon=document.createElement('div');icon.className='tour-icon';icon.textContent=t.entry_type==='paid'?'🏆':'🎮';
+  const info=document.createElement('div');info.className='tour-info';
+  const heading=document.createElement('h3');heading.textContent=t.title;
+  const details=document.createElement('p');details.textContent=t.entry_type==='paid'?'Paid entry':'Free entry';
+  const prize=document.createElement('p');prize.textContent='Prize pool: '+(Number(t.prize_pool||0).toLocaleString());
+  const foot=document.createElement('div');foot.className='tour-foot';
+  const status=document.createElement('span');status.className='sub';status.textContent=(t.status||'upcoming').replaceAll('_',' ');
+  foot.append(status);
+  const join=document.createElement('button');join.className='btn primary smallbtn';
+  const open=t.entry_type==='free'&&['upcoming','registration_open'].includes(t.status);
+  join.textContent=t.entry_type==='paid'?'Coming soon':open?'Join Now':'Registration closed';
+  join.disabled=!open;
+  if(open)join.addEventListener('click',()=>registerForTournament(t,join));
+  foot.append(join);info.append(heading,details,prize,foot);card.append(icon,info);box.append(card);
+ });
+ const active=document.querySelector('[data-tour].active')?.dataset.tour||'Free';
+ box.querySelectorAll('.tourney').forEach(c=>c.style.display=c.dataset.type===active?'flex':'none');
+}
+async function registerForTournament(t,button){
+ if(!currentUser){toast('Please log in before registering.');document.querySelector('[data-modal="login"]').click();return;}
+ button.disabled=true;
+ try{
+  const saved=await supabaseClient.from('tournament_registrations').insert({tournament_id:t.id,user_id:currentUser.id});
+  if(saved.error?.code==='23505')throw new Error('You are already registered.');
+  if(saved.error)throw saved.error;
+  button.textContent='Registered';toast('Registration saved.');
+ }catch(err){toast(err.message||'Registration failed.');button.disabled=false;}
+}
+document.querySelectorAll('.join').forEach(b=>b.onclick=()=>toast('Tournament list is refreshing. Please select the tournament again.'));
+loadTournamentCards();
+supabaseClient.channel('tournament-updates').on('postgres_changes',{event:'*',schema:'public',table:'tournaments'},()=>loadTournamentCards()).subscribe();
 async function loadChat(){
   const box=document.getElementById('chatLines');
   const result=await supabaseClient.from('chat_messages').select('id,user_id,message,created_at').is('stream_id',null).order('created_at',{ascending:true}).limit(60);
