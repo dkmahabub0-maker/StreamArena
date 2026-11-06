@@ -1,4 +1,4 @@
-import { AccessToken } from "npm:livekit-server-sdk@2.19.2";
+import { AccessToken, RoomServiceClient } from "npm:livekit-server-sdk@2.19.2";
 
 const productionOrigin = "https://streamarena-nu.vercel.app";
 const exactOrigins = new Set([
@@ -117,6 +117,23 @@ Deno.serve(async (req: Request) => {
     const activeStreams = await streamCheck.json();
     if (!Array.isArray(activeStreams) || activeStreams.length === 0) {
       return json({ error: "No active stream was found for this room" }, 404, origin);
+    }
+
+    // A client can write its own heartbeat row, so database freshness alone
+    // is not proof that a publisher is actually connected and sending media.
+    if (role === "viewer") {
+      const roomService = new RoomServiceClient(
+        livekitUrl.replace(/^wss:/i, "https:"),
+        livekitApiKey,
+        livekitApiSecret,
+      );
+      const participants = await roomService.listParticipants(roomName);
+      const activePublisher = participants.find((participant) =>
+        participant.identity === roomOwnerId && (participant.tracks?.length ?? 0) > 0
+      );
+      if (!activePublisher) {
+        return json({ error: "The streamer is not currently publishing media" }, 404, origin);
+      }
     }
 
     const displayName = typeof user.user_metadata?.username === "string"
