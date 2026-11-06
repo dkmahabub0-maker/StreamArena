@@ -56,12 +56,26 @@
 #liveThumbnailEditor label{display:block;margin:5px 0}
 #liveThumbnailEditor input[type=range],#liveThumbnailEditor input[type=text],#liveThumbnailEditor select{width:100%;min-height:40px;background:#11182a;color:white;border:1px solid #394466;border-radius:8px;padding:8px}
 @media(max-width:760px){#liveBackdrop{padding:8px!important}#liveBackdrop>.modal{max-height:calc(100dvh - 16px)!important;width:100%!important;margin:0!important}#liveStage{min-height:180px!important}}
+#families .family-workspace{display:grid;gap:16px;margin-top:14px}
+#families .family-create,#families .family-invite-form,#families .family-chat-form{display:flex;gap:8px;flex-wrap:wrap}
+#families input{min-width:0;flex:1;background:#11182a;border:1px solid #394466;border-radius:9px;padding:10px;color:white}
+#families .family-invite-card,#families .family-card{border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0;background:#0b1020}
+#families .family-invite-card{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#families .family-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#families .family-card-head h3{margin:0}
+#families .family-role{font-size:11px;color:#b8aaff;border:1px solid #5745a8;border-radius:20px;padding:3px 8px}
+#families .family-members{margin-top:12px}
+#families .family-member-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+#families .family-chat{margin-top:14px}
+#families .family-chat-log{max-height:220px;overflow:auto;background:#070b16;border:1px solid var(--line);border-radius:9px;padding:8px}
+#families .family-message{margin:5px 0;padding:6px 8px;border-radius:7px;background:#121a2c;overflow-wrap:anywhere}
+@media(max-width:600px){#families .family-card-head{align-items:flex-start;flex-direction:column}#families .family-create>*{width:100%}}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><div class="logo">A</div><span>Stream<span>Arena</span><small class="tagline">Your Game. Your Stream. Your Arena.</small></span></div>
-  <nav class="nav"><a href="#home" class="active" data-en="⌂ Home" data-bn="⌂ হোম">⌂ Home</a><a href="#live" data-en="🔴 Live" data-bn="🔴 লাইভ">🔴 Live</a><a href="#tournaments" data-en="🏆 Tournaments" data-bn="🏆 টুর্নামেন্ট">🏆 Tournaments</a><a href="#games" data-en="🎮 Games" data-bn="🎮 গেমস">🎮 Games</a><a href="#community" data-en="♟ Community" data-bn="♟ কমিউনিটি">♟ Community</a></nav>
+  <nav class="nav"><a href="#home" class="active" data-en="⌂ Home" data-bn="⌂ হোম">⌂ Home</a><a href="#live" data-en="🔴 Live" data-bn="🔴 লাইভ">🔴 Live</a><a href="#tournaments" data-en="🏆 Tournaments" data-bn="🏆 টুর্নামেন্ট">🏆 Tournaments</a><a href="#games" data-en="🎮 Games" data-bn="🎮 গেমস">🎮 Games</a><a href="#community" data-en="♟ Community" data-bn="♟ কমিউনিটি">♟ Community</a><a href="#families">👥 Families</a></nav>
   <input class="search" id="search" placeholder="⌕ Search games, streamers...">
   <button class="lang" id="langBtn">🌐 EN</button><div class="top-actions"><button class="btn login" data-modal="login">Login</button><button class="btn primary" data-modal="signup">Sign Up</button><div class="account-menu" id="headerAccountMenu"><button class="btn primary account-avatar-btn" type="button" id="accountMenuToggle" aria-label="Open account menu" title="My Account" aria-expanded="false" aria-controls="accountDropdown"><span id="accountAvatarInitials">👤</span></button><div class="account-dropdown" id="accountDropdown"><strong id="headerAccountName">Player</strong><p class="sub" id="headerAccountEmail">—</p><div class="account-detail"><span class="sub">Username</span><br><span id="headerAccountUsername">—</span></div><div class="account-detail"><span class="sub">Country</span><br><span id="headerAccountCountry">—</span></div><button class="btn" type="button" id="headerLogoutBtn">Log out</button></div></div></div>
 </header>
@@ -114,6 +128,7 @@
   <div id="adminTournamentList" style="margin-top:12px"></div>
   <div id="adminRegistrationList" style="margin-top:12px"></div><h4>All demo hosting transactions</h4><div id="adminDemoPayments" style="margin-top:8px"></div>
 </div></section>
+<section class="section" id="families"><div class="section-head"><h2>Family / Clan</h2><button class="textbtn" id="familyRefreshBtn" type="button">Refresh</button></div><p class="sub">Private player groups with invitations, member controls and family-only chat.</p><div id="familyWorkspace" class="family-workspace"><p class="sub">Sign in to use Family / Clan.</p></div></section>
 <section class="section" id="help">
 <div class="section-head"><h2>Help Center & Support</h2><span class="sub">Account help · Support tickets</span></div>
 <div class="sub" style="margin-bottom:12px">Frequently asked questions</div>
@@ -1206,4 +1221,4 @@ refreshSession();
 loadLiveStreams();
 setInterval(()=>{if(document.visibilityState!=='hidden')loadLiveStreams();},15000);
 
-</script></body></html>
+</script><script src="./family.js"></script></body></html>

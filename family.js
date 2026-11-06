@@ -97,6 +97,5 @@ document.getElementById('familyRefreshBtn')?.addEventListener('click',loadFamily
 const originalRefreshSession=refreshSession;
 refreshSession=async function(){await originalRefreshSession();await loadFamilyWorkspace();};
 supabaseClient.auth.onAuthStateChange(event=>{if(['SIGNED_IN','SIGNED_OUT','TOKEN_REFRESHED','INITIAL_SESSION'].includes(event))setTimeout(loadFamilyWorkspace,0);});
-loadFamilyWorkspace();
-setInterval(()=>{if(document.visibilityState!=='hidden'&&currentUser)loadFamilyWorkspace();},30000);
+supabaseClient.auth.getSession().then(({data})=>{if(!currentUser&&data?.session?.user)currentUser=data.session.user;loadFamilyWorkspace();});
 })();
