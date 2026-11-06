@@ -208,6 +208,14 @@
   <p class="sub" style="flex:1 1 100%;margin:0">Duo Live invitations require the reviewed invitation Edge Function and co-host token authorization to be deployed. This interface is a draft until those server changes are released.</p>
 </div>
 </div></div>
+<div id="duoLiveInboxPanel" style="display:none;gap:8px;margin:12px 0;padding:12px;border:1px solid #394466;border-radius:12px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+    <b>Duo Live · Invitations</b>
+    <button class="smallbtn" id="duoLiveRefreshInboxBtn" type="button">Refresh</button>
+  </div>
+  <div id="duoLiveInboxItems" class="sub" role="status" aria-live="polite">No invitations loaded.</div>
+  <p class="sub" style="margin:0">Accepting records your response only. Joining the host's Live as a co-host remains unavailable until the secure co-host token endpoint is implemented and deployed.</p>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
@@ -260,6 +268,7 @@ function renderAuthState(){
   if(avatarInitials){const label=profile.full_name||profile.username||currentUser?.email||'';const initials=label.trim().split(/[\\s._@-]+/).filter(Boolean).slice(0,2).map(part=>part[0].toUpperCase()).join('');avatarInitials.textContent=initials||'👤';}
   const chatInput=document.getElementById('chatText');
   if(chatInput) chatInput.placeholder=currentUser?'Type a message...':'Log in to chat';
+  if(typeof loadDuoLiveInbox==='function')loadDuoLiveInbox();
 }
 async function refreshSession(){
   const { data, error } = await supabaseClient.auth.getSession();
@@ -992,6 +1001,44 @@ async function callDuoLiveInvites(payload) {
   if(!response.ok)throw new Error(result.error||'Duo Live invitation request failed.');
   return result;
 }
+async function loadDuoLiveInbox() {
+  const panel=document.getElementById('duoLiveInboxPanel');
+  const list=document.getElementById('duoLiveInboxItems');
+  if(!panel||!list)return;
+  panel.style.display=currentUser?'grid':'none';
+  if(!currentUser){list.textContent='Sign in to view invitations.';return;}
+  list.textContent='Loading invitations…';
+  try {
+    const result=await callDuoLiveInvites({action:'inbox'});
+    list.replaceChildren();
+    if(!result.invitations?.length){list.textContent='No pending Duo Live invitations.';return;}
+    result.invitations.forEach(invite=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #293451';
+      const details=document.createElement('span');
+      details.textContent='@'+(invite.host_username||'Player')+' invited you to co-host · expires '+new Date(invite.expires_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+      const actions=document.createElement('div');actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
+      const respond=async(decision,button)=>{
+        button.disabled=true;
+        try {
+          await callDuoLiveInvites({action:'respond',invitationId:invite.id,decision});
+          details.textContent=decision==='accept'
+            ?'Invitation accepted. Co-host joining will be enabled after the LiveKit authorization update.'
+            :'Invitation declined.';
+          actions.replaceChildren();
+        } catch(error) {
+          button.disabled=false;toast(error.message||'Could not respond to invitation.');
+        }
+      };
+      const accept=document.createElement('button');accept.type='button';accept.className='smallbtn';accept.textContent='Accept';
+      accept.addEventListener('click',()=>respond('accept',accept));
+      const decline=document.createElement('button');decline.type='button';decline.className='smallbtn';decline.textContent='Decline';
+      decline.addEventListener('click',()=>respond('decline',decline));
+      actions.append(accept,decline);row.append(details,actions);list.append(row);
+    });
+  } catch(error) {list.textContent=error.message||'Could not load invitations.';}
+}
+document.getElementById('duoLiveRefreshInboxBtn').addEventListener('click',loadDuoLiveInbox);
 async function searchDuoLiveFriends() {
   const input=document.getElementById('duoLiveFriendSearch');
   const results=document.getElementById('duoLiveSearchResults');
