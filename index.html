@@ -152,6 +152,7 @@
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit">Continue</button></form><p class="sub" id="forgotPasswordRow" style="display:none;margin:10px 0 0"><button type="button" id="forgotPasswordBtn" class="textbtn">Forgot password / Reset password</button></p><p class="sub" id="authSwitchRow" style="margin:10px 0 0"></p><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
 <div class="toast" id="toast"></div>
 <div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div><button class="btn" id="livePlayMediaBtn" type="button" style="display:none;margin:8px 0">Tap to play stream video</button>
+<button class="btn" id="liveResumeVideoBtn" type="button" style="display:none;margin:8px 0">Tap to resume video</button>
 <button class="btn" id="liveEnableAudioBtn" type="button" style="display:none;margin:8px 0">Enable stream audio</button><div id="liveSetup" style="display:grid;gap:9px;margin-top:12px">
   <label class="sub" for="liveTitle">Stream title</label>
   <input id="liveTitle" maxlength="120" placeholder="Stream title" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
@@ -671,6 +672,7 @@ function openLivePanel(mode = 'start') {
   document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'), {className:'sub', textContent:'Video will appear here'}));
   const enableAudio=document.getElementById('liveEnableAudioBtn');if(enableAudio)enableAudio.style.display='none';
   const playMedia=document.getElementById('livePlayMediaBtn');if(playMedia)playMedia.style.display='none';
+  const resumeVideo=document.getElementById('liveResumeVideoBtn');if(resumeVideo)resumeVideo.style.display='none';
   liveMode = mode;
 }
 function updateLiveControlLabels() {
@@ -982,6 +984,26 @@ async function playViewerMediaFromGesture() {
   if(failed)toast('Playback is still blocked. Check Safari site settings and tap Enable stream audio if shown.');
 }
 document.getElementById('livePlayMediaBtn').addEventListener('click',playViewerMediaFromGesture);
+async function resumeViewerVideoFromGesture(){
+  const room=activeLiveRoom;
+  const button=document.getElementById('liveResumeVideoBtn');
+  if(!room)return;
+  if(button)button.disabled=true;
+  try{
+    if(typeof room.startVideo==='function')await room.startVideo();
+    else{
+      const videos=[...document.getElementById('liveStage').querySelectorAll('video')];
+      if(!videos.length)throw new Error('No video track is currently attached.');
+      const results=await Promise.allSettled(videos.map(video=>video.play()));
+      if(results.every(result=>result.status==='rejected'))throw new Error('Browser blocked video playback. Check site permissions and try again.');
+    }
+    if(button)button.style.display='none';
+  }catch(err){
+    if(button)button.style.display='inline-block';
+    toast(err.message||'Could not resume video. Tap again or check browser playback permissions.');
+  }finally{if(button)button.disabled=false;}
+}
+document.getElementById('liveResumeVideoBtn').addEventListener('click',resumeViewerVideoFromGesture);
 function attachLiveTrack(track, stage, muted = false) {
   const element = track.attach();
   if (element.tagName === 'VIDEO') {
@@ -1085,6 +1107,20 @@ async function watchLiveStream(stream) {
     const enableAudio=document.getElementById('liveEnableAudioBtn');
     room.on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged,()=>{
       if(enableAudio)enableAudio.style.display=room.canPlaybackAudio?'none':'inline-block';
+    });
+    const resumeVideo=document.getElementById('liveResumeVideoBtn');
+    room.on(LivekitClient.RoomEvent.VideoPlaybackStatusChanged,(playing)=>{
+      if(resumeVideo)resumeVideo.style.display=playing?'none':'inline-block';
+      const status=document.getElementById('liveStatus');
+      if(status&&activeLiveRoom===room&&!playing)status.textContent='Video playback is blocked. Tap “Tap to resume video”; audio can continue.';
+    });
+    room.on(LivekitClient.RoomEvent.TrackStreamStateChanged,(publication,streamState)=>{
+      if(publication?.kind!=='video')return;
+      const paused=String(streamState).toLowerCase().includes('paused');
+      const status=document.getElementById('liveStatus');
+      if(status&&activeLiveRoom===room)status.textContent=paused
+        ?'Video stream paused by network bandwidth; waiting for LiveKit to resume it. Audio remains separate.'
+        :'Video stream resumed by LiveKit.';
     });
     room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>{ const target=document.getElementById('liveStage'); if(track.kind==='video'){ if(publication?.source===LivekitClient.Track.Source.ScreenShare){target.replaceChildren();target.dataset.videoSource='screen';} else if(publication?.source===LivekitClient.Track.Source.Camera){if(target.dataset.videoSource==='screen')return;target.querySelectorAll('video').forEach(video=>video.remove());target.dataset.videoSource='camera';} } attachLiveTrack(track,target); });
     room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>{ track.detach().forEach(element=>element.remove()); if(publication?.source===LivekitClient.Track.Source.ScreenShare){const camera=participant?.getTrackPublication(LivekitClient.Track.Source.Camera);if(camera?.isSubscribed&&camera.track){const target=document.getElementById('liveStage');target.replaceChildren();target.dataset.videoSource='camera';attachLiveTrack(camera.track,target);}} });
