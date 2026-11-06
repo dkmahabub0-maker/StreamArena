@@ -68,7 +68,24 @@
 <footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div><a href="#help" style="color:inherit">Help Center</a> · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit">Continue</button></form><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
 <div class="toast" id="toast"></div>
-<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div><div id="liveControls" style="display:flex;gap:8px;flex-wrap:wrap"><input id="liveTitle" maxlength="120" placeholder="Stream title" style="flex:1;min-width:180px;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><button class="btn primary" id="startLiveBtn">Start Live</button><button class="btn" id="endLiveBtn" style="display:none">End Live</button></div></div></div>
+<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div><div id="liveSetup" style="display:grid;gap:9px;margin-top:12px">
+  <label class="sub" for="liveTitle">Stream title</label>
+  <input id="liveTitle" maxlength="120" placeholder="Stream title" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+  <label class="sub" for="liveCaption">Live caption / description (up to 500 characters)</label>
+  <textarea id="liveCaption" maxlength="500" rows="3" placeholder="Tell viewers what this stream is about..." style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white;font:inherit"></textarea>
+  <label class="sub" for="liveThumbnailFile">Custom thumbnail (JPG, PNG or WebP · max 5 MB)</label>
+  <input id="liveThumbnailFile" type="file" accept="image/jpeg,image/png,image/webp" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <img id="liveThumbnailPreview" alt="Thumbnail preview" style="display:none;width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid #394466">
+    <button class="smallbtn" id="clearLiveThumbnail" type="button">Remove thumbnail</button>
+    <span class="sub" id="liveSettingsStatus">These details are saved for your next live stream.</span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" id="saveLiveSettingsBtn" type="button">Save live setup</button>
+    <button class="btn primary" id="startLiveBtn" type="button">Start Live</button>
+    <button class="btn" id="endLiveBtn" type="button" style="display:none">End Live</button>
+  </div>
+</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
@@ -342,12 +359,82 @@ function openLivePanel(mode = 'start') {
   document.getElementById('liveBackdrop').style.display = 'grid';
   document.getElementById('liveHeading').textContent = mode === 'start' ? 'Start a live stream' : 'Watch live stream';
   document.getElementById('liveStatus').textContent = currentUser ? 'Ready.' : 'Please log in first.';
-  document.getElementById('liveTitle').style.display = mode === 'start' ? '' : 'none';
+  document.getElementById('liveSetup').style.display = mode === 'start' ? 'grid' : 'none';
   document.getElementById('startLiveBtn').style.display = mode === 'start' ? '' : 'none';
+  if(mode === 'start') loadStreamSettings();
   document.getElementById('endLiveBtn').style.display = 'none';
   document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'), {className:'sub', textContent:'Video will appear here'}));
   liveMode = mode;
 }
+function renderLiveThumbnail(url) {
+  const preview=document.getElementById('liveThumbnailPreview');
+  if(url){preview.src=url;preview.style.display='block';}
+  else{preview.removeAttribute('src');preview.style.display='none';}
+}
+let savedLiveThumbnailUrl=null;
+let clearSavedLiveThumbnail=false;
+async function loadStreamSettings() {
+  if(!currentUser)return;
+  const status=document.getElementById('liveSettingsStatus');
+  status.textContent='Loading your saved live setup…';
+  try{
+    const result=await supabaseClient.from('stream_settings').select('title,caption,thumbnail_url').eq('user_id',currentUser.id).maybeSingle();
+    if(result.error)throw result.error;
+    const settings=result.data||{};
+    document.getElementById('liveTitle').value=settings.title||'';
+    document.getElementById('liveCaption').value=settings.caption||'';
+    savedLiveThumbnailUrl=settings.thumbnail_url||null;
+    clearSavedLiveThumbnail=false;
+    document.getElementById('liveThumbnailFile').value='';
+    renderLiveThumbnail(savedLiveThumbnailUrl);
+    status.textContent='Your saved setup will be reused the next time you go live.';
+  }catch(err){status.textContent='Could not load saved setup: '+(err.message||'Unknown error');}
+}
+async function saveLiveSettings(options={}) {
+  if(!currentUser)throw new Error('Please log in first.');
+  const title=document.getElementById('liveTitle').value.trim();
+  const caption=document.getElementById('liveCaption').value.trim();
+  if(title.length<3||title.length>120)throw new Error('Stream title must be 3–120 characters.');
+  if(caption.length>500)throw new Error('Caption must be 500 characters or fewer.');
+  const fileInput=document.getElementById('liveThumbnailFile');
+  const file=fileInput.files?.[0];
+  let thumbnailUrl=clearSavedLiveThumbnail?null:savedLiveThumbnailUrl;
+  if(file){
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPG, PNG or WebP image.');
+    if(file.size>5*1024*1024)throw new Error('Thumbnail must be 5 MB or smaller.');
+    const extension=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+    const path=currentUser.id+'/'+Date.now()+'.'+extension;
+    const upload=await supabaseClient.storage.from('stream-thumbnails').upload(path,file,{contentType:file.type,upsert:false});
+    if(upload.error)throw upload.error;
+    thumbnailUrl=supabaseClient.storage.from('stream-thumbnails').getPublicUrl(path).data.publicUrl;
+  }
+  const saved=await supabaseClient.from('stream_settings').upsert({
+    user_id:currentUser.id,title,caption,thumbnail_url:thumbnailUrl,updated_at:new Date().toISOString()
+  },{onConflict:'user_id'});
+  if(saved.error)throw saved.error;
+  savedLiveThumbnailUrl=thumbnailUrl;clearSavedLiveThumbnail=false;fileInput.value='';
+  renderLiveThumbnail(thumbnailUrl);
+  document.getElementById('liveSettingsStatus').textContent='Live setup saved. It will be reused for your next stream.';
+  if(!options.silent)toast('Live setup saved.');
+  return {title,caption,thumbnail_url:thumbnailUrl};
+}
+document.getElementById('saveLiveSettingsBtn').addEventListener('click',async()=>{
+  const button=document.getElementById('saveLiveSettingsBtn');button.disabled=true;
+  document.getElementById('liveSettingsStatus').textContent='Saving…';
+  try{await saveLiveSettings();}
+  catch(err){document.getElementById('liveSettingsStatus').textContent=err.message||'Could not save live setup.';toast(err.message||'Could not save live setup.');}
+  finally{button.disabled=false;}
+});
+document.getElementById('liveThumbnailFile').addEventListener('change',event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024){
+    event.target.value='';toast('Choose a JPG, PNG or WebP image up to 5 MB.');return;
+  }
+  clearSavedLiveThumbnail=false;renderLiveThumbnail(URL.createObjectURL(file));
+});
+document.getElementById('clearLiveThumbnail').addEventListener('click',()=>{
+  document.getElementById('liveThumbnailFile').value='';clearSavedLiveThumbnail=true;renderLiveThumbnail(null);
+});
 function closeLivePanel() {
   if (activeStreamId) {
     toast('End your live stream before closing this panel.');
@@ -404,7 +491,7 @@ async function loadLiveStreams() {
   if (!cards) return;
   const freshAfter = new Date(Date.now()-120000).toISOString();
   const result = await supabaseClient.from('streams')
-    .select('id,user_id,title,created_at,last_heartbeat_at')
+    .select('id,user_id,title,caption,thumbnail_url,created_at,last_heartbeat_at')
     .eq('is_live', true)
     .gt('last_heartbeat_at', freshAfter)
     .order('last_heartbeat_at', {ascending:false})
@@ -422,10 +509,13 @@ async function loadLiveStreams() {
   const names=new Map((profileResult.data||[]).map(p=>[p.id,p.username||'Player']));
   streams.forEach(stream=>{
     const card=document.createElement('article');card.className='stream-card';
-    const thumb=document.createElement('div');thumb.className='thumb';thumb.textContent='LIVE';
+    const thumb=document.createElement('div');thumb.className='thumb';
+    if(stream.thumbnail_url){const image=document.createElement('img');image.src=stream.thumbnail_url;image.alt=stream.title+' thumbnail';image.loading='lazy';image.style.cssText='width:100%;height:100%;object-fit:cover';thumb.append(image);}
+    const liveTag=document.createElement('span');liveTag.className='livebadge';liveTag.textContent='LIVE';thumb.append(liveTag);
     const body=document.createElement('div');body.className='cardbody';
     const title=document.createElement('h3');title.textContent=stream.title;
     const owner=document.createElement('p');owner.textContent='By '+(names.get(stream.user_id)||'Player');
+    if(stream.caption){const caption=document.createElement('p');caption.textContent=stream.caption;body.append(caption);}
     const actions=document.createElement('div');actions.className='cardactions';
     const watch=document.createElement('button');watch.className='smallbtn';watch.textContent='▶ Watch';
     watch.addEventListener('click',()=>watchLiveStream(stream));
@@ -481,7 +571,11 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
     const existing=await supabaseClient.from('streams').select('id').eq('user_id',currentUser.id).eq('is_live',true).gt('last_heartbeat_at',freshAfter).limit(1);
     if(existing.error)throw existing.error;
     if(existing.data?.length){throw new Error('You already have a live stream. End it before starting another.');}
-    const created=await supabaseClient.from('streams').insert({user_id:currentUser.id,title,is_live:false}).select('id').single();
+    const liveSettings=await saveLiveSettings({silent:true});
+    const created=await supabaseClient.from('streams').insert({
+      user_id:currentUser.id,title:liveSettings.title,caption:liveSettings.caption,
+      thumbnail_url:liveSettings.thumbnail_url,is_live:false
+    }).select('id').single();
     if(created.error)throw created.error;
     createdId=created.data.id;activeStreamId=createdId;
     const marked=await supabaseClient.from('streams').update({is_live:true,last_heartbeat_at:new Date().toISOString()}).eq('id',createdId).eq('user_id',currentUser.id);
@@ -502,7 +596,7 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
       const beat=await supabaseClient.from('streams').update({last_heartbeat_at:new Date().toISOString()}).eq('id',activeStreamId).eq('user_id',currentUser.id).eq('is_live',true);
       if(beat.error)console.warn('Stream heartbeat failed:',beat.error.message);
     },25000);
-    document.getElementById('liveTitle').style.display='none';
+    document.getElementById('liveSetup').style.display='none';
     button.style.display='none';document.getElementById('endLiveBtn').style.display='';
     await loadLiveStreams();
   } catch(err) {
@@ -512,7 +606,7 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
     activeStreamId=null;
     document.getElementById('endLiveBtn').style.display='none';
     document.getElementById('startLiveBtn').style.display='';
-    document.getElementById('liveTitle').style.display='';
+    document.getElementById('liveSetup').style.display='grid';
     const startError=err.code==='23505'?'You already have an active live stream. End it before starting another.':(err.message||'Could not start stream.');
     document.getElementById('liveStatus').textContent=startError;
     toast(startError);
@@ -536,7 +630,7 @@ document.getElementById('endLiveBtn').addEventListener('click',async()=>{
     document.getElementById('liveStatus').textContent='Stream ended.';
     document.getElementById('endLiveBtn').style.display='none';
     document.getElementById('startLiveBtn').style.display='';
-    document.getElementById('liveTitle').style.display='';
+    document.getElementById('liveSetup').style.display='grid';
     await loadLiveStreams();
   } catch(err){toast(err.message||'Could not end stream.');}
   finally{button.disabled=false;}
