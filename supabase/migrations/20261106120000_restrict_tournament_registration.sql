@@ -1,5 +1,6 @@
--- Restrict direct API registrations to authenticated users and open free tournaments.
+-- Restrict self-service registration to open, free tournaments only.
 drop policy if exists "Users can register themselves" on public.tournament_registrations;
+drop policy if exists "Users can register for open free tournaments" on public.tournament_registrations;
 
 create policy "Users can register for open free tournaments"
 on public.tournament_registrations
