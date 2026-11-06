@@ -73,6 +73,8 @@
   <input id="liveTitle" maxlength="120" placeholder="Stream title" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
   <label class="sub" for="liveCaption">Live caption / description (up to 500 characters)</label>
   <textarea id="liveCaption" maxlength="500" rows="3" placeholder="Tell viewers what this stream is about..." style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white;font:inherit"></textarea>
+  <label class="sub" for="liveTournament">Link this live stream to one of your tournaments (optional)</label>
+  <select id="liveTournament" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white"><option value="">No tournament link</option></select>
   <label class="sub" for="liveThumbnailFile">Custom thumbnail (JPG, PNG or WebP · max 5 MB)</label>
   <input id="liveThumbnailFile" type="file" accept="image/jpeg,image/png,image/webp" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -82,7 +84,19 @@
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn" id="saveLiveSettingsBtn" type="button">Save live setup</button>
-    <button class="btn primary" id="startLiveBtn" type="button">Start Live</button>
+    <button class="btn primary" id="startLiveBtn" type="button">Preview Thumbnail</button>
+  </div>
+</div>
+<div id="livePreflight" style="display:none;gap:10px;margin-top:14px;padding:14px;border:1px solid #394466;border-radius:12px;background:#0b1020">
+  <h3 style="margin:0">Review before going live</h3>
+  <img id="livePreflightImage" alt="Live thumbnail preview" style="display:none;width:100%;max-height:320px;aspect-ratio:16/9;object-fit:contain;background:#03050a;border-radius:10px">
+  <div id="livePreflightNoImage" class="sub" style="display:none;padding:20px;text-align:center">No thumbnail selected. Your live stream will start without a custom thumbnail.</div>
+  <h3 id="livePreflightTitle" style="margin:0"></h3>
+  <p id="livePreflightCaption" class="sub" style="margin:0;white-space:pre-wrap"></p>
+  <p id="livePreflightTournament" class="sub" style="margin:0"></p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" id="editLiveSetupBtn" type="button">Edit thumbnail / details</button>
+    <button class="btn primary" id="goLiveNowBtn" type="button">Go Live Now</button>
   </div>
 </div>
 <button class="btn" id="endLiveBtn" type="button" style="display:none;margin-top:10px">End Live</button>
@@ -226,7 +240,7 @@ document.getElementById('adminTournamentForm').onsubmit=async e=>{
  if(title.length<3||title.length>120||!Number.isFinite(prize)||prize<0){toast('Check the tournament title and prize amount.');return;}
  button.disabled=true;
  try{
-  const payload={title,entry_type:'free',entry_fee:0,prize_pool:prize,status,starts_at:starts?new Date(starts).toISOString():null};
+  const payload={title,organizer_id:currentUser.id,entry_type:'free',entry_fee:0,prize_pool:prize,status,starts_at:starts?new Date(starts).toISOString():null};
   const saved=await supabaseClient.from('tournaments').insert(payload);
   if(saved.error)throw saved.error;
   form.reset();toast('Free tournament created.');await Promise.all([refreshAdminTournamentPanel(),loadTournamentCards()]);
@@ -362,6 +376,7 @@ function openLivePanel(mode = 'start') {
   document.getElementById('liveStatus').textContent = currentUser ? 'Ready.' : 'Please log in first.';
   document.getElementById('liveSetup').style.display = mode === 'start' ? 'grid' : 'none';
   document.getElementById('startLiveBtn').style.display = mode === 'start' ? '' : 'none';
+  document.getElementById('livePreflight').style.display='none';
   if(mode === 'start') loadStreamSettings();
   document.getElementById('endLiveBtn').style.display = 'none';
   document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'), {className:'sub', textContent:'Video will appear here'}));
@@ -390,10 +405,48 @@ async function loadStreamSettings() {
     clearSavedLiveThumbnail=false;
     document.getElementById('liveThumbnailFile').value='';
     renderLiveThumbnail(savedLiveThumbnailUrl);
+    await loadOrganizerTournaments();
     status.textContent='Your saved setup will be reused the next time you go live.';
   }catch(err){status.textContent='Could not load saved setup: '+(err.message||'Unknown error');}
   finally{startButton.disabled=false;}
 }
+async function loadOrganizerTournaments() {
+  const select=document.getElementById('liveTournament');
+  select.replaceChildren(new Option('No tournament link',''));
+  if(!currentUser)return;
+  const result=await supabaseClient.from('tournaments').select('id,title,status').eq('organizer_id',currentUser.id).order('created_at',{ascending:false}).limit(100);
+  if(result.error){document.getElementById('liveSettingsStatus').textContent='Could not load your tournaments: '+result.error.message;return;}
+  (result.data||[]).forEach(t=>select.add(new Option(t.title+' · '+(t.status||'upcoming').replaceAll('_',' '),t.id)));
+}
+async function showLivePreflight() {
+  const button=document.getElementById('startLiveBtn');
+  button.disabled=true;
+  try {
+    const details=await saveLiveSettings({silent:true});
+    const image=document.getElementById('livePreflightImage');
+    const noImage=document.getElementById('livePreflightNoImage');
+    if(details.thumbnail_url){image.src=details.thumbnail_url;image.style.display='block';noImage.style.display='none';}
+    else{image.removeAttribute('src');image.style.display='none';noImage.style.display='block';}
+    document.getElementById('livePreflightTitle').textContent=details.title;
+    document.getElementById('livePreflightCaption').textContent=details.caption||'No caption';
+    const tournament=document.getElementById('liveTournament');
+    const tournamentLabel=tournament.selectedOptions[0]?.textContent||'No tournament link';
+    document.getElementById('livePreflightTournament').textContent=tournament.value?'Tournament: '+tournamentLabel:'Not linked to a tournament';
+    document.getElementById('liveSetup').style.display='none';
+    document.getElementById('livePreflight').style.display='grid';
+    document.getElementById('liveStatus').textContent='Check your thumbnail and stream details. Edit them or continue to Go Live.';
+  } catch(err){toast(err.message||'Could not prepare live preview.');document.getElementById('liveSettingsStatus').textContent=err.message||'Could not save setup.';}
+  finally{button.disabled=false;}
+}
+document.getElementById('startLiveBtn').addEventListener('click',showLivePreflight);
+document.getElementById('editLiveSetupBtn').addEventListener('click',()=>{
+  document.getElementById('livePreflight').style.display='none';
+  document.getElementById('liveSetup').style.display='grid';
+});
+document.getElementById('goLiveNowBtn').addEventListener('click',()=>{
+  document.getElementById('livePreflight').style.display='none';
+  startLiveBroadcast();
+});
 async function saveLiveSettings(options={}) {
   if(!currentUser)throw new Error('Please log in first.');
   const title=document.getElementById('liveTitle').value.trim();
@@ -495,7 +548,7 @@ async function loadLiveStreams() {
   if (!cards) return;
   const freshAfter = new Date(Date.now()-120000).toISOString();
   const result = await supabaseClient.from('streams')
-    .select('id,user_id,title,caption,thumbnail_url,created_at,last_heartbeat_at')
+    .select('id,user_id,title,caption,thumbnail_url,tournament_id,created_at,last_heartbeat_at')
     .eq('is_live', true)
     .gt('last_heartbeat_at', freshAfter)
     .order('last_heartbeat_at', {ascending:false})
@@ -511,6 +564,9 @@ async function loadLiveStreams() {
   const ids=[...new Set(streams.map(s=>s.user_id))];
   const profileResult=await supabaseClient.from('profiles').select('id,username').in('id',ids);
   const names=new Map((profileResult.data||[]).map(p=>[p.id,p.username||'Player']));
+  const tournamentIds=[...new Set(streams.map(s=>s.tournament_id).filter(Boolean))];
+  let tournamentNames=new Map();
+  if(tournamentIds.length){const tq=await supabaseClient.from('tournaments').select('id,title').in('id',tournamentIds);if(!tq.error)tournamentNames=new Map((tq.data||[]).map(t=>[t.id,t.title]));}
   streams.forEach(stream=>{
     const card=document.createElement('article');card.className='stream-card';
     const thumb=document.createElement('div');thumb.className='thumb';
@@ -520,6 +576,7 @@ async function loadLiveStreams() {
     const title=document.createElement('h3');title.textContent=stream.title;
     const owner=document.createElement('p');owner.textContent='By '+(names.get(stream.user_id)||'Player');
     if(stream.caption){const caption=document.createElement('p');caption.textContent=stream.caption;body.append(caption);}
+    if(stream.tournament_id&&tournamentNames.has(stream.tournament_id)){const linked=document.createElement('p');linked.className='sub';linked.textContent='Tournament: '+tournamentNames.get(stream.tournament_id);body.append(linked);}
     const actions=document.createElement('div');actions.className='cardactions';
     const watch=document.createElement('button');watch.className='smallbtn';watch.textContent='▶ Watch';
     watch.addEventListener('click',()=>watchLiveStream(stream));
@@ -558,14 +615,14 @@ async function watchLiveStream(stream) {
     stage.replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Unable to connect to this stream.'}));
   }
 }
-document.getElementById('startLiveBtn').addEventListener('click',async()=>{
+async function startLiveBroadcast(){
   if(!currentUser){toast('Please log in first.');return;}
   if(activeStreamId){toast('You already have an active live stream. End it before starting another.');return;}
   if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch(disconnectError){console.warn('Previous viewer room disconnect:',disconnectError);}activeLiveRoom=null;}
   if(!window.LivekitClient){toast('LiveKit browser SDK did not load. Refresh and try again.');return;}
   const title=document.getElementById('liveTitle').value.trim();
   if(title.length<3){toast('Enter a stream title (at least 3 characters).');return;}
-  const button=document.getElementById('startLiveBtn');button.disabled=true;
+  const button=document.getElementById('goLiveNowBtn');button.disabled=true;
   document.getElementById('liveStatus').textContent='Preparing stream…';
   let createdId=null;
   try {
@@ -578,7 +635,9 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
     const liveSettings=await saveLiveSettings({silent:true});
     const created=await supabaseClient.from('streams').insert({
       user_id:currentUser.id,title:liveSettings.title,caption:liveSettings.caption,
-      thumbnail_url:liveSettings.thumbnail_url,is_live:false
+      thumbnail_url:liveSettings.thumbnail_url,
+      tournament_id:document.getElementById('liveTournament').value||null,
+      is_live:false
     }).select('id').single();
     if(created.error)throw created.error;
     createdId=created.data.id;activeStreamId=createdId;
@@ -601,6 +660,7 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
       if(beat.error)console.warn('Stream heartbeat failed:',beat.error.message);
     },25000);
     document.getElementById('liveSetup').style.display='none';
+    document.getElementById('livePreflight').style.display='none';
     button.style.display='none';document.getElementById('endLiveBtn').style.display='';
     await loadLiveStreams();
   } catch(err) {
@@ -611,12 +671,13 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
     document.getElementById('endLiveBtn').style.display='none';
     document.getElementById('startLiveBtn').style.display='';
     document.getElementById('liveSetup').style.display='grid';
+    document.getElementById('livePreflight').style.display='none';
     const startError=err.code==='23505'?'You already have an active live stream. End it before starting another.':(err.message||'Could not start stream.');
     document.getElementById('liveStatus').textContent=startError;
     toast(startError);
     await loadLiveStreams();
   } finally {button.disabled=false;}
-});
+}
 document.getElementById('endLiveBtn').addEventListener('click',async()=>{
   const button=document.getElementById('endLiveBtn');button.disabled=true;
   try {
