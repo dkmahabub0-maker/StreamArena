@@ -177,12 +177,20 @@ async function loadChat(){
   const names=new Map(profiles.map(p=>[p.id,p.username||'Player']));box.replaceChildren();
   (result.data||[]).forEach(m=>{const line=document.createElement('div');line.className='chatline';const name=document.createElement('b');name.textContent=names.get(m.user_id)||'Player';line.append(name,document.createTextNode(' '+m.message));box.append(line);});
 }
+document.getElementById('chatText').maxLength=2000;
 document.getElementById('chatForm').onsubmit=async e=>{
-  e.preventDefault();const input=document.getElementById('chatText');const message=input.value.trim();if(!message)return;
+  e.preventDefault();
+  const input=document.getElementById('chatText'),message=input.value.trim();
+  if(!message)return;
   if(!currentUser){toast('Please log in to send messages.');return;}
+  if(message.length>2000){toast('Chat messages must be 2,000 characters or fewer.');return;}
   const send=e.currentTarget.querySelector('button');send.disabled=true;
-  const saved=await supabaseClient.from('chat_messages').insert({user_id:currentUser.id,message});send.disabled=false;
-  if(saved.error){toast(saved.error.message||'Message could not be sent.');return;}input.value='';
+  try{
+    const saved=await supabaseClient.from('chat_messages').insert({user_id:currentUser.id,message});
+    if(saved.error)throw saved.error;
+    input.value='';
+  }catch(err){toast(err.message||'Message could not be sent.');}
+  finally{send.disabled=false;}
 };
 supabaseClient.channel('public-chat').on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},()=>loadChat()).subscribe();
 loadChat();
