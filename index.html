@@ -630,6 +630,7 @@ function openLivePanel(mode = 'start') {
   if(mode === 'start') loadStreamSettings();
   document.getElementById('endLiveBtn').style.display = 'none';
   document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'), {className:'sub', textContent:'Video will appear here'}));
+  const enableAudio=document.getElementById('liveEnableAudioBtn');if(enableAudio)enableAudio.style.display='none';
   liveMode = mode;
 }
 function updateLiveControlLabels() {
@@ -691,7 +692,10 @@ async function toggleLiveScreenShare() {
       document.getElementById('liveStatus').textContent='You are live · camera broadcast.';
     }
   } catch(err) {
-    const reason=err.name==='NotAllowedError'?'Screen sharing was cancelled or blocked. Allow screen capture in the browser and try again.':(err.message||'Could not start screen sharing.');
+    const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    const reason=err.name==='NotAllowedError'
+      ?'Screen sharing was cancelled or blocked. Allow screen capture in the browser and try again.'
+      :(ios?'This iPhone/iPad browser cannot complete web screen capture. Sharing other apps requires a native iOS app with a ReplayKit Broadcast Extension. Camera and microphone streaming remain available.':(err.message||'Could not start screen sharing.'));
     hint.textContent=reason;
     toast(reason);
   } finally {button.disabled=false;updateLiveControlLabels();}
@@ -992,6 +996,10 @@ async function watchLiveStream(stream) {
     const credentials=await requestLiveKitToken(roomName,'viewer');
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
     activeLiveRoom=room;
+    const enableAudio=document.getElementById('liveEnableAudioBtn');
+    room.on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged,()=>{
+      if(enableAudio)enableAudio.style.display=room.canPlaybackAudio?'none':'inline-block';
+    });
     room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>{ const target=document.getElementById('liveStage'); if(track.kind==='video'){ if(publication?.source===LivekitClient.Track.Source.ScreenShare){target.replaceChildren();target.dataset.videoSource='screen';} else if(publication?.source===LivekitClient.Track.Source.Camera){if(target.dataset.videoSource==='screen')return;target.querySelectorAll('video').forEach(video=>video.remove());target.dataset.videoSource='camera';} } attachLiveTrack(track,target); });
     room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>{ track.detach().forEach(element=>element.remove()); if(publication?.source===LivekitClient.Track.Source.ScreenShare){const camera=participant?.getTrackPublication(LivekitClient.Track.Source.Camera);if(camera?.isSubscribed&&camera.track){const target=document.getElementById('liveStage');target.replaceChildren();target.dataset.videoSource='camera';attachLiveTrack(camera.track,target);}} });
     room.on(LivekitClient.RoomEvent.Disconnected,()=>{
@@ -1001,10 +1009,7 @@ async function watchLiveStream(stream) {
     });
     await room.connect(credentials.serverUrl,credentials.token);
     document.getElementById('liveStatus').textContent='Connected · '+room.numParticipants+' participant(s)';
-    const enableAudio=document.getElementById('liveEnableAudioBtn');
-    room.on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged,()=>{
-      if(enableAudio)enableAudio.style.display=room.canPlaybackAudio?'none':'inline-block';
-    });
+    if(enableAudio)enableAudio.style.display=room.canPlaybackAudio?'none':'inline-block';
     room.remoteParticipants.forEach(p=>{const pubs=[...p.trackPublications.values()].filter(pub=>pub.isSubscribed&&pub.track);const screen=pubs.find(pub=>pub.source===LivekitClient.Track.Source.ScreenShare);const camera=pubs.find(pub=>pub.source===LivekitClient.Track.Source.Camera);const target=document.getElementById('liveStage');const video=screen||camera;if(video){target.dataset.videoSource=screen?'screen':'camera';attachLiveTrack(video.track,target);}pubs.filter(pub=>pub.track.kind==='audio').forEach(pub=>attachLiveTrack(pub.track,target));});
   } catch(err) {
     document.getElementById('liveStatus').textContent=err.message||'Unable to join this stream.';
