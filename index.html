@@ -338,7 +338,7 @@ document.getElementById('startLiveBtn').addEventListener('click',async()=>{
   let createdId=null;
   try {
     const freshAfter=new Date(Date.now()-120000).toISOString();
-    const stale=await supabaseClient.from('streams').update({is_live:false}).eq('user_id',currentUser.id).eq('is_live',true).lt('last_heartbeat_at',freshAfter);
+    const stale=await supabaseClient.from('streams').update({is_live:false}).eq('user_id',currentUser.id).eq('is_live',true).or('last_heartbeat_at.is.null,last_heartbeat_at.lt.'+freshAfter);
     if(stale.error)throw stale.error;
     const existing=await supabaseClient.from('streams').select('id').eq('user_id',currentUser.id).eq('is_live',true).gt('last_heartbeat_at',freshAfter).limit(1);
     if(existing.error)throw existing.error;
