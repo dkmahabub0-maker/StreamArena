@@ -643,6 +643,7 @@ function showLocalBroadcastVideo(source) {
   if(!activeLiveRoom)return;
   const stage=document.getElementById('liveStage');
   stage.replaceChildren();
+  if(source===LivekitClient.Track.Source.Camera&&!liveCameraEnabled){stage.append(Object.assign(document.createElement('span'),{className:'sub',textContent:'Your camera is off. Viewers can still hear your microphone.'}));return;}
   const publication=activeLiveRoom.localParticipant.getTrackPublication(source);
   if(publication?.track)attachLiveTrack(publication.track,stage,true);
   else stage.append(Object.assign(document.createElement('span'),{className:'sub',textContent:source===LivekitClient.Track.Source.ScreenShare?'Screen share is not active.':'Camera preview is unavailable.'}));
