@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - "feat/duo-live-client-and-dual-camera-layout"
+      - "feat/live-floating-control-menu"
     paths:
       - "index.html"
       - ".github/workflows/validate-duo-live-client.yml"
@@ -45,5 +46,26 @@ jobs:
           ]) {
             if (!html.includes(required)) throw new Error('Missing Duo Live browser contract: ' + required);
           }
-          console.log('Validated ' + scripts.length + ' inline script(s) and ' + ids.length + ' unique HTML IDs.');
+          const controlIds = [
+            'liveStageShell', 'liveStage', 'liveControlMenuToggle',
+            'liveBroadcastControls', 'liveScreenShareBtn',
+            'liveCameraSwitchBtn', 'liveCameraToggleBtn', 'liveMicToggleBtn'
+          ];
+          for (const id of controlIds) {
+            if (!ids.includes(id)) throw new Error('Missing floating live control element: ' + id);
+          }
+          const stageShell = html.match(/<div id="liveStageShell"[\\s\\S]*?<\\/div>\\s*<button class="btn" id="livePlayMediaBtn"/);
+          if (!stageShell || !stageShell[0].includes('id="liveControlMenuToggle"') || !stageShell[0].includes('id="liveBroadcastControls"')) {
+            throw new Error('Floating controls must remain grouped with the live stage.');
+          }
+          if (!html.includes("liveControlMenuToggle.getAttribute('aria-expanded')!=='true'")) {
+            throw new Error('Floating menu toggle must switch between open and closed states.');
+          }
+          if (!html.includes("event.key==='Escape'") || !html.includes('liveControlPopover?.contains(event.target)')) {
+            throw new Error('Floating menu must support Escape and outside-click dismissal.');
+          }
+          if (!html.includes("document.getElementById('liveControlMenuToggle').style.display='grid'")) {
+            throw new Error('Only the host startup path should reveal the floating control trigger.');
+          }
+          console.log('Validated ' + scripts.length + ' inline script(s), ' + ids.length + ' unique HTML IDs and floating-control behavior.');
           NODE
