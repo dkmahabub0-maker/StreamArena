@@ -1,0 +1,52 @@
+name: JavaScript syntax validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  syntax:
+    name: Parse application JavaScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate inline scripts and Family module
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const files = ['index.html', 'family.js'];
+          let checked = 0;
+
+          for (const file of files) {
+            const source = fs.readFileSync(file, 'utf8');
+            const scripts = file.endsWith('.html')
+              ? [...source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+                  .filter((match) => !/\bsrc\s*=/.test(match[1]))
+                  .map((match) => match[2])
+                  .filter((script) => script.trim())
+              : [source];
+
+            if (!scripts.length) {
+              throw new Error(\`No inline JavaScript found in \${file}\`);
+            }
+
+            scripts.forEach((script, index) => {
+              try {
+                new Function(script);
+                checked += 1;
+              } catch (error) {
+                throw new Error(\`\${file} script \${index + 1}: \${error.message}\`);
+              }
+            });
+            console.log(\`Validated \${scripts.length} script(s) in \${file}\`);
+          }
+
+          console.log(\`JavaScript syntax validation passed (\${checked} script block(s)).\`);
+          NODE
