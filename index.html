@@ -841,15 +841,20 @@ const liveControlPopover=document.getElementById('liveBroadcastControls');
 function setLiveControlMenuOpen(open) {
   if(!liveControlPopover||!liveControlMenuToggle)return;
   liveControlPopover.style.display=open?'flex':'none';
+  liveControlPopover.setAttribute('aria-hidden',String(!open));
   liveControlMenuToggle.setAttribute('aria-expanded',String(open));
   liveControlMenuToggle.setAttribute('aria-label',open?'Close live controls':'Open live controls');
   liveControlMenuToggle.textContent=open?'×':'☰';
 }
 liveControlMenuToggle?.addEventListener('click',()=>setLiveControlMenuOpen(liveControlMenuToggle.getAttribute('aria-expanded')!=='true'));
-document.getElementById('liveScreenShareBtn').addEventListener('click',toggleLiveScreenShare);
-document.getElementById('liveCameraSwitchBtn').addEventListener('click',switchLiveCamera);
-document.getElementById('liveCameraToggleBtn').addEventListener('click',toggleLiveCamera);
-document.getElementById('liveMicToggleBtn').addEventListener('click',toggleLiveMicrophone);
+document.getElementById('liveScreenShareBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false);toggleLiveScreenShare();});
+document.getElementById('liveCameraSwitchBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false);switchLiveCamera();});
+document.getElementById('liveCameraToggleBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false);toggleLiveCamera();});
+document.getElementById('liveMicToggleBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false);toggleLiveMicrophone();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&liveControlMenuToggle?.getAttribute('aria-expanded')==='true')setLiveControlMenuOpen(false);});
+document.addEventListener('click',event=>{
+  if(liveControlMenuToggle?.getAttribute('aria-expanded')==='true'&&!liveControlPopover?.contains(event.target)&&!liveControlMenuToggle?.contains(event.target))setLiveControlMenuOpen(false);
+});
 
 function renderLiveThumbnail(url) {
   const preview=document.getElementById('liveThumbnailPreview');
