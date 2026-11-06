@@ -1,0 +1,51 @@
+name: Validate Duo Live frontend draft
+
+on:
+  push:
+    branches:
+      - "feat/duo-live-host-invite-ui"
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-duo-live-frontend.yml"
+  pull_request:
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-duo-live-frontend.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Parse inline application JavaScript
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)];
+          if (!scripts.length) throw new Error('No inline script tags found');
+          let parsed = 0;
+          for (const [index, match] of scripts.entries()) {
+            if (!match[1].trim()) continue;
+            new Function(match[1]);
+            parsed++;
+          }
+          if (!parsed) throw new Error('No inline application scripts were parsed');
+          console.log(`Parsed ${parsed} inline script(s)`);
+          NODE
+      - name: Check duplicate HTML IDs
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+          if (duplicates.length) throw new Error('Duplicate IDs: ' + [...new Set(duplicates)].join(', '));
+          console.log(`Checked ${ids.length} HTML IDs`);
+          NODE
