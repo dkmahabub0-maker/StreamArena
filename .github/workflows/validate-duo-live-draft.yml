@@ -36,6 +36,14 @@ jobs:
           const fs = require('node:fs');
           const schema = fs.readFileSync('docs/duo-live/stream_cohost_invites_draft.sql', 'utf8');
           const source = fs.readFileSync('supabase/functions/duo-live-invites/index.ts', 'utf8');
+          if (!schema.includes("'revoking'")) throw new Error('Invitation schema must reserve the co-host slot while revocation is pending.');
+          if (!schema.includes("status in ('pending', 'accepted', 'revoking')")) throw new Error('The unique co-host slot must remain reserved during revocation.');
+          if (!schema.includes('revocation_requested_at')) throw new Error('Revocation must record its start time for token-expiry handling.');
+          if (!schema.includes('consume_stream_cohost_rate_limit')) throw new Error('Durable rate-limit RPC must be present in the draft schema.');
+          if (!source.includes('rpc/consume_stream_cohost_rate_limit')) throw new Error('The Edge Function must enforce the durable rate limit.');
+          if (!source.includes('status: "revoking"')) throw new Error('Accepted invitation revocation must enter the retryable revoking state.');
+          if (!source.includes('listParticipants(roomName)')) throw new Error('Revocation must verify participant presence before releasing the slot.');
+          if (!source.includes('requestedAt + 70_000')) throw new Error('Unused 60-second co-host tokens must expire before releasing a missing participant slot.');
           if (!schema.includes("'expired'")) throw new Error('Invitation schema must allow an explicit expired state.');
           if (!schema.includes("where status in ('pending', 'accepted')")) throw new Error('Only pending and accepted invitations may occupy the co-host slot.');
           if (!source.includes('{ status: "expired" }')) throw new Error('Expired pending invitations must be transitioned to expired.');
