@@ -1,0 +1,58 @@
+name: Game catalog link validation
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-game-links.yml"
+  push:
+    branches:
+      - main
+      - "feat/game-store-links"
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-game-links.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  game-links:
+    name: Validate game store links and inline JavaScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate official game store links and safe link attributes
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const links = [
+            ['https://play.google.com/store/apps/details?id=com.dts.freefireth', 'Get Free Fire from Google Play'],
+            ['https://play.google.com/store/apps/details?id=com.tencent.ig', 'Get PUBG Mobile from Google Play'],
+            ['https://play.google.com/store/apps/details?id=com.pubg.imobile', 'Get BGMI from Google Play']
+          ];
+          for (const [href, label] of links) {
+            const tag = [...html.matchAll(/<a\b[^>]*>/g)].map(match => match[0])
+              .find(anchor => anchor.includes('href="' + href + '"'));
+            if (!tag || !tag.includes('target="_blank"') ||
+                !tag.includes('rel="noopener noreferrer"') ||
+                !tag.includes('aria-label="' + label + '"')) {
+              throw new Error('Missing or unsafe official store link: ' + href);
+            }
+          }
+          const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+          if (duplicates.length) throw new Error('Duplicate IDs: ' + [...new Set(duplicates)].join(', '));
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+            .filter(match => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
+          if (!scripts.length) throw new Error('No inline JavaScript found.');
+          scripts.forEach((match, index) => {
+            try { new Function(match[2]); }
+            catch (error) { throw new Error('Inline script ' + (index + 1) + ': ' + error.message); }
+          });
+          console.log('Game store links, safe attributes, IDs and inline JavaScript validated.');
+          NODE
