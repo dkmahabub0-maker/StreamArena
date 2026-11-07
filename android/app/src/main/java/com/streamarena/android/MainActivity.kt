@@ -217,13 +217,15 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             var createdStreamId: String? = null
             try {
-                createdStreamId = withContext(Dispatchers.IO) { createStreamRow(token, id, title) }
-                activeStreamId = createdStreamId
+                val streamId = withContext(Dispatchers.IO) { createStreamRow(token, id, title) }
+                createdStreamId = streamId
+                activeStreamId = streamId
+                // The deployed publisher-token endpoint expects the stream to be marked live first.
+                withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, true) }
                 val credentials = withContext(Dispatchers.IO) { requestPublisherToken(token, id) }
                 val liveRoom = LiveKit.create(applicationContext)
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
                 room = liveRoom
-                withContext(Dispatchers.IO) { updateStreamRow(token, createdStreamId, id, true) }
                 liveRoom.localParticipant.setMicrophoneEnabled(true)
                 liveRoom.localParticipant.setCameraEnabled(true)
                 heartbeatJob?.cancel()
@@ -240,8 +242,8 @@ class MainActivity : ComponentActivity() {
             } catch (error: Exception) {
                 runCatching { room?.disconnect() }
                 room = null
-                if (createdStreamId != null) {
-                    runCatching { withContext(Dispatchers.IO) { updateStreamRow(token, createdStreamId, id, false) } }
+                createdStreamId?.let { streamId ->
+                    runCatching { withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) } }
                 }
                 activeStreamId = null
                 setStatus("Could not start Live: ${error.message ?: "unknown error"}")
