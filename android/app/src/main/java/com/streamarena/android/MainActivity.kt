@@ -59,6 +59,10 @@ class MainActivity : ComponentActivity() {
     private lateinit var stopShareButton: Button
     private lateinit var endLiveButton: Button
     private lateinit var signOutButton: Button
+    private lateinit var otpInput: EditText
+    private lateinit var otpVerifyButton: Button
+    private lateinit var liveCard: LinearLayout
+    private var pendingSignupEmail: String? = null
 
     private var accessToken: String? = null
     private var userId: String? = null
@@ -225,6 +229,26 @@ class MainActivity : ComponentActivity() {
         authCard.addView(status, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         ))
+        otpInput = EditText(this).apply {
+            hint = "6-digit email code"
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setSingleLine(true)
+            textSize = 18f
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.rgb(111, 126, 153))
+            background = inputBackground()
+            setPadding(dp(15), 0, dp(15), 0)
+            visibility = android.view.View.GONE
+        }
+        authCard.addView(fieldLabel("Email confirmation code").apply {
+            visibility = android.view.View.GONE
+            tag = "otp_label"
+        }, bottomMargin(dp(8)))
+        authCard.addView(otpInput, fieldLayout(dp(54), dp(10)).apply { })
+        otpVerifyButton = makeButton("Verify code", true) { verifySignupOtp() }.apply {
+            visibility = android.view.View.GONE
+        }
+        authCard.addView(otpVerifyButton, fieldLayout(dp(52), dp(10)))
         root.addView(authCard, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         ))
@@ -257,15 +281,19 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun buildLiveScreen() {
-        liveScreen = ScrollView(this).apply {
-            isFillViewport = true
+        liveScreen = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.rgb(9, 14, 29))
         }
+        val scroll = ScrollView(this).apply { isFillViewport = true }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(30), dp(24), dp(34))
+            setPadding(dp(20), dp(24), dp(20), dp(28))
         }
-        liveScreen.addView(root)
+        scroll.addView(root)
+        liveScreen.addView(scroll, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
+        ))
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -344,10 +372,11 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.rgb(166, 178, 202))
         }, bottomMargin(dp(22)))
 
-        val liveCard = LinearLayout(this).apply {
+        liveCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = panelBackground()
             setPadding(dp(20), dp(20), dp(20), dp(20))
+            visibility = android.view.View.GONE
         }
         liveCard.addView(TextView(this).apply {
             text = "LIVE CONTROLS"
@@ -409,6 +438,36 @@ class MainActivity : ComponentActivity() {
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(18)
         })
+
+        val bottomNav = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(dp(5), dp(7), dp(5), dp(7))
+            setBackgroundColor(Color.rgb(13, 21, 38))
+        }
+        fun navItem(label: String, primary: Boolean = false, action: () -> Unit) {
+            val button = makeButton(label, primary, action).apply {
+                textSize = if (primary) 22f else 10f
+                minWidth = 0
+                minimumWidth = 0
+                setPadding(dp(2), 0, dp(2), 0)
+            }
+            bottomNav.addView(button, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+                setMargins(dp(2), 0, dp(2), 0)
+            })
+        }
+        navItem("Home") { scroll.smoothScrollTo(0, 0) }
+        navItem("+", true) {
+            liveCard.visibility = android.view.View.VISIBLE
+            scroll.post { scroll.smoothScrollTo(0, liveCard.top) }
+            setStatus("Choose Camera Live or Phone Screen Live, then set a title.")
+        }
+        navItem("Notifications") { setStatus("Notifications will appear here when the notification service is connected.") }
+        navItem("Community") { setStatus("Community feed is not connected yet.") }
+        navItem("Menu") { setStatus("Use the Sign out button at the top to leave your account.") }
+        liveScreen.addView(bottomNav, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -487,9 +546,15 @@ class MainActivity : ComponentActivity() {
                     setContentView(liveScreen)
                     setStatus("Account created. You are signed in.")
                 } else {
-                    setAuthMode(false)
-                    signInButton.text = "Log in"
-                    setStatus("Account created. Check your email to confirm, then sign in.")
+                    pendingSignupEmail = email
+                    passwordInput.visibility = android.view.View.GONE
+                    otpInput.visibility = android.view.View.VISIBLE
+                    otpVerifyButton.visibility = android.view.View.VISIBLE
+                    authCardShowOtpLabel()
+                    signInButton.visibility = android.view.View.GONE
+                    loginTabButton.visibility = android.view.View.GONE
+                    signUpTabButton.visibility = android.view.View.GONE
+                    setStatus("A confirmation code was sent to your email. Enter it below.")
                 }
             } catch (error: Exception) {
                 setStatus("Account creation failed: " + (error.message ?: "unknown error"), true)
@@ -498,6 +563,52 @@ class MainActivity : ComponentActivity() {
                     signInButton.text = if (isSignUpMode) "Create StreamArena account" else "Sign in to StreamArena"
                 }
                 updateControls()
+            }
+        }
+    }
+
+    private fun authCardShowOtpLabel() {
+        // Reveal the confirmation label added immediately before the OTP field.
+        val parent = otpInput.parent as? LinearLayout ?: return
+        for (index in 0 until parent.childCount) {
+            val child = parent.getChildAt(index)
+            if (child is TextView && child.tag == "otp_label") child.visibility = android.view.View.VISIBLE
+        }
+    }
+
+    private fun verifySignupOtp() {
+        val email = pendingSignupEmail ?: emailInput.text.toString().trim()
+        val code = otpInput.text.toString().trim()
+        if (email.isBlank() || code.length !in 6..8) {
+            setStatus("Enter the confirmation code from your email.", true)
+            return
+        }
+        otpVerifyButton.isEnabled = false
+        otpVerifyButton.text = "Verifying…"
+        lifecycleScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    postJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/auth/v1/verify",
+                        "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+                        null,
+                        JSONObject().put("type", "signup").put("email", email).put("token", code)
+                    )
+                }
+                accessToken = result.getString("access_token")
+                userId = result.optJSONObject("user")?.optString("id")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("Verified, but the user session was not returned. Please log in.")
+                pendingSignupEmail = null
+                passwordInput.text.clear()
+                otpInput.text.clear()
+                setContentView(liveScreen)
+                setStatus("Email confirmed. Welcome to StreamArena.")
+            } catch (error: Exception) {
+                setStatus("Code verification failed: ${error.message ?: "unknown error"}", true)
+            } finally {
+                otpVerifyButton.isEnabled = true
+                otpVerifyButton.text = "Verify code"
             }
         }
     }
