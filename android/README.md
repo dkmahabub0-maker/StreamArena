@@ -27,7 +27,7 @@ The CI workflow builds the debug APK. No signed release APK is produced.
 - No APK has been signed or published.
 - No physical Android device test has been performed yet.
 - Current prototype uses email/password authentication; password reset, OAuth, session refresh, profile setup, and robust token refresh are not yet implemented.
-- It starts a LiveKit room directly; it does not yet create/update the Supabase `streams` row or maintain the website heartbeat. Therefore web discovery of this native Live may not work until the backend lifecycle integration is added.
+- The current implementation creates a `streams` row, marks it live, and sends the website's 25-second heartbeat. This path depends on the existing `streams` Data API exposure and owner-scoped RLS policies; no production schema or policy changes are included.
 - Internal game audio is intentionally not captured; the first pass publishes screen video plus microphone.
 - The user must explicitly approve each Android screen-capture session. Protected content may be blank.
 
