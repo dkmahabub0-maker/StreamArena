@@ -18,6 +18,8 @@ import io.livekit.android.LiveKit
 import io.livekit.android.room.Room
 import io.livekit.android.room.track.screencapture.ScreenCaptureParams
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -33,6 +35,7 @@ import java.net.URL
 class MainActivity : ComponentActivity() {
     private lateinit var emailInput: EditText
     private lateinit var passwordInput: EditText
+    private lateinit var titleInput: EditText
     private lateinit var status: TextView
     private lateinit var signInButton: Button
     private lateinit var startLiveButton: Button
@@ -44,6 +47,8 @@ class MainActivity : ComponentActivity() {
     private var userId: String? = null
     private var room: Room? = null
     private var sharing = false
+    private var activeStreamId: String? = null
+    private var heartbeatJob: Job? = null
 
     private val mediaPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -105,6 +110,8 @@ class MainActivity : ComponentActivity() {
             text = "Sign in, start your Live, then share your phone screen. Only the authenticated host can publish."
             textSize = 14f
         })
+        titleInput = EditText(this).apply { hint = "Live title (at least 3 characters)" }
+        add(titleInput)
         emailInput = EditText(this).apply {
             hint = "StreamArena account email"
             inputType = 33
@@ -192,18 +199,41 @@ class MainActivity : ComponentActivity() {
         }
         val id = userId ?: return
         startLiveButton.isEnabled = false
+        val title = titleInput.text.toString().trim()
+        if (title.length < 3) {
+            setStatus("Enter a Live title with at least 3 characters.")
+            startLiveButton.isEnabled = true
+            return
+        }
         lifecycleScope.launch {
+            var createdStreamId: String? = null
             try {
+                createdStreamId = withContext(Dispatchers.IO) { createStreamRow(token, id, title) }
+                activeStreamId = createdStreamId
                 val credentials = withContext(Dispatchers.IO) { requestPublisherToken(token, id) }
                 val liveRoom = LiveKit.create(applicationContext)
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
                 room = liveRoom
                 liveRoom.localParticipant.setMicrophoneEnabled(true)
                 liveRoom.localParticipant.setCameraEnabled(true)
+                heartbeatJob?.cancel()
+                heartbeatJob = lifecycleScope.launch {
+                    while (activeStreamId != null) {
+                        delay(25_000)
+                        val streamId = activeStreamId ?: break
+                        runCatching {
+                            withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, true) }
+                        }.onFailure { setStatus("Live is running, but its heartbeat failed: ${it.message}") }
+                    }
+                }
                 setStatus("You are live. Tap Share phone screen when ready.")
             } catch (error: Exception) {
-                room?.disconnect()
+                runCatching { room?.disconnect() }
                 room = null
+                if (createdStreamId != null) {
+                    runCatching { withContext(Dispatchers.IO) { updateStreamRow(token, createdStreamId, id, false) } }
+                }
+                activeStreamId = null
                 setStatus("Could not start Live: ${error.message ?: "unknown error"}")
             } finally {
                 startLiveButton.isEnabled = true
@@ -231,8 +261,17 @@ class MainActivity : ComponentActivity() {
             try {
                 if (sharing) room?.localParticipant?.setScreenShareEnabled(false)
                 sharing = false
+                heartbeatJob?.cancel()
+                heartbeatJob = null
+                val streamId = activeStreamId
+                val token = accessToken
+                val id = userId
+                if (streamId != null && token != null && id != null) {
+                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                }
                 room?.disconnect()
                 room = null
+                activeStreamId = null
                 setStatus("Live ended.")
             } catch (error: Exception) {
                 setStatus("Live cleanup issue: ${error.message ?: "unknown error"}")
@@ -266,6 +305,79 @@ class MainActivity : ComponentActivity() {
             null,
             body
         )
+    }
+
+    private fun createStreamRow(session: String, id: String, title: String): String {
+        val row = JSONObject()
+            .put("user_id", id)
+            .put("title", title)
+            .put("caption", "")
+            .put("thumbnail_url", JSONObject.NULL)
+            .put("tournament_id", JSONObject.NULL)
+            .put("is_live", false)
+        val response = postRestJson(
+            "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/streams?select=id",
+            session,
+            row
+        )
+        return response.getJSONArray(0).getString("id")
+    }
+
+    private fun updateStreamRow(session: String, streamId: String, id: String, live: Boolean) {
+        val body = JSONObject()
+            .put("is_live", live)
+            .put("last_heartbeat_at", if (live) java.time.Instant.now().toString() else JSONObject.NULL)
+        patchRestJson(
+            "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/streams?id=eq.$streamId&user_id=eq.$id",
+            session,
+            body
+        )
+    }
+
+    private fun postRestJson(endpoint: String, bearer: String, body: JSONObject): org.json.JSONArray {
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 15000
+            readTimeout = 20000
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("apikey", "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2")
+            setRequestProperty("Authorization", "Bearer $bearer")
+            setRequestProperty("Prefer", "return=representation")
+        }
+        try {
+            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val response = stream.bufferedReader().use { it.readText() }
+            if (code !in 200..299) throw IllegalStateException("Stream creation failed (HTTP $code): $response")
+            return org.json.JSONArray(response)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun patchRestJson(endpoint: String, bearer: String, body: JSONObject) {
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "PATCH"
+            connectTimeout = 15000
+            readTimeout = 20000
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("apikey", "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2")
+            setRequestProperty("Authorization", "Bearer $bearer")
+            setRequestProperty("Prefer", "return=minimal")
+        }
+        try {
+            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                val response = connection.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                throw IllegalStateException("Stream update failed (HTTP $code): $response")
+            }
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun requestPublisherToken(session: String, id: String): JSONObject {
