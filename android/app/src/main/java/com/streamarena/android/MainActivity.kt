@@ -2,6 +2,7 @@ package com.streamarena.android
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.view.ViewGroup
@@ -11,6 +12,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import io.livekit.android.LiveKit
 import io.livekit.android.room.Room
@@ -42,6 +44,16 @@ class MainActivity : ComponentActivity() {
     private var userId: String? = null
     private var room: Room? = null
     private var sharing = false
+
+    private val mediaPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val cameraGranted = grants[android.Manifest.permission.CAMERA] == true ||
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        val microphoneGranted = grants[android.Manifest.permission.RECORD_AUDIO] == true ||
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (cameraGranted && microphoneGranted) startLive() else setStatus("Camera and microphone permissions are required to start a Live.")
+    }
 
     private val screenCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -166,6 +178,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startLive() {
+        val missingPermissions = listOf(
+            android.Manifest.permission.CAMERA,
+            android.Manifest.permission.RECORD_AUDIO
+        ).filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        if (missingPermissions.isNotEmpty()) {
+            mediaPermissionLauncher.launch(missingPermissions.toTypedArray())
+            return
+        }
         val token = accessToken ?: run {
             setStatus("Sign in before starting a Live.")
             return
