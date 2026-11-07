@@ -1274,14 +1274,4 @@ window.addEventListener('appinstalled', () => {
   if (installAppButton) installAppButton.hidden = true;
   streamArenaInstallPrompt = null;
 });
-</script><script>
-if ("serviceWorker" in navigator && location.protocol === "https:") {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(error => {
-      console.warn("StreamArena offline support could not be registered:", error);
-    });
-  });
-}
-
-
 </script><script src="./family.js"></script></body></html>
