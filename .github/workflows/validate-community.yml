@@ -44,6 +44,16 @@ jobs:
           if (!html.includes('#community{scroll-margin-top:90px}')) {
             throw new Error('Community anchor must account for the sticky header.');
           }
+          for (const id of ['chatLines', 'chatForm', 'chatText']) {
+            if (ids.filter(value => value === id).length !== 1) {
+              throw new Error('Community chat control must exist exactly once: ' + id);
+            }
+          }
+          if (!html.includes("document.getElementById('chatForm').onsubmit=async e=>") ||
+              !html.includes("supabaseClient.from('chat_messages').insert") ||
+              !html.includes('async function loadChat()')) {
+            throw new Error('Community chat must retain its message loader and authenticated submit handler.');
+          }
           const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
             .filter(match => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
           scripts.forEach((match, index) => {
