@@ -19,7 +19,7 @@ Open the `android/` folder in Android Studio with JDK 17 and Android SDK 35 inst
 gradle :app:assembleDebug
 ```
 
-The repository pull-request workflow builds the debug APK and uploads it as the `streamarena-android-debug` artifact when the build succeeds. No signed release APK is produced.
+The Android debug build runs from pull requests that modify `android/**`, and can also be started manually from GitHub Actions. On success, the workflow uploads the debug APK as the `streamarena-android-debug` artifact. No signed release APK is produced.
 
 ## Important limitations
 
