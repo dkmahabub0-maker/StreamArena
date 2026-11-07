@@ -50,6 +50,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var liveStatus: TextView
     private lateinit var authHeading: TextView
     private lateinit var authModeButton: TextView
+    private lateinit var loginTabButton: Button
+    private lateinit var signUpTabButton: Button
     private lateinit var authScreen: ScrollView
     private lateinit var liveScreen: ScrollView
     private lateinit var signInButton: Button
@@ -129,78 +131,61 @@ class MainActivity : ComponentActivity() {
     private fun buildAuthScreen() {
         authScreen = ScrollView(this).apply {
             isFillViewport = true
-            setBackgroundColor(Color.rgb(9, 14, 29))
+            setBackgroundColor(Color.rgb(7, 12, 25))
         }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(30), dp(24), dp(34))
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(24), dp(34), dp(24), dp(30))
         }
         authScreen.addView(root)
 
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
         val logo = ImageView(this).apply {
             setImageResource(R.drawable.ic_streamarena)
-            contentDescription = "StreamArena logo"
+            contentDescription = "StreamArena"
         }
-        header.addView(logo, LinearLayout.LayoutParams(dp(64), dp(64)))
-        val brand = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(14), 0, 0, 0)
-        }
-        brand.addView(TextView(this).apply {
-            text = "STREAMARENA"
-            textSize = 21f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-            letterSpacing = 0.08f
+        root.addView(logo, LinearLayout.LayoutParams(dp(76), dp(76)).apply {
+            bottomMargin = dp(14)
         })
-        brand.addView(TextView(this).apply {
-            text = "MOBILE CREATOR"
-            textSize = 11f
-            setTextColor(Color.rgb(115, 205, 255))
-            letterSpacing = 0.16f
-        })
-        header.addView(brand)
-        root.addView(header, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(34)
-        })
-
         root.addView(TextView(this).apply {
-            text = "Your game.\nYour live stream."
-            textSize = 31f
+            text = "STREAMARENA"
+            textSize = 24f
             setTextColor(Color.WHITE)
             typeface = Typeface.create("sans-serif", Typeface.BOLD)
-            setLineSpacing(dp(2).toFloat(), 1.0f)
+            letterSpacing = 0.10f
+            gravity = Gravity.CENTER
         })
         root.addView(TextView(this).apply {
-            text = "Sign in or create an account to broadcast from your phone."
-            textSize = 15f
-            setTextColor(Color.rgb(166, 178, 202))
-            setLineSpacing(dp(4).toFloat(), 1.0f)
-        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(10)
-            bottomMargin = dp(24)
-        })
+            text = "Welcome back"
+            textSize = 16f
+            setTextColor(Color.rgb(151, 168, 194))
+            gravity = Gravity.CENTER
+        }, bottomMargin(dp(28)))
 
         val authCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = panelBackground()
-            setPadding(dp(20), dp(22), dp(20), dp(20))
+            setPadding(dp(20), dp(20), dp(20), dp(20))
         }
-        authHeading = TextView(this).apply {
-            text = "ACCOUNT SIGN IN"
-            textSize = 12f
-            setTextColor(Color.rgb(115, 205, 255))
-            typeface = Typeface.DEFAULT_BOLD
-            letterSpacing = 0.12f
+        val tabs = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(10, 17, 32))
+                cornerRadius = dp(14).toFloat()
+            }
+            setPadding(dp(4), dp(4), dp(4), dp(4))
         }
-        authCard.addView(authHeading, bottomMargin(dp(18)))
-        authCard.addView(fieldLabel("Email address"), bottomMargin(dp(7)))
+        loginTabButton = makeButton("Log in", true) { setAuthMode(false) }
+        signUpTabButton = makeButton("Sign up", false) { setAuthMode(true) }
+        tabs.addView(loginTabButton, LinearLayout.LayoutParams(0, dp(46), 1f).apply {
+            rightMargin = dp(4)
+        })
+        tabs.addView(signUpTabButton, LinearLayout.LayoutParams(0, dp(46), 1f))
+        authCard.addView(tabs, bottomMargin(dp(24)))
+
+        authCard.addView(fieldLabel("Email"), bottomMargin(dp(8)))
         emailInput = EditText(this).apply {
-            hint = "you@example.com"
+            hint = "name@example.com"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
             setSingleLine(true)
             textSize = 16f
@@ -211,9 +196,10 @@ class MainActivity : ComponentActivity() {
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
         }
         authCard.addView(emailInput, fieldLayout(dp(54), dp(18)))
-        authCard.addView(fieldLabel("Password"), bottomMargin(dp(7)))
+
+        authCard.addView(fieldLabel("Password"), bottomMargin(dp(8)))
         passwordInput = EditText(this).apply {
-            hint = "Enter your password"
+            hint = "Enter password"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             setSingleLine(true)
             textSize = 16f
@@ -223,37 +209,52 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(15), 0, dp(15), 0)
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
         }
-        authCard.addView(passwordInput, fieldLayout(dp(54), dp(18)))
-        signInButton = makeButton("Sign in to StreamArena", true) {
+        authCard.addView(passwordInput, fieldLayout(dp(54), dp(20)))
+
+        signInButton = makeButton("Log in", true) {
             if (isSignUpMode) signUp() else signIn()
         }
-        authCard.addView(signInButton, fieldLayout(dp(54), dp(8)))
-        authModeButton = TextView(this).apply {
-            text = "New to StreamArena? Create account"
-            textSize = 14f
-            gravity = Gravity.CENTER
-            setTextColor(Color.rgb(115, 205, 255))
-            setPadding(dp(8), dp(12), dp(8), dp(12))
-            setOnClickListener {
-                isSignUpMode = !isSignUpMode
-                authHeading.text = if (isSignUpMode) "CREATE YOUR ACCOUNT" else "ACCOUNT SIGN IN"
-                signInButton.text = if (isSignUpMode) "Create StreamArena account" else "Sign in to StreamArena"
-                authModeButton.text = if (isSignUpMode) "Already have an account? Sign in" else "New to StreamArena? Create account"
-                setStatus(if (isSignUpMode) "Create an account with your email and password." else "Enter your account details to continue.")
-            }
-        }
-        authCard.addView(authModeButton, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        authCard.addView(signInButton, fieldLayout(dp(54), dp(10)))
+
         status = TextView(this).apply {
-            text = "Enter your account details to continue."
+            text = ""
             textSize = 13f
             setTextColor(Color.rgb(166, 178, 202))
             gravity = Gravity.CENTER
-            setPadding(dp(8), dp(6), dp(8), dp(4))
+            setPadding(dp(6), dp(8), dp(6), dp(2))
         }
-        authCard.addView(status, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        root.addView(authCard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(18)
-        })
+        authCard.addView(status, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
+        root.addView(authCard, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
+        setAuthMode(false)
+    }
+
+    private fun setAuthMode(signUp: Boolean) {
+        isSignUpMode = signUp
+        if (::signInButton.isInitialized) {
+            signInButton.text = if (signUp) "Create account" else "Log in"
+            signInButton.isEnabled = true
+        }
+        if (::loginTabButton.isInitialized) {
+            loginTabButton.background = tabBackground(!signUp)
+            loginTabButton.setTextColor(Color.WHITE)
+        }
+        if (::signUpTabButton.isInitialized) {
+            signUpTabButton.background = tabBackground(signUp)
+            signUpTabButton.setTextColor(Color.WHITE)
+        }
+        if (::status.isInitialized) {
+            status.text = ""
+            status.setTextColor(Color.rgb(166, 178, 202))
+        }
+    }
+
+    private fun tabBackground(selected: Boolean): GradientDrawable = GradientDrawable().apply {
+        setColor(if (selected) Color.rgb(35, 112, 211) else Color.rgb(27, 39, 61))
+        cornerRadius = dp(11).toFloat()
     }
 
     private fun buildLiveScreen() {
