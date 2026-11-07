@@ -773,7 +773,13 @@ class MainActivity : ComponentActivity() {
                         }.onFailure { setStatus("Live is running, but its heartbeat failed: ${it.message}") }
                     }
                 }
-                setStatus("You are live. Tap Share phone screen when ready.")
+                if (selectedLiveMode == "screen") {
+                    setStatus("Live started. Approve Android's prompt to share your phone screen.")
+                    val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                    screenCaptureLauncher.launch(manager.createScreenCaptureIntent())
+                } else {
+                    setStatus("You are live with your camera and microphone.")
+                }
             } catch (error: Exception) {
                 runCatching { room?.disconnect() }
                 room = null
