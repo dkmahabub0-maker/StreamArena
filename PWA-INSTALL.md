@@ -1,23 +1,19 @@
 # Installing StreamArena as a PWA
 
-StreamArena can be installed from its HTTPS website where the browser supports Progressive Web App installation.
+The installable PWA flow is targeted at **Google Chrome on Android and desktop**. StreamArena remains a website; this does not create a native app or publish anything to an app store.
 
 ## Android (Chrome)
-1. Open the StreamArena website in Chrome.
-2. Open Chrome's menu.
-3. Choose **Install app** or **Add to Home screen** if offered.
-4. Confirm the installation.
+1. Open the StreamArena HTTPS website in Chrome.
+2. Wait for Chrome to offer installation; the StreamArena **Install App** button appears only when Chrome emits its install prompt.
+3. Select **Install App** and confirm in Chrome, or use Chrome's menu and choose **Install app** if offered.
 
-## Desktop (supported Chromium browsers)
-1. Open StreamArena in the browser.
-2. Use the install icon in the address bar or the browser menu's **Install StreamArena** option if shown.
+## Desktop (Chrome)
+1. Open StreamArena in Chrome.
+2. Use the install icon in the address bar or Chrome's menu option if shown.
 
-## iPhone and iPad
-iOS installation generally uses Safari: open the website, tap **Share**, then **Add to Home Screen**. Chrome on iOS does not provide the same Android-style PWA installation flow.
-
-## Important limitations
-- Installation does not make the website a native Android or iOS application.
+## Not included
+- Chrome on iOS does not expose the same Android/desktop PWA install-prompt flow. iOS installation is not part of this Chrome-targeted task.
+- No native Android/iOS application or app-store publishing is included.
 - Live video, chat, sign-in and streaming still require an internet connection.
 - Offline support is limited to a simple offline notice and the query-free root app shell. The service worker does not cache query-bearing auth callbacks, private account data, API responses, chat, or LiveKit media.
-- The manifest includes the required 192×192 and 512×512 PNG icons, plus an SVG fallback.
 - A PWA cannot guarantee background live broadcasting or capture another app/game's screen.
