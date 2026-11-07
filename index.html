@@ -70,6 +70,7 @@
 #families .family-chat-log{max-height:220px;overflow:auto;background:#070b16;border:1px solid var(--line);border-radius:9px;padding:8px}
 #families .family-message{margin:5px 0;padding:6px 8px;border-radius:7px;background:#121a2c;overflow-wrap:anywhere}
 @media(max-width:600px){#families .family-card-head{align-items:flex-start;flex-direction:column}#families .family-create>*{width:100%}}
+#community{scroll-margin-top:90px}
 </style>
 </head>
 <body>
@@ -143,7 +144,7 @@
 </form>
 <div style="margin-top:18px"><h3>My support tickets</h3><div id="supportTickets" class="sub">Sign in to view your tickets.</div></div>
 </section>
-<section class="section" id="community"><div class="section-head"><h2>👥 Community · Live Chat</h2><span class="sub">Live chat</span></div><div id="chatLines"></div><form class="chat-input" id="chatForm"><input id="chatText" placeholder="Type a message..." maxlength="180"><button class="btn primary">➤</button></form></section>
+<section class="section" id="community"><div class="section-head"><h2>👥 Community · Live Chat</h2><span class="sub">Live chat</span></div><div id="chatLines" aria-live="polite"></div><form class="chat-input" id="chatForm"><input id="chatText" aria-label="Community chat message" placeholder="Type a message..." maxlength="180"><button class="btn primary" type="submit" aria-label="Send community message">➤</button></form></section>
 </main>
 <aside class="rightcol">
 <div class="rightbox"><div class="user"><div class="avatar">👾</div><div><b id="accountName">Guest Player</b><small id="authStatus">Not signed in</small></div></div><div id="guestActions" style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" data-modal="login">Login</button><button class="btn primary" style="flex:1" data-modal="signup">Sign Up</button></div><button class="btn" id="logoutBtn" style="display:none;width:100%;margin-top:13px">Log out</button></div>
