@@ -10,6 +10,7 @@ This is a separate native Android client workstream. It does not replace the exi
 - Live setup allows Camera Live or Phone Screen Live selection; Screen Live requests Android's MediaProjection permission after the stream connects.
 - Uses the existing Supabase Auth password sign-in, sign-up, and email verification endpoints.
 - Requests a publisher token from the existing `livekit-token` Edge Function for the authenticated user's `stream-<user-id>` room.
+- Signing out attempts to mark the active stream offline before the in-memory session is discarded.
 - Connects with the LiveKit Android SDK, enables host camera/microphone, and exposes host-only phone screen share start/stop controls.
 - Screen capture requires Android's system consent dialog and LiveKit's MediaProjection foreground service.
 - Session credentials are kept in memory only; no service-role key or LiveKit API secret is embedded.
