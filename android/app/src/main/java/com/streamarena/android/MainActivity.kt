@@ -426,7 +426,7 @@ class MainActivity : ComponentActivity() {
                 text = item.second
                 textSize = 11f
                 setTextColor(Color.rgb(226, 235, 248))
-            }, topMargin(dp(4)))
+            })
             featuredGames.addView(gameBanner, LinearLayout.LayoutParams(dp(224), dp(132)).apply {
                 rightMargin = dp(10)
             })
