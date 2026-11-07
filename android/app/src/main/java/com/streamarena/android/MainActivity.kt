@@ -26,6 +26,10 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import io.livekit.android.LiveKit
@@ -68,6 +72,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var otpInput: EditText
     private lateinit var otpVerifyButton: Button
     private lateinit var liveCard: LinearLayout
+    private lateinit var cameraPreviewView: PreviewView
+    private var cameraProvider: ProcessCameraProvider? = null
     private var pendingSignupEmail: String? = null
     private var selectedLiveMode: String = "camera"
 
@@ -77,6 +83,12 @@ class MainActivity : ComponentActivity() {
     private var sharing = false
     private var activeStreamId: String? = null
     private var heartbeatJob: Job? = null
+
+    private val cameraPreviewPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) startCameraPreview() else setStatus("Camera permission is needed to show the camera preview. Screen Share remains available.")
+    }
 
     private val mediaPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -359,7 +371,7 @@ class MainActivity : ComponentActivity() {
         navItem("⌂\nHome") { scroll.smoothScrollTo(0, 0) }
         plusNavButton = makeButton("＋", true) {
             plusNavButton.animate().rotationBy(45f).setDuration(160).start()
-            showCreatorMenu(plusNavButton, scroll)
+            openLiveSetup("camera", scroll)
         }.apply {
             textSize = 29f
             minWidth = 0
@@ -510,16 +522,27 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.rgb(197, 207, 225))
             typeface = Typeface.DEFAULT_BOLD
         }, bottomMargin(dp(10)))
+        cameraPreviewView = PreviewView(this).apply {
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            scaleType = PreviewView.ScaleType.FILL_CENTER
+            setBackgroundColor(Color.BLACK)
+            contentDescription = "Front camera preview"
+        }
+        liveCard.addView(cameraPreviewView, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(210)
+        ).apply { bottomMargin = dp(14) })
         val liveModes = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        liveModes.addView(makeButton("Camera Live", true) {
+        liveModes.addView(makeButton("Camera", true) {
             selectedLiveMode = "camera"
-            startLiveButton.text = "Start Camera Live"
-            setStatus("Camera Live selected. Add a title and tap Start Live.")
+            startLiveButton.text = "Go Live"
+            showCameraPreview()
+            setStatus("Camera selected. Preview is local; tap Go Live when ready to broadcast.")
         }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(5) })
-        liveModes.addView(makeButton("Phone Screen", false) {
+        liveModes.addView(makeButton("Screen Share", false) {
             selectedLiveMode = "screen"
-            startLiveButton.text = "Start Screen Live"
-            setStatus("Phone Screen selected. Start Live, then approve Android's screen-capture prompt.")
+            startLiveButton.text = "Go Live with Screen Share"
+            stopCameraPreview()
+            setStatus("Screen Share selected. Tap Go Live and approve Android's screen-capture prompt.")
         }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { leftMargin = dp(5) })
         liveCard.addView(liveModes, bottomMargin(dp(16)))
         liveCard.addView(fieldLabel("Stream title"), bottomMargin(dp(7)))
@@ -533,7 +556,7 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(15), 0, dp(15), 0)
         }
         liveCard.addView(titleInput, fieldLayout(dp(54), dp(14)))
-        startLiveButton = makeButton("Start ${if (selectedLiveMode == "screen") "Screen Live" else "Camera Live"}", true) { startLive() }
+        startLiveButton = makeButton("Go Live", true) { startLive() }
         liveCard.addView(startLiveButton, fieldLayout(dp(52), dp(10)))
         shareButton = makeButton("Share phone screen", false) {
             val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
@@ -650,14 +673,43 @@ class MainActivity : ComponentActivity() {
 
     private fun openLiveSetup(mode: String, scroll: ScrollView) {
         selectedLiveMode = mode
-        startLiveButton.text = if (mode == "screen") "Start Screen Live" else "Start Camera Live"
+        startLiveButton.text = if (mode == "screen") "Go Live with Screen Share" else "Go Live"
         liveCard.visibility = android.view.View.VISIBLE
+        if (mode == "camera") showCameraPreview() else stopCameraPreview()
         scroll.post { scroll.smoothScrollTo(0, liveCard.top) }
         setStatus(if (mode == "screen") {
-            "Phone Screen selected. Enter a title, start Live and approve Android's screen-capture prompt."
+            "Screen Share selected. Enter a title, tap Go Live and approve Android's screen-capture prompt."
         } else {
-            "Camera Live selected. Enter a title and tap Start Live."
+            "Camera preview opened. Enter a title and tap Go Live only when you want to broadcast."
         })
+    }
+
+    private fun showCameraPreview() {
+        if (!::cameraPreviewView.isInitialized || room != null) return
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            cameraPreviewPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+            return
+        }
+        val providerFuture = ProcessCameraProvider.getInstance(this)
+        providerFuture.addListener({
+            try {
+                val provider = providerFuture.get()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(cameraPreviewView.surfaceProvider)
+                }
+                provider.unbindAll()
+                provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, preview)
+                cameraProvider = provider
+                cameraPreviewView.visibility = android.view.View.VISIBLE
+            } catch (error: Exception) {
+                setStatus("Could not open camera preview: ${error.message ?: "unknown error"}", true)
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun stopCameraPreview() {
+        cameraProvider?.unbindAll()
+        cameraProvider = null
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -913,6 +965,7 @@ class MainActivity : ComponentActivity() {
             startLiveButton.isEnabled = true
             return
         }
+        stopCameraPreview()
         lifecycleScope.launch {
             var createdStreamId: String? = null
             try {
@@ -1156,6 +1209,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         // The app does not persist credentials. Explicit Live teardown is handled by End Live.
         // Avoid blocking lifecycle teardown with a network disconnect call.
+        stopCameraPreview()
         room = null
         accessToken = null
         userId = null
