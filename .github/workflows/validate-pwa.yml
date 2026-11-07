@@ -21,6 +21,32 @@ jobs:
         run: node -e "JSON.parse(require('node:fs').readFileSync('manifest.webmanifest', 'utf8')); console.log('PWA manifest JSON is valid.')"
       - name: Validate service worker JavaScript syntax
         run: node --check service-worker.js
+      - name: Validate inline application JavaScript and PWA icon
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
+          const inlineScripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+            .filter((match) => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
+
+          assert.ok(inlineScripts.length > 0, 'At least one inline application script must be found');
+          inlineScripts.forEach((match, index) => {
+            try {
+              new Function(match[2]);
+            } catch (error) {
+              throw new Error(`Inline script ${index + 1} failed syntax validation: ${error.message}`);
+            }
+          });
+
+          for (const icon of manifest.icons || []) {
+            const iconPath = icon.src.startsWith('/') ? icon.src.slice(1) : icon.src;
+            assert.ok(fs.existsSync(iconPath), `Manifest icon is missing: ${icon.src}`);
+            assert.ok(fs.statSync(iconPath).isFile(), `Manifest icon is not a file: ${icon.src}`);
+          }
+          console.log(`Validated ${inlineScripts.length} inline scripts and all manifest icon files.`);
+          NODE
       - name: Check required offline fallback
         run: test -s offline.html
       - name: Validate required Chromium icon sizes and safe navigation caching
@@ -43,4 +69,33 @@ jobs:
           }
           if (!worker.includes('cache.put(ROOT_URL')) throw new Error('Only the clean root app shell should be cached.');
           console.log('Validated 192/512 PNG icons and query-safe root-shell caching.');
+          NODE
+      - name: Validate PWA install contract and safe navigation caching
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
+          const worker = fs.readFileSync('service-worker.js', 'utf8');
+          const html = fs.readFileSync('index.html', 'utf8');
+
+          assert.ok(manifest.name, 'Manifest must define a name');
+          assert.ok(manifest.start_url, 'Manifest must define start_url');
+          assert.equal(manifest.display, 'standalone', 'Manifest should request standalone display');
+          assert.ok(Array.isArray(manifest.icons) && manifest.icons.length > 0, 'Manifest must define icons');
+          assert.match(worker, /!url\.search/, 'Query-string navigations must not be cached');
+          assert.match(worker, /!responseUrl\.search/, 'Redirected query-string responses must not be cached');
+          assert.match(html, /id=["']installAppBtn["'][^>]*hidden/, 'Install button must start hidden until Chrome offers installation');
+          assert.match(html, /\.top-actions #installAppBtn\[hidden\]\{display:none!important;\}/, 'Mobile header styles must preserve the hidden install state');
+          assert.match(html, /beforeinstallprompt/, 'Install prompt event must be handled');
+          assert.match(html, /appinstalled/, 'Successful installation event must be handled');
+          assert.match(html, /const promptEvent = streamArenaInstallPrompt/, 'Install prompt must be captured before use');
+          assert.match(html, /installAppButton\.hidden = false/, 'Chrome beforeinstallprompt must reveal the install button');
+          assert.match(html, /installAppButton\.hidden = true/, 'Dismissed or consumed prompts must hide the install button');
+          assert.ok(html.includes("installAppButton.addEventListener('click', async () => {"), 'Install button must have a real click handler');
+          assert.ok(html.includes('await promptEvent.prompt()'), 'Install handler must invoke the browser prompt');
+          assert.ok(html.includes('await promptEvent.userChoice'), 'Install handler must await the user choice');
+          const installedHandler = html.slice(html.indexOf("window.addEventListener('appinstalled'"));
+          assert.ok(installedHandler.includes('streamArenaInstallPrompt = null'), 'Successful install must clear the captured prompt');
+          console.log('PWA install contract and navigation cache safeguards are valid.');
           NODE
