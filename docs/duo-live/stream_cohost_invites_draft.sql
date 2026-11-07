@@ -13,6 +13,7 @@ create table if not exists public.stream_cohost_invites (
   accepted_at timestamptz,
   revocation_requested_at timestamptz,
   revocation_completed_at timestamptz,
+  last_token_issued_at timestamptz,
   constraint stream_cohost_invites_distinct_users
     check (host_user_id <> invitee_user_id),
   constraint stream_cohost_invites_expiry_after_creation
