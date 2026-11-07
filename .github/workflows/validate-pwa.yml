@@ -23,3 +23,24 @@ jobs:
         run: node --check service-worker.js
       - name: Check required offline fallback
         run: test -s offline.html
+      - name: Validate required Chromium icon sizes and safe navigation caching
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
+          const icons = manifest.icons || [];
+          for (const [size, file] of [[192, 'pwa-icon-192.png'], [512, 'pwa-icon-512.png']]) {
+            const icon = icons.find(item => item.src === './' + file && item.sizes === size + 'x' + size && item.type === 'image/png');
+            if (!icon) throw new Error('Manifest is missing the ' + size + 'x' + size + ' PNG icon.');
+            const png = fs.readFileSync(file);
+            if (png.readUInt32BE(16) !== size || png.readUInt32BE(20) !== size) {
+              throw new Error(file + ' does not have the declared dimensions.');
+            }
+          }
+          const worker = fs.readFileSync('service-worker.js', 'utf8');
+          if (!worker.includes('!url.search') || !worker.includes('!responseUrl.search')) {
+            throw new Error('Service worker must not cache query-bearing auth callback navigations.');
+          }
+          if (!worker.includes('cache.put(ROOT_URL')) throw new Error('Only the clean root app shell should be cached.');
+          console.log('Validated 192/512 PNG icons and query-safe root-shell caching.');
+          NODE
