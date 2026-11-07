@@ -3,10 +3,12 @@ name: Validate Duo Live draft
 on:
   push:
     branches:
-      - "feat/duo-live-invitation-security-draft"
+      - "feat/duo-live-client-and-dual-camera-layout"
     paths:
       - "supabase/functions/duo-live-invites/**"
+      - "supabase/functions/livekit-token/**"
       - "docs/duo-live/**"
+      - "supabase/functions/livekit-token/**"
       - ".github/workflows/validate-duo-live-draft.yml"
   pull_request:
     paths:
@@ -46,6 +48,14 @@ jobs:
           if (!source.includes('status: "revoking"')) throw new Error('Accepted invitation revocation must enter the retryable revoking state.');
           if (!source.includes('listParticipants(roomName)')) throw new Error('Revocation must verify participant presence before releasing the slot.');
           if (!source.includes('requestedAt + 70_000')) throw new Error('Unused 60-second co-host tokens must expire before releasing a missing participant slot.');
+          const searchStart = source.indexOf('if (action === "search")');
+          const searchEnd = source.indexOf('if (action === "host-inbox")', searchStart);
+          const search = searchStart >= 0 && searchEnd > searchStart ? source.slice(searchStart, searchEnd) : '';
+          if (!search.includes('activeStreamFor(user.id)')) throw new Error('Only a host with an active Live may search for a co-host.');
+          if (!search.includes('consumeRateLimit("search", 60_000, 30)')) throw new Error('Profile search must use the durable per-user rate limit.');
+          if (!source.includes('consumeRateLimit("invite", 60 * 60_000, 10)')) throw new Error('Invitation creation must use the durable per-user rate limit.');
+          if (!source.includes('host_live: activeStreams.get')) throw new Error('Invitee inbox must distinguish active and ended host streams.');
+
           if (!schema.includes("'expired'")) throw new Error('Invitation schema must allow an explicit expired state.');
           if (!schema.includes("where status in ('pending', 'accepted', 'revoking')")) throw new Error('Pending, accepted and revoking invitations must reserve the co-host slot.');
           if (!source.includes('{ status: "expired" }')) throw new Error('Expired pending invitations must be transitioned to expired.');

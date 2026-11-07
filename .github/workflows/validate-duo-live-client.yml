@@ -1,0 +1,99 @@
+name: Validate Duo Live browser client
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-duo-live-client.yml"
+  push:
+    branches:
+      - "feat/duo-live-client-and-dual-camera-layout"
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-duo-live-client.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Parse inline application JavaScript
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+            .map(match => match[1]).filter(source => source.trim());
+          if (!scripts.length) throw new Error('No inline application script found');
+          scripts.forEach((source, index) => {
+            try { new Function(source); }
+            catch (error) { throw new Error('Inline script ' + (index + 1) + ' failed syntax validation: ' + error.message); }
+          });
+          const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+          if (new Set(ids).size !== ids.length) throw new Error('Duplicate HTML IDs detected');
+          for (const required of [
+            'joinDuoLiveAsCohost',
+            'leaveDuoLiveBtn',
+            'duo-camera-grid',
+            "requestLiveKitToken(roomName,'cohost')"
+          ]) {
+            if (!html.includes(required)) throw new Error('Missing Duo Live browser contract: ' + required);
+          }
+          if (!html.includes("tile.dataset.participantId=identity")) {
+            throw new Error('Every camera tile must be keyed by participant identity for correct unsubscribe cleanup.');
+          }
+          if (!html.includes("const identity=participant?.identity||'participant'")) {
+            throw new Error('Camera tile creation must retain the LiveKit participant identity.');
+          }
+          const attachStart = html.indexOf('function attachDuoRoomTrack');
+          const attachEnd = html.indexOf('function removeDuoRoomTrack', attachStart);
+          const attach = attachStart >= 0 && attachEnd > attachStart ? html.slice(attachStart, attachEnd) : '';
+          const cleanupStart = html.indexOf('function removeDuoRoomTrack');
+          const cleanupEnd = html.indexOf('function restoreDuoCameraTracks', cleanupStart);
+          const cleanup = cleanupStart >= 0 && cleanupEnd > cleanupStart ? html.slice(cleanupStart, cleanupEnd) : '';
+          if (!html.includes('element.dataset.livekitTrackSid=track.sid||') || !attach.includes("const trackSid=track.sid||''")) {
+            throw new Error('Camera track replacement must be keyed by LiveKit track SID.');
+          }
+          if (!cleanup.includes("!media?.querySelector('video')")) {
+            throw new Error('Unsubscribing an old camera track must not remove a tile that already contains its replacement.');
+          }
+                    const cohostStart = html.indexOf('async function joinDuoLiveAsCohost');
+          const cohostEnd = html.indexOf("document.getElementById('leaveDuoLiveBtn').addEventListener", cohostStart);
+          const cohostJoin = cohostStart >= 0 && cohostEnd > cohostStart ? html.slice(cohostStart, cohostEnd) : '';
+          if (!cohostJoin.includes('TrackUnsubscribed') || !cohostJoin.includes('publication?.source===LivekitClient.Track.Source.ScreenShare') || !cohostJoin.includes('restoreDuoCameraTracks(room,stage,true)')) {
+            throw new Error('Co-host must restore both subscribed camera tiles after the host stops screen sharing.');
+          }
+          if (!cohostJoin.includes('setCameraEnabled(true)') || !cohostJoin.includes('setMicrophoneEnabled(true)')) {
+            throw new Error('Co-host must publish a local camera and microphone.');
+          }
+          if (!cohostJoin.includes('Camera unavailable:') || !cohostJoin.includes('Microphone unavailable:') ||
+              !cohostJoin.includes('if(!cameraReady&&!microphoneReady)')) {
+            throw new Error('Co-host camera and microphone startup must fail independently, allowing the available track to continue.');
+          }
+          const startFlowStart = html.indexOf('async function startLiveBroadcast');
+          const startFlowEnd = html.indexOf("document.getElementById('endLiveBtn').addEventListener", startFlowStart);
+          const startFlow = startFlowStart >= 0 && startFlowEnd > startFlowStart ? html.slice(startFlowStart, startFlowEnd) : '';
+          if (!startFlow.includes('if(activeDuoCohostRoom)')) {
+            throw new Error('A co-host must leave Duo Live before starting a separate host stream.');
+          }
+          const inboxStart = html.indexOf('async function loadDuoLiveInbox');
+          const inboxEnd = html.indexOf("document.getElementById('duoLiveRefreshInboxBtn')", inboxStart);
+          const inbox = inboxStart >= 0 && inboxEnd > inboxStart ? html.slice(inboxStart, inboxEnd) : '';
+          if (!inbox.includes("invite.status==='accepted'") || !inbox.includes('addJoinAction()')) {
+            throw new Error('Accepted co-host invitations must remain joinable after a page refresh.');
+          }
+          if (!inbox.includes("invite.status==='revoking'") || !inbox.includes('invite.host_live')) {
+            throw new Error('The invite inbox must distinguish revoking invitations and inactive host streams.');
+          }
+          if (!cohostJoin.includes('RoomEvent.Reconnecting') || !cohostJoin.includes('RoomEvent.Reconnected') ||
+              !cohostJoin.includes('RoomEvent.Disconnected') || !cohostJoin.includes('loadDuoLiveInbox()')) {
+            throw new Error('Co-host disconnects must preserve a visible path to rejoin with a fresh token.');
+          }
+          console.log('Validated ' + scripts.length + ' inline script(s), ' + ids.length + ' unique HTML IDs, participant-keyed camera tile replacement, persistent co-host rejoin and role separation.');
+          NODE
