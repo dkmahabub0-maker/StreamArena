@@ -1,0 +1,54 @@
+name: Validate Community navigation
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-community.yml"
+  push:
+    branches:
+      - "fix/community-mobile-navigation"
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-community.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-community:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate Community placement, navigation and inline JavaScript
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          if (ids.filter(id => id === 'community').length !== 1) {
+            throw new Error('The page must contain exactly one Community target.');
+          }
+          const mainStart = html.indexOf('<main class="main">');
+          const mainEnd = html.indexOf('</main>', mainStart);
+          const communityStart = html.indexOf('<section class="section" id="community">');
+          if (mainStart < 0 || mainEnd < 0 || communityStart < mainStart || communityStart > mainEnd) {
+            throw new Error('Community content must be inside the main column, not the desktop-only sidebar.');
+          }
+          if (!html.includes('href="#community"') || !html.includes('id="chatForm"') || !html.includes('id="chatLines"')) {
+            throw new Error('Community navigation and chat content must remain available.');
+          }
+          if (!html.includes('#community{scroll-margin-top:90px}')) {
+            throw new Error('Community anchor must account for the sticky header.');
+          }
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+            .filter(match => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
+          scripts.forEach((match, index) => {
+            try { new Function(match[2]); }
+            catch (error) { throw new Error('Inline script ' + (index + 1) + ': ' + error.message); }
+          });
+          console.log('Community placement, anchor, chat controls and inline scripts validated.');
+          NODE
