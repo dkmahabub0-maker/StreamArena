@@ -234,6 +234,12 @@ Deno.serve(async (req: Request) => {
         if (participantPresent) {
           // LiveKit removes the active participant and revokes its current token.
           await livekit.removeParticipant(roomName, invite.invitee_user_id);
+          // Confirm the participant is actually gone before releasing the co-host slot.
+          const remainingParticipants = await livekit.listParticipants(roomName);
+          if (remainingParticipants.some((participant) => participant.identity === invite.invitee_user_id)) {
+            return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
+              error: "LiveKit accepted removal but the co-host is still present. Retry removal." }, 202, origin);
+          }
         } else if (Date.now() < requestedAt + 70_000) {
           // A previously issued 60-second token may still be unused. Keep the
           // partial-unique-index slot reserved until its expiry plus clock skew.
