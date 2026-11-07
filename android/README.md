@@ -24,7 +24,7 @@ The Android debug build runs from pull requests that modify `android/**`, and ca
 ## Important limitations
 
 - This is an early prototype, not a production-ready release.
-- No APK has been signed or published.
+- No release-key-signed APK has been produced or published; the CI artifact is a debug build signed with the Android debug key.
 - No physical Android device test has been performed yet.
 - Current prototype uses email/password authentication; password reset, OAuth, session refresh, profile setup, and robust token refresh are not yet implemented.
 - The current implementation creates a `streams` row, marks it live, and sends the website's 25-second heartbeat. This path depends on the existing `streams` Data API exposure and owner-scoped RLS policies; no production schema or policy changes are included.
