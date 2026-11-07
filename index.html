@@ -673,6 +673,7 @@ function openLivePanel(mode = 'start') {
   document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'), {className:'sub', textContent:'Video will appear here'}));
   const enableAudio=document.getElementById('liveEnableAudioBtn');if(enableAudio)enableAudio.style.display='none';
   const playMedia=document.getElementById('livePlayMediaBtn');if(playMedia)playMedia.style.display='none';
+  const resumeVideo=document.getElementById('liveResumeVideoBtn');if(resumeVideo)resumeVideo.style.display='none';
   liveMode = mode;
 }
 function updateLiveControlLabels() {
@@ -984,6 +985,76 @@ async function playViewerMediaFromGesture() {
   if(failed)toast('Playback is still blocked. Check Safari site settings and tap Enable stream audio if shown.');
 }
 document.getElementById('livePlayMediaBtn').addEventListener('click',playViewerMediaFromGesture);
+async function resumeViewerVideoFromGesture(){
+  const room=activeLiveRoom;
+  const button=document.getElementById('liveResumeVideoBtn');
+  if(!room)return;
+  if(button)button.disabled=true;
+  try{
+    if(typeof room.startVideo==='function')await room.startVideo();
+    else{
+      const videos=[...document.getElementById('liveStage').querySelectorAll('video')];
+      if(!videos.length)throw new Error('No video track is currently attached.');
+      const results=await Promise.allSettled(videos.map(video=>video.play()));
+      if(results.every(result=>result.status==='rejected'))throw new Error('Browser blocked video playback. Check site permissions and try again.');
+    }
+    if(button)button.style.display='none';
+  }catch(err){
+    if(button)button.style.display='inline-block';
+    toast(err.message||'Could not resume video. Tap again or check browser playback permissions.');
+  }finally{if(button)button.disabled=false;}
+}
+document.getElementById('liveResumeVideoBtn').addEventListener('click',resumeViewerVideoFromGesture);
+function startViewerVideoWatchdog(element) {
+  if(!element||element.dataset.viewerVideoWatchdog==='true')return;
+  const stage=document.getElementById('liveStage');
+  if(!stage||!stage.contains(element))return;
+  element.dataset.viewerVideoWatchdog='true';
+  element.dataset.viewerVideoStalled='false';
+  let lastFrameAt=Date.now();
+  let lastCurrentTime=element.currentTime||0;
+  let frameRequest=null;
+  const updateResumeButton=()=>{
+    const stalled=[...stage.querySelectorAll('video')].some(video=>video.dataset.viewerVideoStalled==='true');
+    const button=document.getElementById('liveResumeVideoBtn');
+    if(button)button.style.display=stalled?'inline-block':'none';
+  };
+  const markFrame=()=>{
+    lastFrameAt=Date.now();
+    lastCurrentTime=element.currentTime||0;
+    element.dataset.viewerVideoStalled='false';
+    updateResumeButton();
+  };
+  element.__viewerMarkFrame=markFrame;
+  if(typeof element.requestVideoFrameCallback==='function'){
+    const onFrame=()=>{
+      markFrame();
+      if(element.isConnected)frameRequest=element.requestVideoFrameCallback(onFrame);
+    };
+    frameRequest=element.requestVideoFrameCallback(onFrame);
+  }
+  const timer=setInterval(()=>{
+    if(!element.isConnected||(!activeLiveRoom&&!activeDuoCohostRoom)){
+      clearInterval(timer);
+      if(frameRequest!==null)element.cancelVideoFrameCallback?.(frameRequest);
+      return;
+    }
+    if(document.hidden){lastFrameAt=Date.now();lastCurrentTime=element.currentTime||0;return;}
+    if(typeof element.requestVideoFrameCallback!=='function'){
+      const currentTime=element.currentTime||0;
+      if(currentTime>lastCurrentTime+0.05){lastCurrentTime=currentTime;markFrame();}
+    }
+    if(element.readyState>=2&&Date.now()-lastFrameAt>=8000){
+      element.dataset.viewerVideoStalled='true';
+      updateResumeButton();
+      const status=document.getElementById('liveStatus');
+      if(status&&(activeLiveRoom||activeDuoCohostRoom)){
+        status.textContent='Video frames have stopped updating. Audio may continue; tap “Tap to resume video” to retry.';
+      }
+    }
+  },2500);
+  element.__viewerVideoWatchdogTimer=timer;
+}
 function attachLiveTrack(track, stage, muted = false) {
   const element = track.attach();
   if (element.tagName === 'VIDEO') {
@@ -992,13 +1063,71 @@ function attachLiveTrack(track, stage, muted = false) {
     element.setAttribute('playsinline','');
     element.setAttribute('webkit-playsinline','');
     element.muted = muted;
-    element.style.cssText = 'width:100%;height:100%;max-height:520px;object-fit:contain';
+    element.style.cssText = 'width:100%;height:100%;max-height:520px;object-fit:contain;object-position:center center';
+    // Report the actual decoded viewer dimensions; the local preview alone
+    // cannot establish the quality received by remote viewers.
+    const reportViewerResolution = async () => {
+      if (stage?.id !== 'liveStage' || !element.isConnected || !element.videoWidth || !element.videoHeight) return;
+      const status = document.getElementById('liveStatus');
+      if (!status || !activeLiveRoom) return;
+      let diagnostics = 'Connected · received video ' + element.videoWidth + '×' + element.videoHeight;
+      try {
+        // LiveKit exposes receiver-side WebRTC stats on remote video tracks.
+        // Keep this read-only: do not force a quality layer or change bitrate.
+        const stats = await track.getReceiverStats?.();
+        if (stats) {
+          if (Number.isFinite(stats.framesDropped)) diagnostics += ' · dropped frames ' + stats.framesDropped;
+          if (Number.isFinite(stats.packetsLost)) diagnostics += ' · packets lost ' + stats.packetsLost;
+          if (Number.isFinite(stats.jitter)) diagnostics += ' · jitter ' + Math.round(stats.jitter * 1000) + ' ms';
+        }
+        const bitrate = track.currentBitrate;
+        if (Number.isFinite(bitrate) && bitrate > 0) diagnostics += ' · receive ' + Math.round(bitrate / 1000) + ' kbps';
+      } catch (diagnosticError) {
+        console.debug('Viewer video receiver diagnostics unavailable:', diagnosticError);
+      }
+      if (status.isConnected && activeLiveRoom) status.textContent = diagnostics;
+    };
+    element.addEventListener('loadedmetadata', reportViewerResolution, { once: true });
+    element.addEventListener('resize', reportViewerResolution);
+    // Take a second sample after WebRTC has had time to accumulate bitrate/stats.
+    setTimeout(reportViewerResolution, 2000);
   } else if (element.tagName === 'AUDIO') {
     element.autoplay = true;
   }
   stage.append(element);
+  if(element.tagName==='VIDEO'&&!muted&&stage.id==='liveStage')startViewerVideoWatchdog(element);
   const playback=element.play?.();
   if(playback&&typeof playback.catch==='function')playback.catch(()=>showViewerPlaybackFallback());
+}
+// Mobile browsers may suspend video rendering while StreamArena is backgrounded.
+// When the page returns to the foreground, retry playback on the existing live
+// elements so the viewer continues at the current live edge without reconnecting.
+let viewerForegroundRecoveryBound = false;
+function recoverViewerVideoOnForeground() {
+  if (document.visibilityState === 'hidden' || !activeLiveRoom || activeStreamId) return;
+  const stage = document.getElementById('liveStage');
+  if (!stage) return;
+  const videos = [...stage.querySelectorAll('video')];
+  if (!videos.length) return;
+  videos.forEach(video => {
+    if (!video.isConnected) return;
+    video.__viewerMarkFrame?.();
+    const attempt = video.play?.();
+    if (attempt && typeof attempt.catch === 'function') {
+      attempt.catch(() => {
+        const button = document.getElementById('liveResumeVideoBtn');
+        if (button) button.style.display = 'inline-block';
+        const status = document.getElementById('liveStatus');
+        if (status) status.textContent = 'Return to the stream and tap “Tap to resume video” if playback does not restart.';
+      });
+    }
+  });
+}
+if (!viewerForegroundRecoveryBound) {
+  document.addEventListener('visibilitychange', recoverViewerVideoOnForeground);
+  window.addEventListener('pageshow', recoverViewerVideoOnForeground);
+  window.addEventListener('focus', recoverViewerVideoOnForeground);
+  viewerForegroundRecoveryBound = true;
 }
 async function loadLiveStreams() {
   const cards = document.getElementById('streamCards');
@@ -1060,6 +1189,38 @@ async function watchLiveStream(stream) {
     const enableAudio=document.getElementById('liveEnableAudioBtn');
     room.on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged,()=>{
       if(enableAudio)enableAudio.style.display=room.canPlaybackAudio?'none':'inline-block';
+    });
+    room.on(LivekitClient.RoomEvent.Reconnecting,()=>{
+      if(activeLiveRoom!==room)return;
+      document.getElementById('liveStatus').textContent='Connection interrupted · trying to reconnect. Keep this page open.';
+    });
+    room.on(LivekitClient.RoomEvent.Reconnected,async()=>{
+      if(activeLiveRoom!==room)return;
+      document.getElementById('liveStatus').textContent='Reconnected · restoring live playback…';
+      const media=[...document.getElementById('liveStage').querySelectorAll('video,audio')];
+      const videos=media.filter(element=>element.tagName==='VIDEO');
+      const results=await Promise.allSettled(videos.map(element=>element.play()));
+      if(activeLiveRoom!==room)return;
+      const failed=results.some(result=>result.status==='rejected');
+      const resumeButton=document.getElementById('liveResumeVideoBtn');
+      if(resumeButton)resumeButton.style.display=failed?'inline-block':'none';
+      document.getElementById('liveStatus').textContent=failed
+        ?'Reconnected · tap “Tap to resume video” if the picture does not return.'
+        :videos.length?'Reconnected · video playback resumed.':'Reconnected · waiting for the broadcaster video track.';
+    });
+    const resumeVideo=document.getElementById('liveResumeVideoBtn');
+    room.on(LivekitClient.RoomEvent.VideoPlaybackStatusChanged,(playing)=>{
+      if(resumeVideo)resumeVideo.style.display=playing?'none':'inline-block';
+      const status=document.getElementById('liveStatus');
+      if(status&&activeLiveRoom===room&&!playing)status.textContent='Video playback is blocked. Tap “Tap to resume video”; audio can continue.';
+    });
+    room.on(LivekitClient.RoomEvent.TrackStreamStateChanged,(publication,streamState)=>{
+      if(publication?.kind!=='video')return;
+      const paused=String(streamState).toLowerCase().includes('paused');
+      const status=document.getElementById('liveStatus');
+      if(status&&activeLiveRoom===room)status.textContent=paused
+        ?'Video stream paused by network bandwidth; waiting for LiveKit to resume it. Audio remains separate.'
+        :'Video stream resumed by LiveKit.';
     });
     room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>{ const target=document.getElementById('liveStage'); if(track.kind==='video'){ if(publication?.source===LivekitClient.Track.Source.ScreenShare){target.replaceChildren();target.dataset.videoSource='screen';} else if(publication?.source===LivekitClient.Track.Source.Camera){if(target.dataset.videoSource==='screen')return;target.querySelectorAll('video').forEach(video=>video.remove());target.dataset.videoSource='camera';} } attachLiveTrack(track,target); });
     room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>{ track.detach().forEach(element=>element.remove()); if(publication?.source===LivekitClient.Track.Source.ScreenShare){const camera=participant?.getTrackPublication(LivekitClient.Track.Source.Camera);if(camera?.isSubscribed&&camera.track){const target=document.getElementById('liveStage');target.replaceChildren();target.dataset.videoSource='camera';attachLiveTrack(camera.track,target);}} });
@@ -1164,7 +1325,13 @@ async function startLiveBroadcast(){
       :'Camera and microphone are ready. Use Share game screen to capture a supported screen or browser tab.';
     updateLiveControlLabels();
     document.getElementById('liveHeading').textContent=title;
-    document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.';
+    let captureResolution='';
+    try {
+      const capturedTrack=activeLiveRoom?.localParticipant?.getTrackPublication(LivekitClient.Track.Source.Camera)?.track?.mediaStreamTrack;
+      const captureSettings=capturedTrack?.getSettings?.();
+      if(captureSettings?.width&&captureSettings?.height)captureResolution=' · camera capture '+captureSettings.width+'×'+captureSettings.height;
+    } catch(diagnosticError) { console.debug('Camera capture diagnostics unavailable:',diagnosticError); }
+    document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.'+captureResolution;
     if(window.streamHeartbeatTimer)clearInterval(window.streamHeartbeatTimer);
     window.streamHeartbeatTimer=setInterval(async()=>{
       if(!activeStreamId||!currentUser)return;
