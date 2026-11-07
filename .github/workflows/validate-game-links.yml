@@ -34,6 +34,15 @@ jobs:
             }
           }
           console.log('All three game store links are present.');
+          for (const link of requiredLinks) {
+            const escaped = link.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\          console.log('All three game store links are present.');
+');
+            const anchor = [...html.matchAll(/<a\\b[^>]*>/g)].map(match => match[0])
+              .find(tag => tag.includes('href="' + link + '"'));
+            if (!anchor || !/target="_blank"/.test(anchor) || !/rel="noopener noreferrer"/.test(anchor)) {
+              throw new Error('External game link must open safely in a new tab: ' + link);
+            }
+          }
 
           const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
             .filter((match) => !/\bsrc\s*=/.test(match[1]))
