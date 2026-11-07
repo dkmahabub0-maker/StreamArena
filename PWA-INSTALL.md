@@ -17,3 +17,8 @@ The installable PWA flow is targeted at **Google Chrome on Android and desktop**
 - Live video, chat, sign-in and streaming still require an internet connection.
 - Offline support is limited to a simple offline notice and the query-free root app shell. The service worker does not cache query-bearing auth callbacks, private account data, API responses, chat, or LiveKit media.
 - A PWA cannot guarantee background live broadcasting or capture another app/game's screen.
+
+
+## Verification note
+
+Installation visibility depends on the browser's installability checks and a successful HTTPS deployment. A browser may show its own Install app option even when the in-page prompt button is unavailable. The PWA does not provide native Android screen capture or background broadcasting.
