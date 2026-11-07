@@ -20,6 +20,7 @@
   .top-actions>button[data-modal="signup"]{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;float:none!important;grid-column:auto!important;grid-row:1!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:44px!important;margin:0!important;transform:none!important;flex:none!important;white-space:nowrap!important}
   .top-actions>.account-menu{grid-column:1 / -1!important;justify-self:end!important;flex:none!important}
 }
+.top-actions #installAppBtn[hidden]{display:none!important;}
 /* Authenticated users must not see guest actions; mobile rules above use !important. */
 .top-actions.is-authenticated>button[data-modal="login"],
 .top-actions.is-authenticated>button[data-modal="signup"]{display:none!important;}
@@ -73,6 +74,7 @@
 #families .family-chat-log{max-height:220px;overflow:auto;background:#070b16;border:1px solid var(--line);border-radius:9px;padding:8px}
 #families .family-message{margin:5px 0;padding:6px 8px;border-radius:7px;background:#121a2c;overflow-wrap:anywhere}
 @media(max-width:600px){#families .family-card-head{align-items:flex-start;flex-direction:column}#families .family-create>*{width:100%}}
+#community{scroll-margin-top:90px}
 </style>
 </head>
 <body>
@@ -80,7 +82,7 @@
   <div class="brand"><div class="logo">A</div><span>Stream<span>Arena</span><small class="tagline">Your Game. Your Stream. Your Arena.</small></span></div>
   <nav class="nav"><a href="#home" class="active" data-en="⌂ Home" data-bn="⌂ হোম">⌂ Home</a><a href="#live" data-en="🔴 Live" data-bn="🔴 লাইভ">🔴 Live</a><a href="#tournaments" data-en="🏆 Tournaments" data-bn="🏆 টুর্নামেন্ট">🏆 Tournaments</a><a href="#games" data-en="🎮 Games" data-bn="🎮 গেমস">🎮 Games</a><a href="#community" data-en="♟ Community" data-bn="♟ কমিউনিটি">♟ Community</a><a href="#families">👥 Families</a></nav>
   <input class="search" id="search" placeholder="⌕ Search games, streamers...">
-  <button class="lang" id="langBtn">🌐 EN</button><div class="top-actions"><button class="btn login" data-modal="login">Login</button><button class="btn primary" data-modal="signup">Sign Up</button><div class="account-menu" id="headerAccountMenu"><button class="btn primary account-avatar-btn" type="button" id="accountMenuToggle" aria-label="Open account menu" title="My Account" aria-expanded="false" aria-controls="accountDropdown"><span id="accountAvatarInitials">👤</span></button><div class="account-dropdown" id="accountDropdown"><strong id="headerAccountName">Player</strong><p class="sub" id="headerAccountEmail">—</p><div class="account-detail"><span class="sub">Username</span><br><span id="headerAccountUsername">—</span></div><div class="account-detail"><span class="sub">Country</span><br><span id="headerAccountCountry">—</span></div><button class="btn" type="button" id="headerLogoutBtn">Log out</button></div></div></div>
+  <button class="lang" id="langBtn">🌐 EN</button><div class="top-actions"><button class="btn" type="button" id="installAppBtn" data-en="Install App" data-bn="অ্যাপ ইনস্টল" hidden>Install App</button><button class="btn login" data-modal="login">Login</button><button class="btn primary" data-modal="signup">Sign Up</button><div class="account-menu" id="headerAccountMenu"><button class="btn primary account-avatar-btn" type="button" id="accountMenuToggle" aria-label="Open account menu" title="My Account" aria-expanded="false" aria-controls="accountDropdown"><span id="accountAvatarInitials">👤</span></button><div class="account-dropdown" id="accountDropdown"><strong id="headerAccountName">Player</strong><p class="sub" id="headerAccountEmail">—</p><div class="account-detail"><span class="sub">Username</span><br><span id="headerAccountUsername">—</span></div><div class="account-detail"><span class="sub">Country</span><br><span id="headerAccountCountry">—</span></div><button class="btn" type="button" id="headerLogoutBtn">Log out</button></div></div></div>
 </header>
 <div class="layout" id="home">
 <aside class="side">
@@ -145,10 +147,11 @@
 <button class="btn primary" type="submit" style="justify-self:start">Submit ticket</button>
 </form>
 <div style="margin-top:18px"><h3>My support tickets</h3><div id="supportTickets" class="sub">Sign in to view your tickets.</div></div>
-</section></main>
+</section>
+<section class="section" id="community"><div class="section-head"><h2>👥 Community · Live Chat</h2><span class="sub">Live chat</span></div><div id="chatLines" aria-live="polite"></div><form class="chat-input" id="chatForm"><input id="chatText" aria-label="Community chat message" placeholder="Type a message..." maxlength="180"><button class="btn primary" type="submit" aria-label="Send community message">➤</button></form></section>
+</main>
 <aside class="rightcol">
 <div class="rightbox"><div class="user"><div class="avatar">👾</div><div><b id="accountName">Guest Player</b><small id="authStatus">Not signed in</small></div></div><div id="guestActions" style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" data-modal="login">Login</button><button class="btn primary" style="flex:1" data-modal="signup">Sign Up</button></div><button class="btn" id="logoutBtn" style="display:none;width:100%;margin-top:13px">Log out</button></div>
-<div class="rightbox" id="community"><div class="section-head"><h2>🔴 Live Chat</h2><span class="sub">Live chat</span></div><div id="chatLines"></div><form class="chat-input" id="chatForm"><input id="chatText" placeholder="Type a message..." maxlength="180"><button class="btn primary">➤</button></form></div>
 <div class="rightbox" id="leaderboard"><div class="section-head"><h2>♛ Featured Streamers</h2><span class="sub">Sample data · Not live rankings</span></div><div class="rank"><span class="num">1</span><div class="avatar">🧑🏽‍🚀</div><div><b>Rafi Gaming</b><div class="sub">2.4M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">2</span><div class="avatar">👩🏻‍🎤</div><div><b>Liza Gaming</b><div class="sub">1.8M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">3</span><div class="avatar">🧔🏽</div><div><b>Xtreme Gamer</b><div class="sub">1.5M followers</div></div><button class="btn primary follow">Follow</button></div><div class="rank"><span class="num">4</span><div class="avatar">🎧</div><div><b>Techno Gaming</b><div class="sub">1.2M followers</div></div><button class="btn primary follow">Follow</button></div></div>
 </aside></div>
 <footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div><a href="#help" style="color:inherit">Help Center</a> · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
@@ -1224,6 +1227,46 @@ refreshSession();
 loadLiveStreams();
 setInterval(()=>{if(document.visibilityState!=='hidden')loadLiveStreams();},15000);
 
+let streamArenaInstallPrompt = null;
+const installAppButton = document.getElementById('installAppBtn');
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  streamArenaInstallPrompt = event;
+  if (installAppButton) {
+    installAppButton.disabled = false;
+    installAppButton.hidden = false;
+  }
+});
+if (installAppButton) {
+  installAppButton.addEventListener('click', async () => {
+    const promptEvent = streamArenaInstallPrompt;
+    if (!promptEvent) {
+      installAppButton.hidden = true;
+      return;
+    }
+    streamArenaInstallPrompt = null;
+    installAppButton.disabled = true;
+    try {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      // A dismissed prompt can only be shown again after the browser emits a
+      // new beforeinstallprompt event, so do not leave an inert button visible.
+      installAppButton.hidden = true;
+      if (choice?.outcome === 'dismissed') {
+        console.info('StreamArena installation was dismissed; waiting for a new browser prompt event.');
+      }
+    } catch (error) {
+      installAppButton.hidden = true;
+      console.warn('PWA install prompt could not be opened:', error);
+    } finally {
+      installAppButton.disabled = false;
+    }
+  });
+}
+window.addEventListener('appinstalled', () => {
+  if (installAppButton) installAppButton.hidden = true;
+  streamArenaInstallPrompt = null;
+});
 </script><script>
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   window.addEventListener("load", () => {
@@ -1232,4 +1275,5 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
     });
   });
 }
+
 </script><script src="./family.js"></script></body></html>
