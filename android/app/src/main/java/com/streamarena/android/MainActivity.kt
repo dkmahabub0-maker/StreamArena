@@ -73,7 +73,16 @@ class MainActivity : ComponentActivity() {
                 val activeRoom = room ?: error("Start your Live first.")
                 val started = activeRoom.localParticipant.setScreenShareEnabled(
                     true,
-                    ScreenCaptureParams(mediaProjectionPermissionResultData = data)
+                    ScreenCaptureParams(
+                        mediaProjectionPermissionResultData = data,
+                        onStop = {
+                            sharing = false
+                            runOnUiThread {
+                                updateControls()
+                                setStatus("Android stopped screen capture. Your Live can continue.")
+                            }
+                        }
+                    )
                 )
                 sharing = started
                 updateControls()
