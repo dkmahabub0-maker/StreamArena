@@ -378,10 +378,18 @@ class MainActivity : ComponentActivity() {
             letterSpacing = 0.14f
         }, bottomMargin(dp(12)))
         val quickTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        quickTools.addView(makeButton("Go Live", true) { titleInput.requestFocus() },
+        quickTools.addView(makeButton("Go Live", true) {
+            liveCard.visibility = android.view.View.VISIBLE
+            scroll.post { scroll.smoothScrollTo(0, liveCard.top) }
+            titleInput.requestFocus()
+        },
             LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(6) })
         quickTools.addView(makeButton("Screen Share", false) {
-            if (room == null) setStatus("Start your Live first, then share your phone screen.")
+            selectedLiveMode = "screen"
+            startLiveButton.text = "Start Screen Live"
+            liveCard.visibility = android.view.View.VISIBLE
+            scroll.post { scroll.smoothScrollTo(0, liveCard.top) }
+            if (room == null) setStatus("Select Phone Screen, set a title and start Live first.")
             else {
                 val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                 screenCaptureLauncher.launch(manager.createScreenCaptureIntent())
