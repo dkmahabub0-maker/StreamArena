@@ -95,5 +95,12 @@ jobs:
               !cohostJoin.includes('RoomEvent.Disconnected') || !cohostJoin.includes('loadDuoLiveInbox()')) {
             throw new Error('Co-host disconnects must preserve a visible path to rejoin with a fresh token.');
           }
+          if (!inbox.includes("invite.status==='revoking'") || !inbox.includes('invite.host_live')) {
+            throw new Error('The invite inbox must distinguish revoking invitations and inactive host streams.');
+          }
+          if (!cohostJoin.includes('RoomEvent.Reconnecting') || !cohostJoin.includes('RoomEvent.Reconnected') ||
+              !cohostJoin.includes('RoomEvent.Disconnected') || !cohostJoin.includes('loadDuoLiveInbox()')) {
+            throw new Error('Co-host disconnects must preserve a visible path to rejoin with a fresh token.');
+          }
           console.log('Validated ' + scripts.length + ' inline script(s), ' + ids.length + ' unique HTML IDs, participant-keyed camera tile replacement, persistent co-host rejoin and role separation.');
           NODE
