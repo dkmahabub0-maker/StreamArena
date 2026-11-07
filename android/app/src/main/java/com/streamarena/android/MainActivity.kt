@@ -1,6 +1,7 @@
 package com.streamarena.android
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
@@ -14,6 +15,8 @@ import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.CheckBox
+import android.widget.PopupMenu
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ImageView
@@ -58,7 +61,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var shareButton: Button
     private lateinit var stopShareButton: Button
     private lateinit var endLiveButton: Button
-    private lateinit var signOutButton: Button
+    private lateinit var plusNavButton: Button
+    private var keepScreenAwakeDuringLive = true
+    private var selectedGameCategory = "ACTION"
     private lateinit var otpInput: EditText
     private lateinit var otpVerifyButton: Button
     private lateinit var liveCard: LinearLayout
@@ -316,8 +321,12 @@ class MainActivity : ComponentActivity() {
             typeface = Typeface.DEFAULT_BOLD
             setPadding(dp(12), 0, 0, 0)
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        signOutButton = makeButton("Sign out", false) { signOut() }
-        header.addView(signOutButton, LinearLayout.LayoutParams(dp(90), dp(42)))
+        val menuButton = makeButton("☰", false) { showDashboardMenu(it) }.apply {
+            textSize = 27f
+            contentDescription = "Open menu"
+            setPadding(0, 0, 0, 0)
+        }
+        header.addView(menuButton, LinearLayout.LayoutParams(dp(52), dp(46)))
         root.addView(header, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             bottomMargin = dp(30)
         })
@@ -380,26 +389,12 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.rgb(128, 190, 255))
             typeface = Typeface.DEFAULT_BOLD
             letterSpacing = 0.14f
-        }, bottomMargin(dp(12)))
-        val quickTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        quickTools.addView(makeButton("Go Live", true) {
-            liveCard.visibility = android.view.View.VISIBLE
-            scroll.post { scroll.smoothScrollTo(0, liveCard.top) }
-            titleInput.requestFocus()
-        },
-            LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(6) })
-        quickTools.addView(makeButton("Screen Share", false) {
-            selectedLiveMode = "screen"
-            startLiveButton.text = "Start Screen Live"
-            liveCard.visibility = android.view.View.VISIBLE
-            scroll.post { scroll.smoothScrollTo(0, liveCard.top) }
-            if (room == null) setStatus("Select Phone Screen, set a title and start Live first.")
-            else {
-                val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                screenCaptureLauncher.launch(manager.createScreenCaptureIntent())
-            }
-        }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { leftMargin = dp(6) })
-        root.addView(quickTools, bottomMargin(dp(20)))
+        }, bottomMargin(dp(8)))
+        root.addView(TextView(this).apply {
+            text = "Tap the + button below to choose Camera Live, Phone Screen or a game category."
+            textSize = 13f
+            setTextColor(Color.rgb(166, 178, 202))
+        }, bottomMargin(dp(20)))
         root.addView(TextView(this).apply {
             text = "Welcome to your creator space."
             textSize = 27f
@@ -514,18 +509,101 @@ class MainActivity : ComponentActivity() {
                 setMargins(dp(2), 0, dp(2), 0)
             })
         }
-        navItem("Home") { scroll.smoothScrollTo(0, 0) }
-        navItem("+", true) {
-            liveCard.visibility = android.view.View.VISIBLE
-            scroll.post { scroll.smoothScrollTo(0, liveCard.top) }
-            setStatus("Choose Camera Live or Phone Screen Live, then set a title.")
+        navItem("⌂\nHome") { scroll.smoothScrollTo(0, 0) }
+        plusNavButton = makeButton("＋", true) {
+            plusNavButton.animate().rotationBy(45f).setDuration(160).start()
+            showCreatorMenu(plusNavButton, scroll)
+        }.apply {
+            textSize = 29f
+            minWidth = 0
+            minimumWidth = 0
+            setPadding(0, 0, 0, 0)
+            contentDescription = "Create live or screen share"
         }
-        navItem("Notifications") { setStatus("Notifications will appear here when the notification service is connected.") }
-        navItem("Community") { setStatus("Community feed is not connected yet.") }
-        navItem("Menu") { setStatus("Use the Sign out button at the top to leave your account.") }
+        bottomNav.addView(plusNavButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+            setMargins(dp(2), 0, dp(2), 0)
+        })
+        navItem("♧\nNotifications") { setStatus("Notifications will appear here when the notification service is connected.") }
+        navItem("◎\nCommunity") { setStatus("Community feed is not connected yet.") }
+        navItem("☰\nMenu") { showDashboardMenu(it) }
         liveScreen.addView(bottomNav, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         ))
+    }
+
+
+    private fun showDashboardMenu(anchor: android.view.View) {
+        val popup = PopupMenu(this, anchor)
+        popup.menu.add(0, 1, 0, "⚙  Settings")
+        popup.menu.add(0, 2, 1, "↪  Sign out")
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> showLiveSettings()
+                2 -> signOut()
+            }
+            true
+        }
+        popup.show()
+    }
+
+    private fun showLiveSettings() {
+        val keepAwake = CheckBox(this).apply {
+            text = "Keep screen awake while Live is running"
+            setTextColor(Color.WHITE)
+            isChecked = keepScreenAwakeDuringLive
+            setPadding(dp(20), dp(14), dp(20), dp(14))
+        }
+        AlertDialog.Builder(this)
+            .setTitle("StreamArena settings")
+            .setView(keepAwake)
+            .setPositiveButton("Save") { _, _ ->
+                keepScreenAwakeDuringLive = keepAwake.isChecked
+                if (room != null && keepScreenAwakeDuringLive) {
+                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+                setStatus("Settings saved.")
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showCreatorMenu(anchor: android.view.View, scroll: ScrollView) {
+        val popup = PopupMenu(this, anchor)
+        popup.menu.add(0, 10, 0, "🎥  Go Live — Camera")
+        popup.menu.add(0, 11, 1, "📱  Share Phone Screen")
+        val games = popup.menu.addSubMenu(0, 12, 2, "🎮  Choose Game Category")
+        listOf("ACTION", "BATTLE", "SPORTS", "RACING").forEachIndexed { index, category ->
+            games.add(1, 20 + index, index, category)
+        }
+        popup.setOnDismissListener {
+            anchor.animate().rotation(0f).setDuration(140).start()
+        }
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                10 -> openLiveSetup("camera", scroll)
+                11 -> openLiveSetup("screen", scroll)
+                20, 21, 22, 23 -> {
+                    selectedGameCategory = listOf("ACTION", "BATTLE", "SPORTS", "RACING")[item.itemId - 20]
+                    setStatus("Selected game category: $selectedGameCategory")
+                }
+            }
+            true
+        }
+        popup.show()
+    }
+
+    private fun openLiveSetup(mode: String, scroll: ScrollView) {
+        selectedLiveMode = mode
+        startLiveButton.text = if (mode == "screen") "Start Screen Live" else "Start Camera Live"
+        liveCard.visibility = android.view.View.VISIBLE
+        scroll.post { scroll.smoothScrollTo(0, liveCard.top) }
+        setStatus(if (mode == "screen") {
+            "Phone Screen selected. Enter a title, start Live and approve Android's screen-capture prompt."
+        } else {
+            "Camera Live selected. Enter a title and tap Start Live."
+        })
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -733,6 +811,7 @@ class MainActivity : ComponentActivity() {
             runCatching { room?.localParticipant?.setScreenShareEnabled(false) }
             runCatching { room?.disconnect() }
             room = null
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activeStreamId = null
             sharing = false
             accessToken = null
@@ -792,6 +871,7 @@ class MainActivity : ComponentActivity() {
                 val liveRoom = LiveKit.create(applicationContext)
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
                 room = liveRoom
+                if (keepScreenAwakeDuringLive) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 liveRoom.localParticipant.setMicrophoneEnabled(true)
                 // Screen Live publishes the captured display, not the front-facing camera.
                 liveRoom.localParticipant.setCameraEnabled(selectedLiveMode == "camera")
@@ -868,6 +948,7 @@ class MainActivity : ComponentActivity() {
                 cleanupWarning = cleanupWarning ?: "Room disconnect issue: ${error.message ?: "unknown error"}"
             }
             room = null
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activeStreamId = null
             setStatus(cleanupWarning ?: "Live ended.")
             updateControls()
