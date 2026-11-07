@@ -1227,6 +1227,13 @@ refreshSession();
 loadLiveStreams();
 setInterval(()=>{if(document.visibilityState!=='hidden')loadLiveStreams();},15000);
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(error => {
+      console.warn("StreamArena offline shell registration failed:", error);
+    });
+  });
+}
 let streamArenaInstallPrompt = null;
 const installAppButton = document.getElementById('installAppBtn');
 window.addEventListener('beforeinstallprompt', event => {
