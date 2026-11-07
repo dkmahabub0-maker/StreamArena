@@ -104,6 +104,14 @@ Deno.serve(async (req: Request) => {
       }
       const stream = await activeStreamFor(user.id);
       if (!stream) return reply({ error: "Start your Live before inviting a co-host" }, 409, origin);
+      // Expired pending invitations must release the stream's single co-host slot.
+      const expiredBefore = new Date().toISOString();
+      await rest(
+        `stream_cohost_invites?stream_id=eq.${stream.id}&host_user_id=eq.${user.id}&status=eq.pending&expires_at=lte.${encodeURIComponent(expiredBefore)}`,
+        "PATCH",
+        { status: "expired" },
+      );
+
       const profiles = await rest(`profiles?select=id&id=eq.${inviteeUserId}&limit=1`);
       if (!Array.isArray(profiles) || profiles.length !== 1) {
         return reply({ error: "That StreamArena user was not found" }, 404, origin);
@@ -133,6 +141,12 @@ Deno.serve(async (req: Request) => {
         return reply({ error: "This invitation cannot be changed by this account" }, 403, origin);
       }
       if (Date.parse(invite.expires_at) <= Date.now()) {
+        const expiredAt = new Date().toISOString();
+        await rest(
+          `stream_cohost_invites?id=eq.${invitationId}&invitee_user_id=eq.${user.id}&status=eq.pending&expires_at=lte.${encodeURIComponent(expiredAt)}`,
+          "PATCH",
+          { status: "expired" },
+        );
         return reply({ error: "This invitation has expired" }, 410, origin);
       }
       if (body?.decision !== "accept" && body?.decision !== "decline") {
@@ -142,8 +156,9 @@ Deno.serve(async (req: Request) => {
       if (body.decision === "accept" && (!stream || stream.id !== invite.stream_id)) {
         return reply({ error: "The host's Live is no longer active" }, 409, origin);
       }
+      const acceptBefore = new Date().toISOString();
       const updated = await rest(
-        `stream_cohost_invites?id=eq.${invitationId}&invitee_user_id=eq.${user.id}&status=eq.pending`,
+        `stream_cohost_invites?id=eq.${invitationId}&invitee_user_id=eq.${user.id}&status=eq.pending&expires_at=gt.${encodeURIComponent(acceptBefore)}`,
         "PATCH",
         { status: body.decision === "accept" ? "accepted" : "declined", accepted_at: body.decision === "accept" ? new Date().toISOString() : null },
       );
