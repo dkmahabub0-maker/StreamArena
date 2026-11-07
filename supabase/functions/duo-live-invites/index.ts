@@ -109,6 +109,9 @@ Deno.serve(async (req: Request) => {
     };
 
     if (action === "search") {
+      if (!await activeStreamFor(user.id)) {
+        return reply({ error: "Start your Live before searching for a co-host" }, 409, origin);
+      }
       const username = typeof body?.username === "string" ? body.username.trim() : "";
       if (username.length < 2 || username.length > 32 || !/^[a-zA-Z0-9_. -]+$/.test(username)) {
         return reply({ error: "Enter a username with 2–32 letters, numbers, spaces, dots or underscores" }, 400, origin);
@@ -118,7 +121,7 @@ Deno.serve(async (req: Request) => {
       }
       const params = new URLSearchParams({
         select: "id,username",
-        username: `ilike.*${username.replace(/[%_]/g, "")}*`,
+        username: `ilike.*${username.replace(/_/g, '\\_')}*`,
         id: `neq.${user.id}`,
         limit: "10",
       });
@@ -211,11 +214,12 @@ Deno.serve(async (req: Request) => {
       if (!uuidPattern.test(inviteeUserId) || inviteeUserId === user.id) {
         return reply({ error: "Choose another valid StreamArena user" }, 400, origin);
       }
+      const stream = await activeStreamFor(user.id);
+      if (!stream) return reply({ error: "Start your Live before inviting a co-host" }, 409, origin);
+
       if (!await consumeRateLimit("invite", 60 * 60_000, 10)) {
         return reply({ error: "You have reached the Duo Live invite limit. Try again in the next hour." }, 429, origin);
       }
-      const stream = await activeStreamFor(user.id);
-      if (!stream) return reply({ error: "Start your Live before inviting a co-host" }, 409, origin);
 
       // Expired pending invitations must release the stream's single co-host slot.
       const expiredBefore = new Date().toISOString();
@@ -244,7 +248,7 @@ Deno.serve(async (req: Request) => {
       return reply({ error: "A valid invitation ID is required" }, 400, origin);
     }
     const inviteRows = await rest(
-      `stream_cohost_invites?select=id,stream_id,host_user_id,invitee_user_id,status,expires_at,revocation_requested_at,last_token_issued_at&id=eq.${invitationId}&limit=1`,
+      `stream_cohost_invites?select=id,stream_id,host_user_id,invitee_user_id,status,expires_at,accepted_at,revocation_requested_at,last_token_issued_at&id=eq.${invitationId}&limit=1`,
     );
     const invite = Array.isArray(inviteRows) ? inviteRows[0] : null;
     if (!invite) return reply({ error: "Invitation not found" }, 404, origin);
