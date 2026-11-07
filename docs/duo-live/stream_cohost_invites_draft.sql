@@ -41,6 +41,23 @@ revoke all on table public.stream_cohost_invites from anon, authenticated;
 grant all on table public.stream_cohost_invites to service_role;
 
 
+-- Keep the draft idempotent when revising an earlier local copy of this schema.
+alter table public.stream_cohost_invites
+  add column if not exists revocation_requested_at timestamptz,
+  add column if not exists revocation_completed_at timestamptz,
+  add column if not exists last_token_issued_at timestamptz;
+
+alter table public.stream_cohost_invites
+  drop constraint if exists stream_cohost_invites_status_check;
+alter table public.stream_cohost_invites
+  add constraint stream_cohost_invites_status_check
+  check (status in ('pending', 'accepted', 'revoking', 'declined', 'revoked', 'expired'));
+
+drop index if exists public.stream_cohost_invites_one_active_per_stream;
+create unique index stream_cohost_invites_one_active_per_stream
+  on public.stream_cohost_invites (stream_id)
+  where status in ('pending', 'accepted', 'revoking');
+
 -- Durable, atomic per-user rate limits for authenticated profile search and invitations.
 -- One row per user/action is retained and reset at the next time bucket.
 create table if not exists public.stream_cohost_rate_limits (
