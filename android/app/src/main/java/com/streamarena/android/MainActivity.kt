@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var loginTabButton: Button
     private lateinit var signUpTabButton: Button
     private lateinit var authScreen: ScrollView
-    private lateinit var liveScreen: ScrollView
+    private lateinit var liveScreen: LinearLayout
     private lateinit var signInButton: Button
     private var isSignUpMode = false
     private lateinit var startLiveButton: Button
@@ -621,12 +621,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun authCardShowOtpLabel() {
+    private fun authCardShowOtpLabel(show: Boolean = true) {
         // Reveal the confirmation label added immediately before the OTP field.
         val parent = otpInput.parent as? LinearLayout ?: return
         for (index in 0 until parent.childCount) {
             val child = parent.getChildAt(index)
-            if (child is TextView && child.tag == "otp_label") child.visibility = android.view.View.VISIBLE
+            if (child is TextView && child.tag == "otp_label") {
+                child.visibility = if (show) android.view.View.VISIBLE else android.view.View.GONE
+            }
         }
     }
 
@@ -722,6 +724,15 @@ class MainActivity : ComponentActivity() {
             emailInput.text.clear()
             passwordInput.text.clear()
             titleInput.text.clear()
+            otpInput.text.clear()
+            otpInput.visibility = android.view.View.GONE
+            otpVerifyButton.visibility = android.view.View.GONE
+            authCardShowOtpLabel(false)
+            passwordInput.visibility = android.view.View.VISIBLE
+            signInButton.visibility = android.view.View.VISIBLE
+            loginTabButton.visibility = android.view.View.VISIBLE
+            signUpTabButton.visibility = android.view.View.VISIBLE
+            pendingSignupEmail = null
             setAuthMode(false)
             setContentView(authScreen)
             updateControls()
