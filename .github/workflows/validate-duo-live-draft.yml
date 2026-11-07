@@ -45,6 +45,7 @@ jobs:
           if (!source.includes('rpc/consume_stream_cohost_rate_limit')) throw new Error('The Edge Function must enforce the durable rate limit.');
           if (!source.includes('status: "revoking"')) throw new Error('Accepted invitation revocation must enter the retryable revoking state.');
           if (!source.includes('listParticipants(roomName)')) throw new Error('Revocation must verify participant presence before releasing the slot.');
+          if (!source.includes('const remainingParticipants = await livekit.listParticipants(roomName)')) throw new Error('Revocation must verify participant absence after removal before releasing the slot.');
           if (!source.includes('requestedAt + 70_000')) throw new Error('Unused 60-second co-host tokens must expire before releasing a missing participant slot.');
           if (!schema.includes("'expired'")) throw new Error('Invitation schema must allow an explicit expired state.');
           if (!schema.includes("where status in ('pending', 'accepted', 'revoking')")) throw new Error('Pending, accepted and revoking invitations must reserve the co-host slot.');
