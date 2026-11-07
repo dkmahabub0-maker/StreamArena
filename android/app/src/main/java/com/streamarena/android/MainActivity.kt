@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
     private val cameraPreviewPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted && selectedLiveMode == "camera" && ::liveCard.isInitialized && liveCard.visibility == android.view.View.VISIBLE) startCameraPreview() else if (!granted) setStatus("Camera permission is needed to show the camera preview. Screen Share remains available.")
+        if (granted && selectedLiveMode == "camera" && ::liveCard.isInitialized && liveCard.visibility == android.view.View.VISIBLE) showCameraPreview() else if (!granted) setStatus("Camera permission is needed to show the camera preview. Screen Share remains available.")
     }
 
     private val mediaPermissionLauncher = registerForActivityResult(
@@ -1198,22 +1198,3 @@ class MainActivity : ComponentActivity() {
                         .ifBlank { json.optString("error_description") }
                         .ifBlank { json.optString("message") }
                         .ifBlank { json.optString("error") }
-                }.getOrDefault("")
-                throw IllegalStateException(message.ifBlank { "Server returned HTTP $code" })
-            }
-            return JSONObject(response)
-        } finally {
-            connection.disconnect()
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        // The app does not persist credentials. Explicit Live teardown is handled by End Live.
-        // Avoid blocking lifecycle teardown with a network disconnect call.
-        stopCameraPreview()
-        room = null
-        accessToken = null
-        userId = null
-    }
-}
