@@ -39,6 +39,8 @@ jobs:
           if (!schema.includes("'revoking'")) throw new Error('Invitation schema must reserve the co-host slot while revocation is pending.');
           if (!schema.includes("status in ('pending', 'accepted', 'revoking')")) throw new Error('The unique co-host slot must remain reserved during revocation.');
           if (!schema.includes('revocation_requested_at')) throw new Error('Revocation must record its start time for token-expiry handling.');
+          if (!schema.includes('last_token_issued_at')) throw new Error('The last issued co-host token time must be recorded for race-safe revocation.');
+          if (!source.includes('last_token_issued_at')) throw new Error('Revocation must account for the final token issuance timestamp.');
           if (!schema.includes('consume_stream_cohost_rate_limit')) throw new Error('Durable rate-limit RPC must be present in the draft schema.');
           if (!source.includes('rpc/consume_stream_cohost_rate_limit')) throw new Error('The Edge Function must enforce the durable rate limit.');
           if (!source.includes('status: "revoking"')) throw new Error('Accepted invitation revocation must enter the retryable revoking state.');
