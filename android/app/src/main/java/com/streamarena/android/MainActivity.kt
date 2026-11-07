@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
     private val cameraPreviewPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) startCameraPreview() else setStatus("Camera permission is needed to show the camera preview. Screen Share remains available.")
+        if (granted && selectedLiveMode == "camera" && ::liveCard.isInitialized && liveCard.visibility == android.view.View.VISIBLE) startCameraPreview() else if (!granted) setStatus("Camera permission is needed to show the camera preview. Screen Share remains available.")
     }
 
     private val mediaPermissionLauncher = registerForActivityResult(
@@ -370,7 +370,6 @@ class MainActivity : ComponentActivity() {
         }
         navItem("⌂\nHome") { scroll.smoothScrollTo(0, 0) }
         plusNavButton = makeButton("＋", true) {
-            plusNavButton.animate().rotationBy(45f).setDuration(160).start()
             openLiveSetup("camera", scroll)
         }.apply {
             textSize = 29f
@@ -710,6 +709,7 @@ class MainActivity : ComponentActivity() {
     private fun stopCameraPreview() {
         cameraProvider?.unbindAll()
         cameraProvider = null
+        if (::cameraPreviewView.isInitialized) cameraPreviewView.visibility = android.view.View.GONE
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
