@@ -27,12 +27,29 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Locate Android SDK tools
-        run: echo "$ANDROID_HOME/cmdline-tools/16.0/bin" >> "$GITHUB_PATH"
+      - name: Locate Android SDK manager
+        id: sdk
+        shell: bash
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager was not found under $ANDROID_HOME/cmdline-tools" >&2
+            find "$ANDROID_HOME" -maxdepth 4 -type f -name sdkmanager -print || true
+            exit 1
+          fi
+          echo "sdkmanager=$SDKMANAGER" >> "$GITHUB_OUTPUT"
       - name: Accept Android SDK licenses
-        run: yes | "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" --licenses
+        shell: bash
+        env:
+          SDKMANAGER: ${{ steps.sdk.outputs.sdkmanager }}
+        run: |
+          set +o pipefail
+          yes | "$SDKMANAGER" --licenses
+          set -o pipefail
       - name: Install Android SDK
-        run: "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+        env:
+          SDKMANAGER: ${{ steps.sdk.outputs.sdkmanager }}
+        run: "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
       - name: Assemble debug APK
         working-directory: android
         run: gradle :app:assembleDebug
