@@ -6,12 +6,6 @@ name: Android debug build
     paths:
       - "android/**"
       - ".github/workflows/android-build.yml"
-  push:
-    branches:
-      - feat/native-android-screen-share-foundation
-    paths:
-      - "android/**"
-      - ".github/workflows/android-build.yml"
 
 permissions:
   contents: read
