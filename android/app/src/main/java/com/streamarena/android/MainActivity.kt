@@ -75,11 +75,15 @@ class MainActivity : ComponentActivity() {
     private val mediaPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
-        val cameraGranted = grants[android.Manifest.permission.CAMERA] == true ||
+        val cameraGranted = selectedLiveMode == "screen" ||
+            grants[android.Manifest.permission.CAMERA] == true ||
             ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         val microphoneGranted = grants[android.Manifest.permission.RECORD_AUDIO] == true ||
             ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-        if (cameraGranted && microphoneGranted) startLive() else setStatus("Camera and microphone permissions are required to start a Live.")
+        if (cameraGranted && microphoneGranted) startLive() else {
+            setStatus(if (selectedLiveMode == "screen") "Microphone permission is required to start a Screen Live."
+                else "Camera and microphone permissions are required to start a Camera Live.")
+        }
     }
 
     private val screenCaptureLauncher = registerForActivityResult(
@@ -752,10 +756,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startLive() {
-        val missingPermissions = listOf(
-            android.Manifest.permission.CAMERA,
-            android.Manifest.permission.RECORD_AUDIO
-        ).filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        val requiredPermissions = if (selectedLiveMode == "screen") {
+            listOf(android.Manifest.permission.RECORD_AUDIO)
+        } else {
+            listOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
+        }
+        val missingPermissions = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
         if (missingPermissions.isNotEmpty()) {
             mediaPermissionLauncher.launch(missingPermissions.toTypedArray())
             return
@@ -785,7 +793,8 @@ class MainActivity : ComponentActivity() {
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
                 room = liveRoom
                 liveRoom.localParticipant.setMicrophoneEnabled(true)
-                liveRoom.localParticipant.setCameraEnabled(true)
+                // Screen Live publishes the captured display, not the front-facing camera.
+                liveRoom.localParticipant.setCameraEnabled(selectedLiveMode == "camera")
                 heartbeatJob?.cancel()
                 heartbeatJob = lifecycleScope.launch {
                     while (activeStreamId != null) {
