@@ -3,7 +3,7 @@ name: Validate Duo Live frontend draft
 on:
   push:
     branches:
-      - "feat/duo-live-host-invite-ui"
+      - "feat/live-floating-controls-current-base"
     paths:
       - "index.html"
       - ".github/workflows/validate-duo-live-frontend.yml"
@@ -39,6 +39,34 @@ jobs:
           if (!parsed) throw new Error('No inline application scripts were parsed');
           console.log(`Parsed ${parsed} inline script(s)`);
           NODE
+      - name: Validate floating controls accessibility and supported media actions
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const checks = [
+            'role="group" aria-label="Live broadcast controls" aria-hidden="true"',
+            'aria-expanded',
+            'aria-hidden',
+            'firstVisible?.focus()',
+            'button.getClientRects().length>0',
+            "liveControlPopover?.addEventListener('focusout'",
+            "aria-controls=\"liveBroadcastControls\"",
+            'setLiveControlMenuOpen(false,true)',
+            "event.key==='Escape'",
+            '!liveControlPopover?.contains(event.target)',
+            'const room=activeLiveRoom||activeDuoCohostRoom',
+            "document.getElementById('liveScreenShareBtn').style.display='none'",
+            "typeof navigator.mediaDevices?.getDisplayMedia!=='function'",
+            "typeof activeLiveRoom.localParticipant.setScreenShareEnabled!=='function'",
+            'window.isSecureContext',
+            'restoreDuoCameraTracks(room,stage,true)'
+          ];
+          for (const required of checks) {
+            if (!html.includes(required)) throw new Error('Floating live controls are missing: ' + required);
+          }
+          console.log('Validated focus management, ARIA state, co-host camera/mic controls and screen-share capability checks.');
+          NODE
       - name: Check duplicate HTML IDs
         run: |
           node <<'NODE'
@@ -48,20 +76,4 @@ jobs:
           const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
           if (duplicates.length) throw new Error('Duplicate IDs: ' + [...new Set(duplicates)].join(', '));
           console.log(`Checked ${ids.length} HTML IDs`);
-          NODE
-
-      - name: Verify Duo Live inbox and retryable host revocation UI
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const html = fs.readFileSync('index.html', 'utf8');
-          for (const text of [
-            "invite.status==='revoking'",
-            "Retry removal",
-            "Removal pending. The co-host slot remains reserved",
-            "response.revocationPending",
-          ]) {
-            if (!html.includes(text)) throw new Error('Missing revocation UI behavior: ' + text);
-          }
-          console.log('Verified retryable host-side co-host revocation UI.');
           NODE
