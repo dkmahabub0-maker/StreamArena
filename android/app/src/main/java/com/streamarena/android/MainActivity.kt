@@ -270,26 +270,34 @@ class MainActivity : ComponentActivity() {
 
     private fun endLive() {
         lifecycleScope.launch {
+            var cleanupWarning: String? = null
+            heartbeatJob?.cancel()
+            heartbeatJob = null
             try {
                 if (sharing) room?.localParticipant?.setScreenShareEnabled(false)
-                sharing = false
-                heartbeatJob?.cancel()
-                heartbeatJob = null
-                val streamId = activeStreamId
-                val token = accessToken
-                val id = userId
-                if (streamId != null && token != null && id != null) {
-                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
-                }
-                room?.disconnect()
-                room = null
-                activeStreamId = null
-                setStatus("Live ended.")
             } catch (error: Exception) {
-                setStatus("Live cleanup issue: ${error.message ?: "unknown error"}")
-            } finally {
-                updateControls()
+                cleanupWarning = "Screen-share stop issue: ${error.message ?: "unknown error"}"
             }
+            sharing = false
+            val streamId = activeStreamId
+            val token = accessToken
+            val id = userId
+            if (streamId != null && token != null && id != null) {
+                try {
+                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                } catch (error: Exception) {
+                    cleanupWarning = "Live status update failed: ${error.message ?: "unknown error"}"
+                }
+            }
+            try {
+                room?.disconnect()
+            } catch (error: Exception) {
+                cleanupWarning = cleanupWarning ?: "Room disconnect issue: ${error.message ?: "unknown error"}"
+            }
+            room = null
+            activeStreamId = null
+            setStatus(cleanupWarning ?: "Live ended.")
+            updateControls()
         }
     }
 
