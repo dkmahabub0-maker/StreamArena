@@ -47,7 +47,13 @@ class MainActivity : ComponentActivity() {
     private lateinit var passwordInput: EditText
     private lateinit var titleInput: EditText
     private lateinit var status: TextView
+    private lateinit var liveStatus: TextView
+    private lateinit var authHeading: TextView
+    private lateinit var authModeButton: TextView
+    private lateinit var authScreen: ScrollView
+    private lateinit var liveScreen: ScrollView
     private lateinit var signInButton: Button
+    private var isSignUpMode = false
     private lateinit var startLiveButton: Button
     private lateinit var shareButton: Button
     private lateinit var stopShareButton: Button
@@ -115,8 +121,13 @@ class MainActivity : ComponentActivity() {
     private fun buildUi() {
         window.statusBarColor = Color.rgb(9, 14, 29)
         window.navigationBarColor = Color.rgb(9, 14, 29)
+        buildAuthScreen()
+        buildLiveScreen()
+        setContentView(authScreen)
+    }
 
-        val scroll = ScrollView(this).apply {
+    private fun buildAuthScreen() {
+        authScreen = ScrollView(this).apply {
             isFillViewport = true
             setBackgroundColor(Color.rgb(9, 14, 29))
         }
@@ -124,7 +135,7 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(30), dp(24), dp(34))
         }
-        scroll.addView(root)
+        authScreen.addView(root)
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -165,7 +176,7 @@ class MainActivity : ComponentActivity() {
             setLineSpacing(dp(2).toFloat(), 1.0f)
         })
         root.addView(TextView(this).apply {
-            text = "Sign in to your StreamArena account to start broadcasting from your phone."
+            text = "Sign in or create an account to broadcast from your phone."
             textSize = 15f
             setTextColor(Color.rgb(166, 178, 202))
             setLineSpacing(dp(4).toFloat(), 1.0f)
@@ -179,14 +190,14 @@ class MainActivity : ComponentActivity() {
             background = panelBackground()
             setPadding(dp(20), dp(22), dp(20), dp(20))
         }
-        authCard.addView(TextView(this).apply {
+        authHeading = TextView(this).apply {
             text = "ACCOUNT SIGN IN"
             textSize = 12f
             setTextColor(Color.rgb(115, 205, 255))
             typeface = Typeface.DEFAULT_BOLD
             letterSpacing = 0.12f
-        }, bottomMargin(dp(18)))
-
+        }
+        authCard.addView(authHeading, bottomMargin(dp(18)))
         authCard.addView(fieldLabel("Email address"), bottomMargin(dp(7)))
         emailInput = EditText(this).apply {
             hint = "you@example.com"
@@ -200,7 +211,6 @@ class MainActivity : ComponentActivity() {
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
         }
         authCard.addView(emailInput, fieldLayout(dp(54), dp(18)))
-
         authCard.addView(fieldLabel("Password"), bottomMargin(dp(7)))
         passwordInput = EditText(this).apply {
             hint = "Enter your password"
@@ -214,10 +224,25 @@ class MainActivity : ComponentActivity() {
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
         }
         authCard.addView(passwordInput, fieldLayout(dp(54), dp(18)))
-
-        signInButton = makeButton("Sign in to StreamArena", true) { signIn() }
-        authCard.addView(signInButton, fieldLayout(dp(54), dp(14)))
-
+        signInButton = makeButton("Sign in to StreamArena", true) {
+            if (isSignUpMode) signUp() else signIn()
+        }
+        authCard.addView(signInButton, fieldLayout(dp(54), dp(8)))
+        authModeButton = TextView(this).apply {
+            text = "New to StreamArena? Create account"
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(115, 205, 255))
+            setPadding(dp(8), dp(12), dp(8), dp(12))
+            setOnClickListener {
+                isSignUpMode = !isSignUpMode
+                authHeading.text = if (isSignUpMode) "CREATE YOUR ACCOUNT" else "ACCOUNT SIGN IN"
+                signInButton.text = if (isSignUpMode) "Create StreamArena account" else "Sign in to StreamArena"
+                authModeButton.text = if (isSignUpMode) "Already have an account? Sign in" else "New to StreamArena? Create account"
+                setStatus(if (isSignUpMode) "Create an account with your email and password." else "Enter your account details to continue.")
+            }
+        }
+        authCard.addView(authModeButton, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         status = TextView(this).apply {
             text = "Enter your account details to continue."
             textSize = 13f
@@ -229,6 +254,49 @@ class MainActivity : ComponentActivity() {
         root.addView(authCard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             bottomMargin = dp(18)
         })
+    }
+
+    private fun buildLiveScreen() {
+        liveScreen = ScrollView(this).apply {
+            isFillViewport = true
+            setBackgroundColor(Color.rgb(9, 14, 29))
+        }
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(30), dp(24), dp(34))
+        }
+        liveScreen.addView(root)
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val logo = ImageView(this).apply {
+            setImageResource(R.drawable.ic_streamarena)
+            contentDescription = "StreamArena logo"
+        }
+        header.addView(logo, LinearLayout.LayoutParams(dp(56), dp(56)))
+        header.addView(TextView(this).apply {
+            text = "STREAMARENA\nCREATOR STUDIO"
+            textSize = 18f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(dp(14), 0, 0, 0)
+        })
+        root.addView(header, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(30)
+        })
+        root.addView(TextView(this).apply {
+            text = "You're signed in."
+            textSize = 27f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        })
+        root.addView(TextView(this).apply {
+            text = "Set up your stream and go live from your phone."
+            textSize = 14f
+            setTextColor(Color.rgb(166, 178, 202))
+        }, bottomMargin(dp(22)))
 
         val liveCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -253,7 +321,6 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(15), 0, dp(15), 0)
         }
         liveCard.addView(titleInput, fieldLayout(dp(54), dp(14)))
-
         startLiveButton = makeButton("Start Live", true) { startLive() }
         liveCard.addView(startLiveButton, fieldLayout(dp(52), dp(10)))
         shareButton = makeButton("Share phone screen", false) {
@@ -264,7 +331,15 @@ class MainActivity : ComponentActivity() {
         stopShareButton = makeButton("Stop screen share", false) { stopScreenShare() }
         liveCard.addView(stopShareButton, fieldLayout(dp(50), dp(8)))
         endLiveButton = makeButton("End Live", false) { endLive() }
-        liveCard.addView(endLiveButton, fieldLayout(dp(50), 0))
+        liveCard.addView(endLiveButton, fieldLayout(dp(50), dp(12)))
+        liveStatus = TextView(this).apply {
+            text = "You are signed in. Set a title to start your Live."
+            textSize = 13f
+            setTextColor(Color.rgb(166, 178, 202))
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(8), dp(8), dp(4))
+        }
+        liveCard.addView(liveStatus, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(liveCard)
 
         root.addView(TextView(this).apply {
@@ -275,8 +350,6 @@ class MainActivity : ComponentActivity() {
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(18)
         })
-
-        setContentView(scroll)
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -326,6 +399,62 @@ class MainActivity : ComponentActivity() {
             setOnClickListener { action() }
         }
 
+
+    private fun signUp() {
+        val email = emailInput.text.toString().trim()
+        val password = passwordInput.text.toString()
+        if (email.isBlank() || password.isBlank()) {
+            setStatus("Email and password are required.", true)
+            return
+        }
+        if (password.length < 6) {
+            setStatus("Password must be at least 6 characters.", true)
+            return
+        }
+        val keyboard = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        keyboard.hideSoftInputFromWindow(passwordInput.windowToken, 0)
+        signInButton.isEnabled = false
+        signInButton.text = "Creating account…"
+        setStatus("Creating your StreamArena account…")
+        lifecycleScope.launch {
+            try {
+                val response = withContext(Dispatchers.IO) { requestSignUp(email, password) }
+                val token = response.optString("access_token")
+                val user = response.optJSONObject("user")
+                if (token.isNotBlank() && user != null) {
+                    accessToken = token
+                    userId = user.getString("id")
+                    passwordInput.text.clear()
+                    setContentView(liveScreen)
+                    setStatus("Account created. You are signed in.")
+                } else {
+                    isSignUpMode = false
+                    authHeading.text = "ACCOUNT SIGN IN"
+                    signInButton.text = "Sign in to StreamArena"
+                    authModeButton.text = "New to StreamArena? Create account"
+                    setStatus("Account created. Check your email to confirm, then sign in.")
+                }
+            } catch (error: Exception) {
+                setStatus("Account creation failed: " + (error.message ?: "unknown error"), true)
+            } finally {
+                if (accessToken == null) {
+                    signInButton.text = if (isSignUpMode) "Create StreamArena account" else "Sign in to StreamArena"
+                }
+                updateControls()
+            }
+        }
+    }
+
+    private fun requestSignUp(email: String, password: String): JSONObject {
+        val body = JSONObject().put("email", email).put("password", password)
+        return postJson(
+            "https://ovoufvyevnixpmswfrgl.supabase.co/auth/v1/signup",
+            "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+            null,
+            body
+        )
+    }
+
     private fun signIn() {
         val email = emailInput.text.toString().trim()
         val password = passwordInput.text.toString()
@@ -344,6 +473,7 @@ class MainActivity : ComponentActivity() {
                 accessToken = auth.getString("access_token")
                 userId = auth.getJSONObject("user").getString("id")
                 passwordInput.text.clear()
+                setContentView(liveScreen)
                 setStatus("Signed in successfully. You can start your Live.")
             } catch (error: Exception) {
                 accessToken = null
@@ -475,11 +605,13 @@ class MainActivity : ComponentActivity() {
         emailInput.isEnabled = !signedIn
         passwordInput.isEnabled = !signedIn
         signInButton.isEnabled = !signedIn
+        authModeButton.isEnabled = !signedIn
     }
 
     private fun setStatus(message: String, isError: Boolean = false) {
-        status.text = message
-        status.setTextColor(if (isError) Color.rgb(255, 125, 125) else Color.rgb(166, 207, 231))
+        val color = if (isError) Color.rgb(255, 125, 125) else Color.rgb(166, 207, 231)
+        if (::status.isInitialized) { status.text = message; status.setTextColor(color) }
+        if (::liveStatus.isInitialized) { liveStatus.text = message; liveStatus.setTextColor(color) }
     }
 
     private fun requestPasswordSignIn(email: String, password: String): JSONObject {
