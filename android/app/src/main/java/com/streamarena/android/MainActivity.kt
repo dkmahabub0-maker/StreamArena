@@ -321,7 +321,8 @@ class MainActivity : ComponentActivity() {
             typeface = Typeface.DEFAULT_BOLD
             setPadding(dp(12), 0, 0, 0)
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        val menuButton = makeButton("☰", false) { showDashboardMenu(it) }.apply {
+        lateinit var menuButton: Button
+        menuButton = makeButton("☰", false) { showDashboardMenu(menuButton) }.apply {
             textSize = 27f
             contentDescription = "Open menu"
             setPadding(0, 0, 0, 0)
