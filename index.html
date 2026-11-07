@@ -170,7 +170,8 @@
     <p class="sub" id="liveControlsHint" role="status" aria-live="polite" style="margin:0">Camera, microphone and screen sharing are separate controls. Screen and system-audio support depends on your browser and device.</p>
   </div>
 </div><button class="btn" id="livePlayMediaBtn" type="button" style="display:none;margin:8px 0">Tap to play stream video</button>
-<button class="btn" id="liveEnableAudioBtn" type="button" style="display:none;margin:8px 0">Enable stream audio</button><div id="liveSetup" style="display:grid;gap:9px;margin-top:12px">
+<button class="btn" id="liveEnableAudioBtn" type="button" style="display:none;margin:8px 0">Enable stream audio</button>
+<button class="btn" id="resumeLiveBtn" type="button" style="display:none;margin:8px 0">Resume Live</button><div id="liveSetup" style="display:grid;gap:9px;margin-top:12px">
   <label class="sub" for="liveTitle">Stream title</label>
   <input id="liveTitle" maxlength="120" placeholder="Stream title" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
   <label class="sub" for="liveCaption">Live caption / description (up to 500 characters)</label>
@@ -689,6 +690,9 @@ let activeDuoCohostRoom = null;
 let activeStreamId = null;
 let activeStreamOwner = null;
 let liveMode = null;
+let hostRecoveryPromise = null;
+let hostRecoveryLastAt = 0;
+let hostLiveStopping = false;
 let liveMicEnabled = true;
 let liveCameraEnabled = true;
 let liveScreenShareEnabled = false;
@@ -697,6 +701,21 @@ let liveCameraFacingMode = 'user';
 
 function openLivePanel(mode = 'start') {
   document.getElementById('liveBackdrop').style.display = 'grid';
+  if(mode==='start'&&activeStreamId&&!hostLiveStopping){
+    liveMode=mode;
+    document.getElementById('liveHeading').textContent='Resume your live stream';
+    document.getElementById('liveStatus').textContent='Checking your live connection…';
+    document.getElementById('liveSetup').style.display='none';
+    document.getElementById('startLiveBtn').style.display='none';
+    document.getElementById('livePreflight').style.display='none';
+    document.getElementById('endLiveBtn').style.display='';
+    document.getElementById('resumeLiveBtn').style.display='inline-block';
+    document.getElementById('liveControlMenuToggle').style.display=activeLiveRoom?'grid':'none';
+    setLiveControlMenuOpen(false);
+    recoverHostLiveSession('open-panel');
+    return;
+  }
+  document.getElementById('resumeLiveBtn').style.display='none';
   document.getElementById('liveHeading').textContent = mode === 'start' ? 'Start a live stream' : 'Watch live stream';
   document.getElementById('liveStatus').textContent = currentUser ? 'Ready.' : 'Please log in first.';
   document.getElementById('liveSetup').style.display = mode === 'start' ? 'grid' : 'none';
@@ -1290,7 +1309,7 @@ function removeDuoRoomTrack(track,participant,stage) {
 function restoreDuoCameraTracks(room,stage,includeLocal=false) {
   const audio=[...stage.querySelectorAll('audio')];
   stage.replaceChildren(...audio);stage.dataset.videoSource='camera';
-  if(includeLocal){
+  if(includeLocal&&liveCameraEnabled){
     const local=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
     if(local?.track)attachDuoRoomTrack(local.track,stage,room.localParticipant,true);
   }
@@ -1515,10 +1534,208 @@ async function preflightBrowserMediaPermissions() {
   }
   return issues;
 }
+function stopHostHeartbeat(){
+  if(window.streamHeartbeatTimer){clearInterval(window.streamHeartbeatTimer);window.streamHeartbeatTimer=null;}
+}
+function startHostHeartbeat(streamId,userId){
+  stopHostHeartbeat();
+  let heartbeatInFlight=false;
+  window.streamHeartbeatTimer=setInterval(async()=>{
+    if(heartbeatInFlight||hostLiveStopping||activeStreamId!==streamId||!currentUser||currentUser.id!==userId)return;
+    heartbeatInFlight=true;
+    try{
+      const beat=await supabaseClient.from('streams').update({last_heartbeat_at:new Date().toISOString()})
+        .eq('id',streamId).eq('user_id',userId).eq('is_live',true).select('id').maybeSingle();
+      if(beat.error){console.warn('Stream heartbeat failed:',beat.error.message);return;}
+      if(!beat.data&&activeStreamId===streamId&&!hostLiveStopping){
+        await clearHostLiveSession('This live session is no longer active. Start a new stream if needed.');
+      }
+    }catch(error){
+      console.warn('Stream heartbeat failed:',error?.message||error);
+    }finally{heartbeatInFlight=false;}
+  },25000);
+}
+async function touchHostStream(streamId,userId){
+  const beat=await supabaseClient.from('streams').update({last_heartbeat_at:new Date().toISOString()})
+    .eq('id',streamId).eq('user_id',userId).eq('is_live',true).select('id').maybeSingle();
+  if(beat.error)throw beat.error;
+  if(!beat.data)throw new Error('This live session is no longer active.');
+}
+function attachHostRoomEvents(room){
+  room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>attachDuoRoomTrack(track,document.getElementById('liveStage'),participant));
+  room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>removeDuoRoomTrack(track,participant,document.getElementById('liveStage')));
+  room.on(LivekitClient.RoomEvent.LocalTrackUnpublished,(publication)=>{
+    if(publication.source===LivekitClient.Track.Source.ScreenShare){
+      liveScreenShareEnabled=false;updateLiveControlLabels();
+      if(activeLiveRoom===room&&liveCameraEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
+    }
+  });
+  room.on(LivekitClient.RoomEvent.Reconnecting,()=>{
+    if(activeLiveRoom!==room||hostLiveStopping)return;
+    stopHostHeartbeat();
+    document.getElementById('liveStatus').textContent='Live connection interrupted · reconnecting. Keep this page open.';
+    document.getElementById('resumeLiveBtn').style.display='inline-block';
+  });
+  room.on(LivekitClient.RoomEvent.Reconnected,()=>{
+    if(activeLiveRoom===room&&!hostLiveStopping)recoverHostLiveSession('reconnected');
+  });
+  room.on(LivekitClient.RoomEvent.Disconnected,()=>{
+    if(activeLiveRoom!==room||hostLiveStopping||!activeStreamId)return;
+    stopHostHeartbeat();
+    document.getElementById('liveStatus').textContent='Live connection lost · trying to restore your stream.';
+    document.getElementById('resumeLiveBtn').style.display='inline-block';
+    if(!document.hidden)setTimeout(()=>recoverHostLiveSession('disconnected'),1200);
+  });
+}
+async function clearHostLiveSession(message){
+  hostLiveStopping=true;
+  stopHostHeartbeat();
+  const oldRoom=activeLiveRoom;activeLiveRoom=null;
+  if(oldRoom){try{await oldRoom.disconnect();}catch(error){console.warn('Disconnected stale host room:',error);}}
+  activeStreamId=null;activeStreamOwner=null;
+  liveMicEnabled=true;liveCameraEnabled=true;liveScreenShareEnabled=false;liveCameraFacingMode='user';
+  document.getElementById('liveBroadcastControls').style.display='none';
+  document.getElementById('liveControlMenuToggle').style.display='none';
+  document.getElementById('liveScreenShareBtn').style.display='';
+  setLiveControlMenuOpen(false);
+  document.getElementById('duoLiveInvitePanel').style.display='none';
+  document.getElementById('resumeLiveBtn').style.display='none';
+  document.getElementById('endLiveBtn').style.display='none';
+  document.getElementById('startLiveBtn').style.display='';
+  document.getElementById('liveSetup').style.display='grid';
+  document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Your previous live session is no longer active.'}));
+  document.getElementById('liveStatus').textContent=message||'Your previous live session has ended. You can start a new stream.';
+  await loadLiveStreams();
+}
+async function recoverHostLiveSession(reason='resume'){
+  if(hostLiveStopping||!activeStreamId||!currentUser||!window.LivekitClient)return false;
+  if(document.hidden)return false;
+  if(hostRecoveryPromise)return hostRecoveryPromise;
+  if(reason!=='manual'&&reason!=='reconnected'&&Date.now()-hostRecoveryLastAt<1200)return false;
+  hostRecoveryLastAt=Date.now();
+  const streamId=activeStreamId;
+  const userId=currentUser.id;
+  let replacementRoom=null;
+  hostRecoveryPromise=(async()=>{
+    const streamResult=await supabaseClient.from('streams').select('id,title,is_live')
+      .eq('id',streamId).eq('user_id',userId).maybeSingle();
+    if(streamResult.error)throw streamResult.error;
+    if(!streamResult.data||!streamResult.data.is_live){
+      await clearHostLiveSession('Your previous live session is no longer active. Start a new stream if needed.');
+      return false;
+    }
+    if(activeStreamId!==streamId||!currentUser||currentUser.id!==userId||hostLiveStopping)return false;
+    const existingRoom=activeLiveRoom;
+    const connectedState=LivekitClient.ConnectionState?.Connected;
+    const reconnectingState=LivekitClient.ConnectionState?.Reconnecting;
+    const isConnected=!!existingRoom&&(connectedState?existingRoom.state===connectedState:String(existingRoom.state).toLowerCase()==='connected');
+    const isReconnecting=!!existingRoom&&(reconnectingState?existingRoom.state===reconnectingState:String(existingRoom.state).toLowerCase()==='reconnecting');
+    if(isReconnecting&&reason!=='manual'){
+      document.getElementById('liveStatus').textContent='LiveKit is still reconnecting. Tap Resume Live to retry manually if it does not recover.';
+      document.getElementById('resumeLiveBtn').style.display='inline-block';
+      return false;
+    }
+    await touchHostStream(streamId,userId);
+    let room=existingRoom;
+    if(!isConnected){
+      activeLiveRoom=null;
+      if(existingRoom){try{await existingRoom.disconnect();}catch(error){console.warn('Replacing disconnected host room:',error);}}
+      const credentials=await requestLiveKitToken('stream-'+userId,'publisher');
+      replacementRoom=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
+      room=replacementRoom;activeLiveRoom=room;
+      attachHostRoomEvents(room);
+      await room.connect(credentials.serverUrl,credentials.token);
+      if(activeStreamId!==streamId||!currentUser||currentUser.id!==userId||hostLiveStopping){
+        if(activeLiveRoom===room)activeLiveRoom=null;
+        try{await room.disconnect();}catch{}
+        return false;
+      }
+      liveScreenShareEnabled=false;
+    }
+    const issues=[];
+    const cameraPublication=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+    const cameraTrack=cameraPublication?.track;
+    const cameraAlive=!!cameraTrack&&cameraTrack.mediaStreamTrack?.readyState==='live'&&!cameraTrack.mediaStreamTrack?.muted;
+    if(liveCameraEnabled&&!cameraAlive){
+      try{
+        if(cameraTrack&&typeof cameraTrack.restartTrack==='function')await cameraTrack.restartTrack({facingMode:liveCameraFacingMode});
+        else await room.localParticipant.setCameraEnabled(true);
+        liveCameraEnabled=true;
+      }catch(error){liveCameraEnabled=false;issues.push('Camera needs permission again: '+(error.message||'camera unavailable'));}
+    }
+    const microphonePublication=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Microphone);
+    const microphoneTrack=microphonePublication?.track;
+    const microphoneAlive=!!microphoneTrack&&microphoneTrack.mediaStreamTrack?.readyState==='live'&&!microphoneTrack.mediaStreamTrack?.muted;
+    if(liveMicEnabled&&!microphoneAlive){
+      try{
+        if(microphoneTrack&&typeof microphoneTrack.restartTrack==='function')await microphoneTrack.restartTrack();
+        else await room.localParticipant.setMicrophoneEnabled(true);
+        liveMicEnabled=true;
+      }catch(error){liveMicEnabled=false;issues.push('Microphone needs permission again: '+(error.message||'microphone unavailable'));}
+    }
+    const screenPublication=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.ScreenShare);
+    liveScreenShareEnabled=!!screenPublication?.track&&screenPublication.track.mediaStreamTrack?.readyState==='live';
+    const stage=document.getElementById('liveStage');
+    if(liveScreenShareEnabled){
+      const audio=[...stage.querySelectorAll('audio')];stage.replaceChildren(...audio);
+      if(screenPublication?.track)attachLiveTrack(screenPublication.track,stage,true);
+    }else{
+      if(!isConnected)stage.replaceChildren();
+      restoreDuoCameraTracks(room,stage,true);
+    }
+    await touchHostStream(streamId,userId);
+    startHostHeartbeat(streamId,userId);
+    activeStreamOwner=userId;liveMode='start';
+    document.getElementById('liveHeading').textContent=streamResult.data.title||'Live stream';
+    document.getElementById('liveStatus').textContent=issues.length
+      ?'Your Live is reconnected, but '+issues.join(' · ')+'. Use the controls to retry.'
+      :'Your Live session is connected again.';
+    document.getElementById('liveControlsHint').textContent=issues.length
+      ?issues.join(' · ')+'. Use the camera and microphone controls to retry.'
+      :'Camera, microphone and co-host tracks are ready.';
+    document.getElementById('liveControlMenuToggle').style.display='grid';
+    document.getElementById('liveScreenShareBtn').style.display='';
+    setLiveControlMenuOpen(false);
+    updateLiveControlLabels();
+    document.getElementById('duoLiveInvitePanel').style.display='flex';
+    loadDuoLiveHostInvites();
+    document.getElementById('liveSetup').style.display='none';
+    document.getElementById('livePreflight').style.display='none';
+    document.getElementById('startLiveBtn').style.display='none';
+    document.getElementById('endLiveBtn').style.display='';
+    document.getElementById('resumeLiveBtn').style.display='none';
+    await loadLiveStreams();
+    return true;
+  })().catch(async error=>{
+    if(error?.message==='This live session is no longer active.'){
+      await clearHostLiveSession('Your previous live session is no longer active. Start a new stream if needed.');
+      return false;
+    }
+    if(replacementRoom&&activeLiveRoom===replacementRoom){
+      activeLiveRoom=null;
+      try{await replacementRoom.disconnect();}catch{}
+    }
+    if(activeStreamId===streamId&&!hostLiveStopping){
+      document.getElementById('liveStatus').textContent='Live could not reconnect yet. Tap Resume Live to retry. '+(error.message||'Connection failed.');
+      document.getElementById('resumeLiveBtn').style.display='inline-block';
+      document.getElementById('endLiveBtn').style.display='';
+      document.getElementById('startLiveBtn').style.display='none';
+      document.getElementById('liveSetup').style.display='none';
+    }
+    console.warn('Host live recovery failed:',error);
+    return false;
+  }).finally(()=>{hostRecoveryPromise=null;});
+  return hostRecoveryPromise;
+}
 async function startLiveBroadcast(){
   if(!currentUser){toast('Please log in first.');return;}
   if(activeDuoCohostRoom){toast('Leave Duo Live before starting your own stream.');return;}
-  if(activeStreamId){toast('You already have an active live stream. End it before starting another.');return;}
+  if(activeStreamId){
+    document.getElementById('resumeLiveBtn').style.display='inline-block';
+    await recoverHostLiveSession('manual');
+    return;
+  }
+  hostLiveStopping=false;
   if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch(disconnectError){console.warn('Previous viewer room disconnect:',disconnectError);}activeLiveRoom=null;}
   if(!window.LivekitClient){toast('LiveKit browser SDK did not load. Refresh and try again.');return;}
   const title=document.getElementById('liveTitle').value.trim();
@@ -1527,14 +1744,24 @@ async function startLiveBroadcast(){
   document.getElementById('liveStatus').textContent='Requesting browser camera and microphone access…';
   let createdId=null;
   try {
-    const permissionIssues=await preflightBrowserMediaPermissions();
-    document.getElementById('liveStatus').textContent='Preparing streaming connection…';
+    document.getElementById('liveStatus').textContent='Checking for an existing live session…';
     const freshAfter=new Date(Date.now()-120000).toISOString();
     const stale=await supabaseClient.from('streams').update({is_live:false}).eq('user_id',currentUser.id).eq('is_live',true).or('last_heartbeat_at.is.null,last_heartbeat_at.lt.'+freshAfter);
     if(stale.error)throw stale.error;
-    const existing=await supabaseClient.from('streams').select('id').eq('user_id',currentUser.id).eq('is_live',true).gt('last_heartbeat_at',freshAfter).limit(1);
+    const existing=await supabaseClient.from('streams').select('id,title').eq('user_id',currentUser.id).eq('is_live',true).gt('last_heartbeat_at',freshAfter).order('last_heartbeat_at',{ascending:false}).limit(1);
     if(existing.error)throw existing.error;
-    if(existing.data?.length){throw new Error('You already have a live stream. End it before starting another.');}
+    if(existing.data?.length){
+      activeStreamId=existing.data[0].id;activeStreamOwner=currentUser.id;hostLiveStopping=false;liveMode='start';
+      document.getElementById('liveHeading').textContent=existing.data[0].title||'Resume your live stream';
+      document.getElementById('liveSetup').style.display='none';
+      document.getElementById('startLiveBtn').style.display='none';
+      document.getElementById('endLiveBtn').style.display='';
+      document.getElementById('resumeLiveBtn').style.display='inline-block';
+      document.getElementById('liveStatus').textContent='A previous Live session is still active. Tap Resume Live to reconnect.';
+      return;
+    }
+    const permissionIssues=await preflightBrowserMediaPermissions();
+    document.getElementById('liveStatus').textContent='Preparing streaming connection…';
     const liveSettings=await saveLiveSettings({silent:true});
     const created=await supabaseClient.from('streams').insert({
       user_id:currentUser.id,title:liveSettings.title,caption:liveSettings.caption,
@@ -1543,20 +1770,13 @@ async function startLiveBroadcast(){
       is_live:false
     }).select('id').single();
     if(created.error)throw created.error;
-    createdId=created.data.id;activeStreamId=createdId;
+    createdId=created.data.id;activeStreamId=createdId;hostLiveStopping=false;
     const marked=await supabaseClient.from('streams').update({is_live:true,last_heartbeat_at:new Date().toISOString()}).eq('id',createdId).eq('user_id',currentUser.id);
     if(marked.error)throw marked.error;
     const credentials=await requestLiveKitToken('stream-'+currentUser.id,'publisher');
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
     activeLiveRoom=room;
-    room.on(LivekitClient.RoomEvent.TrackSubscribed,(track,publication,participant)=>attachDuoRoomTrack(track,document.getElementById('liveStage'),participant));
-    room.on(LivekitClient.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>removeDuoRoomTrack(track,participant,document.getElementById('liveStage')));
-    room.on(LivekitClient.RoomEvent.LocalTrackUnpublished, (publication) => {
-      if(publication.source===LivekitClient.Track.Source.ScreenShare){
-        liveScreenShareEnabled=false;updateLiveControlLabels();
-        if(activeLiveRoom===room&&liveCameraEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
-      }
-    });
+    attachHostRoomEvents(room);
     await room.connect(credentials.serverUrl,credentials.token);
     liveMicEnabled=false;liveCameraEnabled=false;liveScreenShareEnabled=false;liveCameraFacingMode='user';
     const stage=document.getElementById('liveStage');stage.replaceChildren();
@@ -1585,36 +1805,74 @@ async function startLiveBroadcast(){
     updateLiveControlLabels();
     document.getElementById('liveHeading').textContent=title;
     document.getElementById('liveStatus').textContent='You are live. Keep this page open while broadcasting.';
-    if(window.streamHeartbeatTimer)clearInterval(window.streamHeartbeatTimer);
-    window.streamHeartbeatTimer=setInterval(async()=>{
-      if(!activeStreamId||!currentUser)return;
-      const beat=await supabaseClient.from('streams').update({last_heartbeat_at:new Date().toISOString()}).eq('id',activeStreamId).eq('user_id',currentUser.id).eq('is_live',true);
-      if(beat.error)console.warn('Stream heartbeat failed:',beat.error.message);
-    },25000);
+    document.getElementById('resumeLiveBtn').style.display='none';
+    startHostHeartbeat(createdId,currentUser.id);
     document.getElementById('liveSetup').style.display='none';
     document.getElementById('livePreflight').style.display='none';
     button.style.display='none';document.getElementById('endLiveBtn').style.display='';
     await loadLiveStreams();
   } catch(err) {
-    if(window.streamHeartbeatTimer){clearInterval(window.streamHeartbeatTimer);window.streamHeartbeatTimer=null;}
+    const ownerId=currentUser?.id;
+    if(err?.code==='23505'&&ownerId){
+      // A concurrent start may have won the one-live-per-user constraint.
+      // Find that exact owner's active row and resume it instead of discarding
+      // the session and telling the host to end a stream they cannot see.
+      if(createdId){
+        const cleanup=await supabaseClient.from('streams').update({is_live:false})
+          .eq('id',createdId).eq('user_id',ownerId);
+        if(cleanup.error)console.warn('Could not clean up the unstarted duplicate stream row:',cleanup.error.message);
+      }
+      const existing=await supabaseClient.from('streams').select('id,title')
+        .eq('user_id',ownerId).eq('is_live',true)
+        .order('last_heartbeat_at',{ascending:false}).limit(1).maybeSingle();
+      if(existing.error)console.warn('Could not reload the active stream after a duplicate-start conflict:',existing.error.message);
+      if(existing.data){
+        activeStreamId=existing.data.id;activeStreamOwner=ownerId;hostLiveStopping=false;liveMode='start';
+        document.getElementById('liveHeading').textContent=existing.data.title||'Resume your live stream';
+        document.getElementById('liveSetup').style.display='none';
+        document.getElementById('livePreflight').style.display='none';
+        document.getElementById('startLiveBtn').style.display='none';
+        document.getElementById('endLiveBtn').style.display='';
+        document.getElementById('resumeLiveBtn').style.display='inline-block';
+        document.getElementById('liveStatus').textContent='An active Live session was found. Reconnecting to it…';
+        await recoverHostLiveSession('manual');
+        return;
+      }
+    }
+    hostLiveStopping=true;
+    stopHostHeartbeat();
     if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch{} activeLiveRoom=null;}
     liveMicEnabled=true;liveCameraEnabled=true;liveScreenShareEnabled=false;liveCameraFacingMode='user';
     document.getElementById('liveBroadcastControls').style.display='none';
     document.getElementById('liveControlMenuToggle').style.display='none';
     setLiveControlMenuOpen(false);
     document.getElementById('duoLiveInvitePanel').style.display='none';
-    if(createdId) await supabaseClient.from('streams').update({is_live:false}).eq('id',createdId).eq('user_id',currentUser.id);
+    if(createdId) await supabaseClient.from('streams').update({is_live:false}).eq('id',createdId).eq('user_id',ownerId||'');
     activeStreamId=null;
     document.getElementById('endLiveBtn').style.display='none';
+    document.getElementById('resumeLiveBtn').style.display='none';
     document.getElementById('startLiveBtn').style.display='';
     document.getElementById('liveSetup').style.display='grid';
     document.getElementById('livePreflight').style.display='none';
-    const startError=err.code==='23505'?'You already have an active live stream. End it before starting another.':(err.message||'Could not start stream.');
+    const startError=err?.code==='23505'
+      ?'A concurrent Live start was detected, but the active session could not be reloaded. Refresh and try again.'
+      :(err.message||'Could not start stream.');
     document.getElementById('liveStatus').textContent=startError;
     toast(startError);
     await loadLiveStreams();
   } finally {button.disabled=false;}
 }
+document.getElementById('resumeLiveBtn').addEventListener('click',async()=>{
+  const button=document.getElementById('resumeLiveBtn');
+  button.disabled=true;
+  try{await recoverHostLiveSession('manual');}
+  finally{button.disabled=false;}
+});
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden)recoverHostLiveSession('visibility');
+});
+window.addEventListener('pageshow',()=>recoverHostLiveSession('pageshow'));
+window.addEventListener('focus',()=>recoverHostLiveSession('focus'));
 document.getElementById('endLiveBtn').addEventListener('click',async()=>{
   const button=document.getElementById('endLiveBtn');button.disabled=true;
   try {
@@ -1622,7 +1880,8 @@ document.getElementById('endLiveBtn').addEventListener('click',async()=>{
       const result=await supabaseClient.from('streams').update({is_live:false}).eq('id',activeStreamId).eq('user_id',currentUser.id);
       if(result.error)throw result.error;
     }
-    if(window.streamHeartbeatTimer){clearInterval(window.streamHeartbeatTimer);window.streamHeartbeatTimer=null;}
+    hostLiveStopping=true;
+    stopHostHeartbeat();
     if(activeLiveRoom){
       try{if(liveScreenShareEnabled)await activeLiveRoom.localParticipant.setScreenShareEnabled(false);}catch{}
       try{await activeLiveRoom.disconnect();}
@@ -1633,7 +1892,8 @@ document.getElementById('endLiveBtn').addEventListener('click',async()=>{
     document.getElementById('liveBroadcastControls').style.display='none';
     document.getElementById('liveControlMenuToggle').style.display='none';
     setLiveControlMenuOpen(false);
-    activeStreamId=null;
+    activeStreamId=null;activeStreamOwner=null;
+    document.getElementById('resumeLiveBtn').style.display='none';
     document.getElementById('liveStatus').textContent='Stream ended.';
     document.getElementById('endLiveBtn').style.display='none';
     document.getElementById('startLiveBtn').style.display='';
