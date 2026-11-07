@@ -21,6 +21,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ImageView
 import android.widget.ScrollView
+import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -331,71 +332,154 @@ class MainActivity : ComponentActivity() {
         root.addView(header, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             bottomMargin = dp(30)
         })
-        val banner = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(22), dp(20), dp(22))
-            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.rgb(24, 92, 166), Color.rgb(91, 51, 151), Color.rgb(25, 37, 73))
-            ).apply { cornerRadius = dp(22).toFloat() }
+        val topNav = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(dp(5), dp(6), dp(5), dp(6))
+            setBackgroundColor(Color.rgb(13, 21, 38))
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(13, 21, 38))
+                cornerRadius = dp(15).toFloat()
+                setStroke(dp(1), Color.rgb(35, 53, 82))
+            }
         }
-        banner.addView(TextView(this).apply {
-            text = "YOUR CHANNEL. YOUR MOMENT."
-            textSize = 10f
-            setTextColor(Color.rgb(210, 227, 255))
+        fun navItem(label: String, action: () -> Unit) {
+            val button = makeButton(label, false, action).apply {
+                textSize = 12f
+                minWidth = 0
+                minimumWidth = 0
+                setPadding(dp(1), 0, dp(1), 0)
+                isAllCaps = false
+                maxLines = 2
+            }
+            topNav.addView(button, LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+                setMargins(dp(1), 0, dp(1), 0)
+            })
+        }
+        navItem("⌂\\nHome") { scroll.smoothScrollTo(0, 0) }
+        plusNavButton = makeButton("＋", true) {
+            plusNavButton.animate().rotationBy(45f).setDuration(160).start()
+            showCreatorMenu(plusNavButton, scroll)
+        }.apply {
+            textSize = 29f
+            minWidth = 0
+            minimumWidth = 0
+            setPadding(0, 0, 0, 0)
+            contentDescription = "Create live or screen share"
+        }
+        topNav.addView(plusNavButton, LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+            setMargins(dp(1), 0, dp(1), 0)
+        })
+        navItem("♧\\nNotifications") { setStatus("Notifications will appear here when the notification service is connected.") }
+        navItem("◎\\nCommunity") { setStatus("Community feed is not connected yet.") }
+        navItem("☰\\nMenu") { showDashboardMenu(topNav) }
+        root.addView(topNav, bottomMargin(dp(20)))
+
+        root.addView(TextView(this).apply {
+            text = "FEATURED GAMES"
+            textSize = 13f
+            setTextColor(Color.rgb(128, 190, 255))
             typeface = Typeface.DEFAULT_BOLD
             letterSpacing = 0.12f
         }, bottomMargin(dp(10)))
-        banner.addView(TextView(this).apply {
-            text = "Go live.\nBring your community together."
-            textSize = 25f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-        }, bottomMargin(dp(8)))
-        banner.addView(TextView(this).apply {
-            text = "Create a broadcast and share your phone screen with viewers."
-            textSize = 13f
-            setTextColor(Color.rgb(225, 232, 249))
-        })
-        root.addView(banner, bottomMargin(dp(22)))
-        root.addView(TextView(this).apply {
-            text = "EXPLORE GAMES"
-            textSize = 12f
-            setTextColor(Color.rgb(128, 190, 255))
-            typeface = Typeface.DEFAULT_BOLD
-            letterSpacing = 0.14f
-        }, bottomMargin(dp(10)))
-        val gameStrip = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("ACTION", "BATTLE", "SPORTS", "RACING").forEach { game ->
-            val chip = TextView(this).apply {
-                text = game
-                textSize = 11f
-                typeface = Typeface.DEFAULT_BOLD
-                gravity = Gravity.CENTER
-                setTextColor(Color.WHITE)
-                setPadding(dp(12), dp(12), dp(12), dp(12))
-                background = GradientDrawable().apply {
-                    setColor(Color.rgb(27, 42, 68))
-                    cornerRadius = dp(13).toFloat()
-                    setStroke(dp(1), Color.rgb(51, 78, 117))
+
+        val featuredGamesScroll = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            clipToPadding = false
+        }
+        val featuredGames = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val featured = listOf(
+            Triple("ACTION GAMES", "Fast-paced action picks", intArrayOf(Color.rgb(20, 105, 145), Color.rgb(30, 54, 105))),
+            Triple("BATTLE GAMES", "Competitive battle zone", intArrayOf(Color.rgb(132, 48, 62), Color.rgb(65, 35, 83))),
+            Triple("SPORTS GAMES", "Sports and tournaments", intArrayOf(Color.rgb(24, 119, 91), Color.rgb(23, 62, 84))),
+            Triple("RACING GAMES", "Speed and racing picks", intArrayOf(Color.rgb(170, 91, 30), Color.rgb(88, 43, 75)))
+        )
+        featured.forEach { item ->
+            val gameBanner = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.BOTTOM
+                setPadding(dp(16), dp(14), dp(16), dp(14))
+                background = GradientDrawable(GradientDrawable.Orientation.TL_BR, item.third).apply {
+                    cornerRadius = dp(18).toFloat()
+                    setStroke(dp(1), Color.argb(90, 190, 215, 255))
+                }
+                isClickable = true
+                isFocusable = true
+                setOnClickListener {
+                    selectedGameCategory = item.first.substringBefore(' ').uppercase()
+                    setStatus("${item.first} selected.")
                 }
             }
-            gameStrip.addView(chip, LinearLayout.LayoutParams(0, dp(46), 1f).apply {
-                setMargins(dp(3), 0, dp(3), dp(12))
+            gameBanner.addView(TextView(this).apply {
+                text = "▶"
+                textSize = 25f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+            }, bottomMargin(dp(8)))
+            gameBanner.addView(TextView(this).apply {
+                text = item.first
+                textSize = 15f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+            })
+            gameBanner.addView(TextView(this).apply {
+                text = item.second
+                textSize = 11f
+                setTextColor(Color.rgb(226, 235, 248))
+            }, topMargin(dp(4)))
+            featuredGames.addView(gameBanner, LinearLayout.LayoutParams(dp(224), dp(132)).apply {
+                rightMargin = dp(10)
             })
         }
-        root.addView(gameStrip)
+        featuredGamesScroll.addView(featuredGames)
+        root.addView(featuredGamesScroll, bottomMargin(dp(14)))
+
+        // Reserved, intentionally empty ad slot for a future horizontal mobile banner.
+        val adSlot = TextView(this).apply {
+            text = "AD SPACE"
+            textSize = 9f
+            letterSpacing = 0.16f
+            setTextColor(Color.rgb(92, 107, 132))
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(12, 19, 33))
+                cornerRadius = dp(8).toFloat()
+                setStroke(dp(1), Color.rgb(35, 48, 70))
+            }
+        }
+        root.addView(adSlot, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(42)
+        ).apply { bottomMargin = dp(18) })
+
         root.addView(TextView(this).apply {
-            text = "CREATOR TOOLS"
-            textSize = 12f
+            text = "GAME CATEGORIES"
+            textSize = 13f
             setTextColor(Color.rgb(128, 190, 255))
             typeface = Typeface.DEFAULT_BOLD
-            letterSpacing = 0.14f
-        }, bottomMargin(dp(8)))
-        root.addView(TextView(this).apply {
-            text = "Tap the + button below to choose Camera Live, Phone Screen or a game category."
-            textSize = 13f
-            setTextColor(Color.rgb(166, 178, 202))
-        }, bottomMargin(dp(20)))
+            letterSpacing = 0.12f
+        }, bottomMargin(dp(10)))
+
+        val categoryRowOne = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf("ACTION", "BATTLE").forEach { category ->
+            categoryRowOne.addView(makeButton(category, selectedGameCategory == category) {
+                selectedGameCategory = category
+                setStatus("$category category selected.")
+            }, LinearLayout.LayoutParams(0, dp(46), 1f).apply {
+                setMargins(dp(3), 0, dp(3), dp(8))
+            })
+        }
+        root.addView(categoryRowOne)
+        val categoryRowTwo = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf("SPORTS", "RACING").forEach { category ->
+            categoryRowTwo.addView(makeButton(category, selectedGameCategory == category) {
+                selectedGameCategory = category
+                setStatus("$category category selected.")
+            }, LinearLayout.LayoutParams(0, dp(46), 1f).apply {
+                setMargins(dp(3), 0, dp(3), dp(8))
+            })
+        }
+        root.addView(categoryRowTwo, bottomMargin(dp(20)))
+
         root.addView(TextView(this).apply {
             text = "Welcome to your creator space."
             textSize = 27f
@@ -493,43 +577,7 @@ class MainActivity : ComponentActivity() {
             topMargin = dp(18)
         })
 
-        val bottomNav = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(dp(5), dp(7), dp(5), dp(7))
-            setBackgroundColor(Color.rgb(13, 21, 38))
-        }
-        fun navItem(label: String, primary: Boolean = false, action: () -> Unit) {
-            val button = makeButton(label, primary, action).apply {
-                textSize = if (primary) 22f else 10f
-                minWidth = 0
-                minimumWidth = 0
-                setPadding(dp(2), 0, dp(2), 0)
-            }
-            bottomNav.addView(button, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
-                setMargins(dp(2), 0, dp(2), 0)
-            })
-        }
-        navItem("⌂\nHome") { scroll.smoothScrollTo(0, 0) }
-        plusNavButton = makeButton("＋", true) {
-            plusNavButton.animate().rotationBy(45f).setDuration(160).start()
-            showCreatorMenu(plusNavButton, scroll)
-        }.apply {
-            textSize = 29f
-            minWidth = 0
-            minimumWidth = 0
-            setPadding(0, 0, 0, 0)
-            contentDescription = "Create live or screen share"
-        }
-        bottomNav.addView(plusNavButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
-            setMargins(dp(2), 0, dp(2), 0)
-        })
-        navItem("♧\nNotifications") { setStatus("Notifications will appear here when the notification service is connected.") }
-        navItem("◎\nCommunity") { setStatus("Community feed is not connected yet.") }
-        navItem("☰\nMenu") { showDashboardMenu(bottomNav) }
-        liveScreen.addView(bottomNav, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
+
     }
 
 
