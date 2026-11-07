@@ -900,6 +900,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun signOut() {
+        stopCameraPreview()
         heartbeatJob?.cancel()
         heartbeatJob = null
         lifecycleScope.launch {
@@ -1057,6 +1058,7 @@ class MainActivity : ComponentActivity() {
             room = null
             window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activeStreamId = null
+            if (selectedLiveMode == "camera" && ::liveCard.isInitialized && liveCard.visibility == android.view.View.VISIBLE) showCameraPreview()
             setStatus(cleanupWarning ?: "Live ended.")
             updateControls()
         }
