@@ -41,7 +41,7 @@ jobs:
           const worker = fs.readFileSync('service-worker.js', 'utf8');
           assert.equal(manifest.display, 'standalone');
           assert.ok(manifest.name && manifest.start_url && manifest.scope);
-          assert.ok(manifest.icons.some(icon => icon.src === './pwa-icon.svg' && icon.sizes === 'any'));
+          assert.ok(manifest.icons.some(icon => icon.src === './pwa-icon.svg' && icon.sizes.split(/\s+/).includes('192x192') && icon.sizes.split(/\s+/).includes('512x512')), 'Manifest must declare 192px and 512px install icons');
           assert.ok(fs.existsSync('pwa-icon.svg') && fs.existsSync('offline.html'));
           assert.ok(html.includes('rel="manifest" href="./manifest.webmanifest"'));
           assert.ok(html.includes('navigator.serviceWorker.register("./service-worker.js")'));
