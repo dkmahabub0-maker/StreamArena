@@ -191,7 +191,7 @@ class MainActivity : ComponentActivity() {
         emailInput = EditText(this).apply {
             hint = "you@example.com"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            singleLine = true
+            setSingleLine(true)
             textSize = 16f
             setTextColor(Color.WHITE)
             setHintTextColor(Color.rgb(111, 126, 153))
@@ -205,7 +205,7 @@ class MainActivity : ComponentActivity() {
         passwordInput = EditText(this).apply {
             hint = "Enter your password"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            singleLine = true
+            setSingleLine(true)
             textSize = 16f
             setTextColor(Color.WHITE)
             setHintTextColor(Color.rgb(111, 126, 153))
@@ -245,7 +245,7 @@ class MainActivity : ComponentActivity() {
         liveCard.addView(fieldLabel("Stream title"), bottomMargin(dp(7)))
         titleInput = EditText(this).apply {
             hint = "Enter your live title"
-            singleLine = true
+            setSingleLine(true)
             textSize = 16f
             setTextColor(Color.WHITE)
             setHintTextColor(Color.rgb(111, 126, 153))
