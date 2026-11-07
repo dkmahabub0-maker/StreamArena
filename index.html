@@ -20,7 +20,6 @@
   .top-actions>button[data-modal="signup"]{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;float:none!important;grid-column:auto!important;grid-row:1!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:44px!important;margin:0!important;transform:none!important;flex:none!important;white-space:nowrap!important}
   .top-actions>.account-menu{grid-column:1 / -1!important;justify-self:end!important;flex:none!important}
 }
-.top-actions #installAppBtn[hidden]{display:none!important;}
 /* Authenticated users must not see guest actions; mobile rules above use !important. */
 .top-actions.is-authenticated>button[data-modal="login"],
 .top-actions.is-authenticated>button[data-modal="signup"]{display:none!important;}
@@ -75,6 +74,7 @@
 #families .family-message{margin:5px 0;padding:6px 8px;border-radius:7px;background:#121a2c;overflow-wrap:anywhere}
 @media(max-width:600px){#families .family-card-head{align-items:flex-start;flex-direction:column}#families .family-create>*{width:100%}}
 #community{scroll-margin-top:90px}
+.top-actions #installAppBtn[hidden]{display:none!important;}
 </style>
 </head>
 <body>
@@ -1275,5 +1275,15 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
     });
   });
 }
+
+
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(error => {
+      console.warn("StreamArena offline support could not be registered:", error);
+    });
+  });
+}
+
 
 </script><script src="./family.js"></script></body></html>
