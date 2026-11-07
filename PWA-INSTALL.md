@@ -18,5 +18,6 @@ iOS installation generally uses Safari: open the website, tap **Share**, then **
 ## Important limitations
 - Installation does not make the website a native Android or iOS application.
 - Live video, chat, sign-in and streaming still require an internet connection.
-- Offline support is limited to a simple offline notice; it does not cache private account data, API responses, chat, or LiveKit media.
+- Offline support is limited to a simple offline notice and the query-free root app shell. The service worker does not cache query-bearing auth callbacks, private account data, API responses, chat, or LiveKit media.
+- The manifest includes the required 192×192 and 512×512 PNG icons, plus an SVG fallback.
 - A PWA cannot guarantee background live broadcasting or capture another app/game's screen.
