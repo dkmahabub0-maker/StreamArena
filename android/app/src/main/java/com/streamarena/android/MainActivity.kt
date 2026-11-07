@@ -579,7 +579,10 @@ class MainActivity : ComponentActivity() {
         // Keep navigation fixed at the bottom while dashboard content scrolls above it.
         liveScreen.addView(topNav, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
+        ).apply {
+            // Lift the bottom navigation slightly without changing icon or button sizes.
+            bottomMargin = dp(8)
+        })
     }
 
 
