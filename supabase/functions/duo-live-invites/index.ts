@@ -84,6 +84,17 @@ Deno.serve(async (req: Request) => {
       });
       return await readJson(response);
     };
+    const consumeRateLimit = async (actionName: "search" | "invite", windowMs: number, limit: number) => {
+      const windowStartedAt = new Date(Math.floor(Date.now() / windowMs) * windowMs).toISOString();
+      const allowed = await rest("rpc/consume_stream_cohost_rate_limit", "POST", {
+        p_user_id: user.id,
+        p_action: actionName,
+        p_window_started_at: windowStartedAt,
+        p_limit: limit,
+      });
+      return allowed === true;
+    };
+
     const freshAfter = new Date(Date.now() - 120_000).toISOString();
     const activeStreamFor = async (ownerId: string) => {
       const params = new URLSearchParams({
@@ -101,6 +112,9 @@ Deno.serve(async (req: Request) => {
       const inviteeUserId = typeof body?.inviteeUserId === "string" ? body.inviteeUserId : "";
       if (!uuidPattern.test(inviteeUserId) || inviteeUserId === user.id) {
         return reply({ error: "Choose another valid StreamArena user" }, 400, origin);
+      }
+      if (!await consumeRateLimit("invite", 60 * 60_000, 10)) {
+        return reply({ error: "You have reached the Duo Live invite limit. Try again in the next hour." }, 429, origin);
       }
       const stream = await activeStreamFor(user.id);
       if (!stream) return reply({ error: "Start your Live before inviting a co-host" }, 409, origin);
@@ -131,7 +145,7 @@ Deno.serve(async (req: Request) => {
       return reply({ error: "A valid invitation ID is required" }, 400, origin);
     }
     const inviteRows = await rest(
-      `stream_cohost_invites?select=id,stream_id,host_user_id,invitee_user_id,status,expires_at&id=eq.${invitationId}&limit=1`,
+      `stream_cohost_invites?select=id,stream_id,host_user_id,invitee_user_id,status,expires_at,revocation_requested_at&id=eq.${invitationId}&limit=1`,
     );
     const invite = Array.isArray(inviteRows) ? inviteRows[0] : null;
     if (!invite) return reply({ error: "Invitation not found" }, 404, origin);
@@ -169,32 +183,76 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "revoke") {
-      if (invite.host_user_id !== user.id || !["pending", "accepted"].includes(invite.status)) {
+      if (invite.host_user_id !== user.id || !["pending", "accepted", "revoking"].includes(invite.status)) {
         return reply({ error: "Only the host can revoke an active invitation" }, 403, origin);
       }
-      const updated = await rest(
-        `stream_cohost_invites?id=eq.${invitationId}&host_user_id=eq.${user.id}&status=in.(pending,accepted)`,
-        "PATCH",
-        { status: "revoked" },
-      );
-      if (!Array.isArray(updated) || updated.length !== 1) {
-        return reply({ error: "Invitation changed before it could be revoked" }, 409, origin);
-      }
-      let participantRemoved = true;
-      if (invite.status === "accepted") {
-        try {
-          const livekit = new RoomServiceClient(
-            requiredEnv("LIVEKIT_URL").replace(/^wss:/i, "https:"),
-            requiredEnv("LIVEKIT_API_KEY"),
-            requiredEnv("LIVEKIT_API_SECRET"),
-          );
-          await livekit.removeParticipant(`stream-${user.id}`, invite.invitee_user_id);
-        } catch (error) {
-          participantRemoved = false;
-          console.error("Co-host revoked, but LiveKit participant removal failed:", error instanceof Error ? error.message : "unknown error");
+
+      if (invite.status === "pending") {
+        const revoked = await rest(
+          `stream_cohost_invites?id=eq.${invitationId}&host_user_id=eq.${user.id}&status=eq.pending`,
+          "PATCH",
+          { status: "revoked", revocation_completed_at: new Date().toISOString() },
+        );
+        if (!Array.isArray(revoked) || revoked.length !== 1) {
+          return reply({ error: "Invitation changed before it could be revoked" }, 409, origin);
         }
+        return reply({ invitation: revoked[0], participantRemoved: true, revocationPending: false }, 200, origin);
       }
-      return reply({ invitation: updated[0], participantRemoved }, 200, origin);
+
+      let revoking = invite;
+      if (invite.status === "accepted") {
+        const marked = await rest(
+          `stream_cohost_invites?id=eq.${invitationId}&host_user_id=eq.${user.id}&status=eq.accepted`,
+          "PATCH",
+          { status: "revoking", revocation_requested_at: new Date().toISOString(), revocation_completed_at: null },
+        );
+        if (!Array.isArray(marked) || marked.length !== 1) {
+          return reply({ error: "Invitation changed before revocation could start" }, 409, origin);
+        }
+        revoking = marked[0];
+      }
+
+      const requestedAt = Date.parse(revoking.revocation_requested_at || "");
+      if (!Number.isFinite(requestedAt)) {
+        return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
+          error: "Revocation is pending but its start time is missing. Keep this co-host slot reserved and retry after review." }, 202, origin);
+      }
+
+      try {
+        const livekit = new RoomServiceClient(
+          requiredEnv("LIVEKIT_URL").replace(/^wss:/i, "https:"),
+          requiredEnv("LIVEKIT_API_KEY"),
+          requiredEnv("LIVEKIT_API_SECRET"),
+        );
+        const roomName = `stream-${user.id}`;
+        const participants = await livekit.listParticipants(roomName);
+        const participantPresent = participants.some((participant) => participant.identity === invite.invitee_user_id);
+
+        if (participantPresent) {
+          // LiveKit removes the active participant and revokes its current token.
+          await livekit.removeParticipant(roomName, invite.invitee_user_id);
+        } else if (Date.now() < requestedAt + 70_000) {
+          // A previously issued 60-second token may still be unused. Keep the
+          // partial-unique-index slot reserved until its expiry plus clock skew.
+          return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
+            retryAfterMs: requestedAt + 70_000 - Date.now() }, 202, origin);
+        }
+
+        const completed = await rest(
+          `stream_cohost_invites?id=eq.${invitationId}&host_user_id=eq.${user.id}&status=eq.revoking`,
+          "PATCH",
+          { status: "revoked", revocation_completed_at: new Date().toISOString() },
+        );
+        if (!Array.isArray(completed) || completed.length !== 1) {
+          return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
+            error: "Participant removal was attempted, but the invitation state could not be finalized. Retry safely." }, 202, origin);
+        }
+        return reply({ invitation: completed[0], participantRemoved: true, revocationPending: false }, 200, origin);
+      } catch (error) {
+        console.error("Duo Live participant removal is pending:", error instanceof Error ? error.message : "unknown error");
+        return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
+          error: "LiveKit could not confirm participant removal. The co-host slot remains reserved; retry removal." }, 202, origin);
+      }
     }
 
     return reply({ error: "Unsupported action" }, 400, origin);
