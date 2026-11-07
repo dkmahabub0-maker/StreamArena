@@ -40,7 +40,7 @@ jobs:
 ');
             const anchor = [...html.matchAll(/<a\\b[^>]*>/g)].map(match => match[0])
               .find(tag => tag.includes('href="' + link + '"'));
-            if (!anchor || !/target="_blank"/.test(anchor) || !/rel="noopener noreferrer"/.test(anchor)) {
+            if (!anchor || !/target="_blank"/.test(anchor) || !/rel="noopener noreferrer"/.test(anchor) || !/aria-label="Get .+ from Google Play"/.test(anchor)) {
               throw new Error('External game link must open safely in a new tab: ' + link);
             }
           }
