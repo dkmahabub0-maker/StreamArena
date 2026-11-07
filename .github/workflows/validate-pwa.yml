@@ -52,11 +52,11 @@ jobs:
           assert.ok(html.includes('await promptEvent.userChoice'));
           assert.ok(worker.includes('!url.search') && worker.includes('!responseUrl.search'));
           assert.ok(worker.includes('cache.put(ROOT_URL'));
-          const ids = [...html.matchAll(/\\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
           const duplicates = ids.filter((id,index) => ids.indexOf(id) !== index);
           assert.equal(duplicates.length, 0, 'HTML IDs must be unique');
-          const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)]
-            .filter(match => !/\\bsrc\\s*=/.test(match[1]) && match[2].trim());
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+            .filter(match => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
           scripts.forEach((match,index) => {
             try { new Function(match[2]); }
             catch(error) { throw new Error('Inline script ' + (index + 1) + ': ' + error.message); }
