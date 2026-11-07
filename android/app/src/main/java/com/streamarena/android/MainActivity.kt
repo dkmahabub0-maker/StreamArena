@@ -715,6 +715,18 @@ class MainActivity : ComponentActivity() {
         heartbeatJob?.cancel()
         heartbeatJob = null
         lifecycleScope.launch {
+            // Mark the user's active stream offline before discarding the session token.
+            val streamId = activeStreamId
+            val session = accessToken
+            val ownerId = userId
+            if (streamId != null && session != null && ownerId != null) {
+                runCatching {
+                    withContext(Dispatchers.IO) { updateStreamRow(session, streamId, ownerId, false) }
+                }.onFailure {
+                    setStatus("Signed out locally, but the stream status could not be updated: ${it.message}")
+                }
+            }
+            runCatching { room?.localParticipant?.setScreenShareEnabled(false) }
             runCatching { room?.disconnect() }
             room = null
             activeStreamId = null
