@@ -333,13 +333,13 @@ class MainActivity : ComponentActivity() {
         }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { leftMargin = dp(6) })
         root.addView(quickTools, bottomMargin(dp(20)))
         root.addView(TextView(this).apply {
-            text = "You're signed in."
+            text = "Welcome to your creator space."
             textSize = 27f
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
         })
         root.addView(TextView(this).apply {
-            text = "Set up your stream and go live from your phone."
+            text = "Manage your broadcast, screen sharing and creator tools from one place."
             textSize = 14f
             setTextColor(Color.rgb(166, 178, 202))
         }, bottomMargin(dp(22)))
@@ -388,6 +388,19 @@ class MainActivity : ComponentActivity() {
         liveCard.addView(liveStatus, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(liveCard)
 
+        val bottomBanner = TextView(this).apply {
+            text = "READY WHEN YOU ARE  •  Set your title, start your stream and connect with your viewers."
+            textSize = 12f
+            setTextColor(Color.rgb(215, 228, 248))
+            gravity = Gravity.CENTER
+            setPadding(dp(16), dp(16), dp(16), dp(16))
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(24, 42, 70))
+                cornerRadius = dp(16).toFloat()
+                setStroke(dp(1), Color.rgb(48, 75, 112))
+            }
+        }
+        root.addView(bottomBanner, bottomMargin(dp(14)))
         root.addView(TextView(this).apply {
             text = "Screen sharing starts only after you approve Android's system prompt."
             textSize = 12f
@@ -474,8 +487,8 @@ class MainActivity : ComponentActivity() {
                     setContentView(liveScreen)
                     setStatus("Account created. You are signed in.")
                 } else {
-                    isSignUpMode = false
-                    signInButton.text = "Sign in to StreamArena"
+                    setAuthMode(false)
+                    signInButton.text = "Log in"
                     setStatus("Account created. Check your email to confirm, then sign in.")
                 }
             } catch (error: Exception) {
