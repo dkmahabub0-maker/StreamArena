@@ -58,6 +58,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var shareButton: Button
     private lateinit var stopShareButton: Button
     private lateinit var endLiveButton: Button
+    private lateinit var signOutButton: Button
 
     private var accessToken: String? = null
     private var userId: String? = null
@@ -276,15 +277,61 @@ class MainActivity : ComponentActivity() {
         }
         header.addView(logo, LinearLayout.LayoutParams(dp(56), dp(56)))
         header.addView(TextView(this).apply {
-            text = "STREAMARENA\nCREATOR STUDIO"
-            textSize = 18f
+            text = "STREAMARENA\nCREATOR DASHBOARD"
+            textSize = 16f
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
-            setPadding(dp(14), 0, 0, 0)
-        })
+            setPadding(dp(12), 0, 0, 0)
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        signOutButton = makeButton("Sign out", false) { signOut() }
+        header.addView(signOutButton, LinearLayout.LayoutParams(dp(90), dp(42)))
         root.addView(header, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             bottomMargin = dp(30)
         })
+        val banner = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(22))
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.rgb(24, 92, 166), Color.rgb(91, 51, 151), Color.rgb(25, 37, 73))
+            ).apply { cornerRadius = dp(22).toFloat() }
+        }
+        banner.addView(TextView(this).apply {
+            text = "YOUR CHANNEL. YOUR MOMENT."
+            textSize = 10f
+            setTextColor(Color.rgb(210, 227, 255))
+            typeface = Typeface.DEFAULT_BOLD
+            letterSpacing = 0.12f
+        }, bottomMargin(dp(10)))
+        banner.addView(TextView(this).apply {
+            text = "Go live.\nBring your community together."
+            textSize = 25f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(8)))
+        banner.addView(TextView(this).apply {
+            text = "Create a broadcast and share your phone screen with viewers."
+            textSize = 13f
+            setTextColor(Color.rgb(225, 232, 249))
+        })
+        root.addView(banner, bottomMargin(dp(22)))
+        root.addView(TextView(this).apply {
+            text = "CREATOR TOOLS"
+            textSize = 12f
+            setTextColor(Color.rgb(128, 190, 255))
+            typeface = Typeface.DEFAULT_BOLD
+            letterSpacing = 0.14f
+        }, bottomMargin(dp(12)))
+        val quickTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        quickTools.addView(makeButton("Go Live", true) { titleInput.requestFocus() },
+            LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(6) })
+        quickTools.addView(makeButton("Screen Share", false) {
+            if (room == null) setStatus("Start your Live first, then share your phone screen.")
+            else {
+                val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                screenCaptureLauncher.launch(manager.createScreenCaptureIntent())
+            }
+        }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { leftMargin = dp(6) })
+        root.addView(quickTools, bottomMargin(dp(20)))
         root.addView(TextView(this).apply {
             text = "You're signed in."
             textSize = 27f
@@ -481,6 +528,25 @@ class MainActivity : ComponentActivity() {
                 signInButton.text = "Sign in to StreamArena"
                 updateControls()
             }
+        }
+    }
+
+    private fun signOut() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+        lifecycleScope.launch {
+            runCatching { room?.disconnect() }
+            room = null
+            activeStreamId = null
+            sharing = false
+            accessToken = null
+            userId = null
+            emailInput.text.clear()
+            passwordInput.text.clear()
+            titleInput.text.clear()
+            setAuthMode(false)
+            setContentView(authScreen)
+            updateControls()
         }
     }
 
