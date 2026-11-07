@@ -2,6 +2,12 @@ package com.streamarena.android
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.text.InputType
+import android.view.Gravity
+import android.view.inputmethod.InputMethodManager
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
@@ -9,10 +15,13 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ImageView
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import io.livekit.android.LiveKit
 import io.livekit.android.room.Room
@@ -96,98 +105,252 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         buildUi()
         updateControls()
     }
 
     private fun buildUi() {
+        window.statusBarColor = Color.rgb(9, 14, 29)
+        window.navigationBarColor = Color.rgb(9, 14, 29)
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            setBackgroundColor(Color.rgb(9, 14, 29))
+        }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(28, 36, 28, 28)
+            setPadding(dp(24), dp(30), dp(24), dp(34))
         }
-        fun add(view: android.view.View, height: Int = ViewGroup.LayoutParams.WRAP_CONTENT) {
-            root.addView(view, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height).apply {
-                bottomMargin = 14
-            })
+        scroll.addView(root)
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
         }
-        add(TextView(this).apply {
-            text = "StreamArena — Android Host"
-            textSize = 24f
+        val logo = ImageView(this).apply {
+            setImageResource(R.drawable.ic_streamarena)
+            contentDescription = "StreamArena logo"
+        }
+        header.addView(logo, LinearLayout.LayoutParams(dp(64), dp(64)))
+        val brand = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), 0, 0, 0)
+        }
+        brand.addView(TextView(this).apply {
+            text = "STREAMARENA"
+            textSize = 21f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            letterSpacing = 0.08f
         })
-        add(TextView(this).apply {
-            text = "Sign in, start your Live, then share your phone screen. Only the authenticated host can publish."
-            textSize = 14f
+        brand.addView(TextView(this).apply {
+            text = "MOBILE CREATOR"
+            textSize = 11f
+            setTextColor(Color.rgb(115, 205, 255))
+            letterSpacing = 0.16f
         })
-        titleInput = EditText(this).apply { hint = "Live title (at least 3 characters)" }
-        add(titleInput)
+        header.addView(brand)
+        root.addView(header, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(34)
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Your game.\nYour live stream."
+            textSize = 31f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            setLineSpacing(dp(2).toFloat(), 1.0f)
+        })
+        root.addView(TextView(this).apply {
+            text = "Sign in to your StreamArena account to start broadcasting from your phone."
+            textSize = 15f
+            setTextColor(Color.rgb(166, 178, 202))
+            setLineSpacing(dp(4).toFloat(), 1.0f)
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(10)
+            bottomMargin = dp(24)
+        })
+
+        val authCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = panelBackground()
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+        }
+        authCard.addView(TextView(this).apply {
+            text = "ACCOUNT SIGN IN"
+            textSize = 12f
+            setTextColor(Color.rgb(115, 205, 255))
+            typeface = Typeface.DEFAULT_BOLD
+            letterSpacing = 0.12f
+        }, bottomMargin(dp(18)))
+
+        authCard.addView(fieldLabel("Email address"), bottomMargin(dp(7)))
         emailInput = EditText(this).apply {
-            hint = "StreamArena account email"
-            inputType = 33
+            hint = "you@example.com"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            singleLine = true
+            textSize = 16f
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.rgb(111, 126, 153))
+            background = inputBackground()
+            setPadding(dp(15), 0, dp(15), 0)
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
         }
-        add(emailInput)
+        authCard.addView(emailInput, fieldLayout(dp(54), dp(18)))
+
+        authCard.addView(fieldLabel("Password"), bottomMargin(dp(7)))
         passwordInput = EditText(this).apply {
-            hint = "Password"
-            inputType = 129
+            hint = "Enter your password"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            singleLine = true
+            textSize = 16f
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.rgb(111, 126, 153))
+            background = inputBackground()
+            setPadding(dp(15), 0, dp(15), 0)
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
         }
-        add(passwordInput)
-        signInButton = Button(this).apply {
-            text = "Sign in"
-            setOnClickListener { signIn() }
-        }
-        add(signInButton)
-        startLiveButton = Button(this).apply {
-            text = "Start Live"
-            setOnClickListener { startLive() }
-        }
-        add(startLiveButton)
-        shareButton = Button(this).apply {
-            text = "Share phone screen"
-            setOnClickListener {
-                val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                screenCaptureLauncher.launch(manager.createScreenCaptureIntent())
-            }
-        }
-        add(shareButton)
-        stopShareButton = Button(this).apply {
-            text = "Stop screen share"
-            setOnClickListener { stopScreenShare() }
-        }
-        add(stopShareButton)
-        endLiveButton = Button(this).apply {
-            text = "End Live"
-            setOnClickListener { endLive() }
-        }
-        add(endLiveButton)
+        authCard.addView(passwordInput, fieldLayout(dp(54), dp(18)))
+
+        signInButton = makeButton("Sign in to StreamArena", true) { signIn() }
+        authCard.addView(signInButton, fieldLayout(dp(54), dp(14)))
+
         status = TextView(this).apply {
-            text = "Not signed in."
-            textSize = 14f
+            text = "Enter your account details to continue."
+            textSize = 13f
+            setTextColor(Color.rgb(166, 178, 202))
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(6), dp(8), dp(4))
         }
-        add(status)
-        setContentView(root)
+        authCard.addView(status, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        root.addView(authCard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(18)
+        })
+
+        val liveCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = panelBackground()
+            setPadding(dp(20), dp(20), dp(20), dp(20))
+        }
+        liveCard.addView(TextView(this).apply {
+            text = "LIVE CONTROLS"
+            textSize = 12f
+            setTextColor(Color.rgb(115, 205, 255))
+            typeface = Typeface.DEFAULT_BOLD
+            letterSpacing = 0.12f
+        }, bottomMargin(dp(14)))
+        liveCard.addView(fieldLabel("Stream title"), bottomMargin(dp(7)))
+        titleInput = EditText(this).apply {
+            hint = "Enter your live title"
+            singleLine = true
+            textSize = 16f
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.rgb(111, 126, 153))
+            background = inputBackground()
+            setPadding(dp(15), 0, dp(15), 0)
+        }
+        liveCard.addView(titleInput, fieldLayout(dp(54), dp(14)))
+
+        startLiveButton = makeButton("Start Live", true) { startLive() }
+        liveCard.addView(startLiveButton, fieldLayout(dp(52), dp(10)))
+        shareButton = makeButton("Share phone screen", false) {
+            val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            screenCaptureLauncher.launch(manager.createScreenCaptureIntent())
+        }
+        liveCard.addView(shareButton, fieldLayout(dp(50), dp(8)))
+        stopShareButton = makeButton("Stop screen share", false) { stopScreenShare() }
+        liveCard.addView(stopShareButton, fieldLayout(dp(50), dp(8)))
+        endLiveButton = makeButton("End Live", false) { endLive() }
+        liveCard.addView(endLiveButton, fieldLayout(dp(50), 0))
+        root.addView(liveCard)
+
+        root.addView(TextView(this).apply {
+            text = "Screen sharing starts only after you approve Android's system prompt."
+            textSize = 12f
+            setTextColor(Color.rgb(120, 133, 158))
+            gravity = Gravity.CENTER
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(18)
+        })
+
+        setContentView(scroll)
     }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun panelBackground(): GradientDrawable = GradientDrawable().apply {
+        setColor(Color.rgb(19, 28, 49))
+        cornerRadius = dp(22).toFloat()
+        setStroke(dp(1), Color.rgb(37, 51, 78))
+    }
+
+    private fun inputBackground(): GradientDrawable = GradientDrawable().apply {
+        setColor(Color.rgb(11, 18, 34))
+        cornerRadius = dp(13).toFloat()
+        setStroke(dp(1), Color.rgb(48, 65, 96))
+    }
+
+    private fun fieldLabel(value: String): TextView = TextView(this).apply {
+        text = value
+        textSize = 13f
+        setTextColor(Color.rgb(197, 207, 225))
+        typeface = Typeface.DEFAULT_BOLD
+    }
+
+    private fun bottomMargin(value: Int): LinearLayout.LayoutParams =
+        LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = value
+        }
+
+    private fun fieldLayout(height: Int, bottom: Int): LinearLayout.LayoutParams =
+        LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height).apply {
+            bottomMargin = bottom
+        }
+
+    private fun makeButton(label: String, primary: Boolean, action: () -> Unit): Button =
+        Button(this).apply {
+            text = label
+            isAllCaps = false
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                setColor(if (primary) Color.rgb(31, 123, 222) else Color.rgb(34, 48, 73))
+                cornerRadius = dp(14).toFloat()
+                if (!primary) setStroke(dp(1), Color.rgb(58, 77, 108))
+            }
+            stateListAnimator = null
+            setOnClickListener { action() }
+        }
 
     private fun signIn() {
         val email = emailInput.text.toString().trim()
         val password = passwordInput.text.toString()
         if (email.isBlank() || password.isBlank()) {
-            setStatus("Enter your account email and password.")
+            setStatus("Email and password are required.", true)
             return
         }
+        val keyboard = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        keyboard.hideSoftInputFromWindow(passwordInput.windowToken, 0)
         signInButton.isEnabled = false
+        signInButton.text = "Signing in…"
+        setStatus("Connecting securely to your account…")
         lifecycleScope.launch {
             try {
                 val auth = withContext(Dispatchers.IO) { requestPasswordSignIn(email, password) }
                 accessToken = auth.getString("access_token")
                 userId = auth.getJSONObject("user").getString("id")
                 passwordInput.text.clear()
-                setStatus("Signed in. You can start your Live.")
+                setStatus("Signed in successfully. You can start your Live.")
             } catch (error: Exception) {
                 accessToken = null
                 userId = null
-                setStatus("Sign in failed: ${error.message ?: "unknown error"}")
+                val detail = error.message?.takeIf { it.isNotBlank() } ?: "Unknown connection error"
+                setStatus("Sign in failed: $detail", true)
             } finally {
-                signInButton.isEnabled = true
+                signInButton.text = "Sign in to StreamArena"
                 updateControls()
             }
         }
@@ -313,8 +476,9 @@ class MainActivity : ComponentActivity() {
         signInButton.isEnabled = !signedIn
     }
 
-    private fun setStatus(message: String) {
+    private fun setStatus(message: String, isError: Boolean = false) {
         status.text = message
+        status.setTextColor(if (isError) Color.rgb(255, 125, 125) else Color.rgb(166, 207, 231))
     }
 
     private fun requestPasswordSignIn(email: String, password: String): JSONObject {
@@ -425,7 +589,13 @@ class MainActivity : ComponentActivity() {
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val response = stream.bufferedReader().use { it.readText() }
             if (code !in 200..299) {
-                val message = runCatching { JSONObject(response).optString("msg").ifBlank { JSONObject(response).optString("error") } }.getOrDefault("")
+                val message = runCatching {
+                    val json = JSONObject(response)
+                    json.optString("msg")
+                        .ifBlank { json.optString("error_description") }
+                        .ifBlank { json.optString("message") }
+                        .ifBlank { json.optString("error") }
+                }.getOrDefault("")
                 throw IllegalStateException(message.ifBlank { "Server returned HTTP $code" })
             }
             return JSONObject(response)
