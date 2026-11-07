@@ -525,7 +525,7 @@ class MainActivity : ComponentActivity() {
         })
         navItem("♧\nNotifications") { setStatus("Notifications will appear here when the notification service is connected.") }
         navItem("◎\nCommunity") { setStatus("Community feed is not connected yet.") }
-        navItem("☰\nMenu") { showDashboardMenu(it) }
+        navItem("☰\nMenu") { showDashboardMenu(bottomNav) }
         liveScreen.addView(bottomNav, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         ))
