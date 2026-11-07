@@ -1,6 +1,7 @@
 name: Repository static audit
 
 "on":
+  workflow_dispatch:
   pull_request:
   push:
     branches:
