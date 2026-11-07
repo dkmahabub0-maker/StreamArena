@@ -48,8 +48,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var titleInput: EditText
     private lateinit var status: TextView
     private lateinit var liveStatus: TextView
-    private lateinit var authHeading: TextView
-    private lateinit var authModeButton: TextView
     private lateinit var loginTabButton: Button
     private lateinit var signUpTabButton: Button
     private lateinit var authScreen: ScrollView
@@ -430,9 +428,7 @@ class MainActivity : ComponentActivity() {
                     setStatus("Account created. You are signed in.")
                 } else {
                     isSignUpMode = false
-                    authHeading.text = "ACCOUNT SIGN IN"
                     signInButton.text = "Sign in to StreamArena"
-                    authModeButton.text = "New to StreamArena? Create account"
                     setStatus("Account created. Check your email to confirm, then sign in.")
                 }
             } catch (error: Exception) {
@@ -606,7 +602,8 @@ class MainActivity : ComponentActivity() {
         emailInput.isEnabled = !signedIn
         passwordInput.isEnabled = !signedIn
         signInButton.isEnabled = !signedIn
-        authModeButton.isEnabled = !signedIn
+        loginTabButton.isEnabled = !signedIn
+        signUpTabButton.isEnabled = !signedIn
     }
 
     private fun setStatus(message: String, isError: Boolean = false) {
