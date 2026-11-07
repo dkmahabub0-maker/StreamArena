@@ -29,3 +29,21 @@ jobs:
           deno-version: v2.x
       - name: Type-check invitation Edge Function
         run: deno check supabase/functions/duo-live-invites/index.ts
+
+      - name: Verify invitation expiry guards
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const schema = fs.readFileSync('docs/duo-live/stream_cohost_invites_draft.sql', 'utf8');
+          const source = fs.readFileSync('supabase/functions/duo-live-invites/index.ts', 'utf8');
+          if (!schema.includes("'expired'")) throw new Error('Invitation schema must allow an explicit expired state.');
+          if (!schema.includes("where status in ('pending', 'accepted')")) throw new Error('Only pending and accepted invitations may occupy the co-host slot.');
+          if (!source.includes('{ status: "expired" }')) throw new Error('Expired pending invitations must be transitioned to expired.');
+          if (!source.includes('expires_at=lte.')) throw new Error('Expired pending invitations must be released before a replacement invite.');
+          if (!source.includes('expires_at=gt.\\u0024{encodeURIComponent(acceptBefore)}')) {
+            if (!source.includes('expires_at=gt.${encodeURIComponent(acceptBefore)}')) {
+              throw new Error('Accept/decline updates must atomically require an unexpired pending invitation.');
+            }
+          }
+          console.log('Verified explicit expiry state, unique-slot release and atomic response expiry guard.');
+          NODE
