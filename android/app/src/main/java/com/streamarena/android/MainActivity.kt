@@ -323,9 +323,9 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(12), 0, 0, 0)
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         lateinit var menuButton: Button
-        menuButton = makeButton("☰", false) { showDashboardMenu(menuButton) }.apply {
-            textSize = 27f
-            contentDescription = "Open menu"
+        menuButton = makeButton("⋮", false) { showDashboardMenu(menuButton) }.apply {
+            textSize = 32f
+            contentDescription = "More options"
             setPadding(0, 0, 0, 0)
         }
         header.addView(menuButton, LinearLayout.LayoutParams(dp(52), dp(46)))
@@ -356,7 +356,7 @@ class MainActivity : ComponentActivity() {
                 setMargins(dp(1), 0, dp(1), 0)
             })
         }
-        navItem("⌂\\nHome") { scroll.smoothScrollTo(0, 0) }
+        navItem("⌂\nHome") { scroll.smoothScrollTo(0, 0) }
         plusNavButton = makeButton("＋", true) {
             plusNavButton.animate().rotationBy(45f).setDuration(160).start()
             showCreatorMenu(plusNavButton, scroll)
@@ -370,10 +370,9 @@ class MainActivity : ComponentActivity() {
         topNav.addView(plusNavButton, LinearLayout.LayoutParams(0, dp(58), 1f).apply {
             setMargins(dp(1), 0, dp(1), 0)
         })
-        navItem("♧\\nNotifications") { setStatus("Notifications will appear here when the notification service is connected.") }
-        navItem("◎\\nCommunity") { setStatus("Community feed is not connected yet.") }
-        navItem("☰\\nMenu") { showDashboardMenu(topNav) }
-        root.addView(topNav, bottomMargin(dp(20)))
+        navItem("♧\nNotifications") { setStatus("Notifications will appear here when the notification service is connected.") }
+        navItem("◎\nCommunity") { setStatus("Community feed is not connected yet.") }
+        // Bottom navigation is attached below the scroll area; the overflow menu stays in the header.
 
         root.addView(TextView(this).apply {
             text = "FEATURED GAMES"
@@ -427,7 +426,7 @@ class MainActivity : ComponentActivity() {
                 textSize = 11f
                 setTextColor(Color.rgb(226, 235, 248))
             })
-            featuredGames.addView(gameBanner, LinearLayout.LayoutParams(dp(224), dp(132)).apply {
+            featuredGames.addView(gameBanner, LinearLayout.LayoutParams(dp(270), dp(158)).apply {
                 rightMargin = dp(10)
             })
         }
@@ -448,8 +447,8 @@ class MainActivity : ComponentActivity() {
             }
         }
         root.addView(adSlot, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(42)
-        ).apply { bottomMargin = dp(18) })
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(54)
+        ).apply { bottomMargin = dp(22) })
 
         root.addView(TextView(this).apply {
             text = "GAME CATEGORIES"
@@ -577,7 +576,10 @@ class MainActivity : ComponentActivity() {
             topMargin = dp(18)
         })
 
-
+        // Keep navigation fixed at the bottom while dashboard content scrolls above it.
+        liveScreen.addView(topNav, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
     }
 
 
