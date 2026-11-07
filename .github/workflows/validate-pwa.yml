@@ -92,9 +92,10 @@ jobs:
           assert.match(html, /const promptEvent = streamArenaInstallPrompt/, 'Install prompt must be captured before use');
           assert.match(html, /installAppButton\.hidden = false/, 'Chrome beforeinstallprompt must reveal the install button');
           assert.match(html, /installAppButton\.hidden = true/, 'Dismissed or consumed prompts must hide the install button');
-          assert.match(html, /installAppButton\\.addEventListener\\('click', async \\(\\) => \\{/, 'Install button must have a real click handler');
-          assert.match(html, /await promptEvent\\.prompt\\(\\)/, 'Install handler must invoke the browser prompt');
-          assert.match(html, /await promptEvent\\.userChoice/, 'Install handler must await the user choice');
-          assert.match(html, /window\\.addEventListener\\('appinstalled',[\\s\\S]*?streamArenaInstallPrompt = null/, 'Successful install must clear the captured prompt');
+          assert.ok(html.includes("installAppButton.addEventListener('click', async () => {"), 'Install button must have a real click handler');
+          assert.ok(html.includes('await promptEvent.prompt()'), 'Install handler must invoke the browser prompt');
+          assert.ok(html.includes('await promptEvent.userChoice'), 'Install handler must await the user choice');
+          const installedHandler = html.slice(html.indexOf("window.addEventListener('appinstalled'"));
+          assert.ok(installedHandler.includes('streamArenaInstallPrompt = null'), 'Successful install must clear the captured prompt');
           console.log('PWA install contract and navigation cache safeguards are valid.');
           NODE
