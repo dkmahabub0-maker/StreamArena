@@ -1,0 +1,61 @@
+name: Repository static audit
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  audit:
+    name: Static application checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate application JavaScript and HTML identifiers
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+
+          const html = fs.readFileSync('index.html', 'utf8');
+          const family = fs.readFileSync('family.js', 'utf8');
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+            .filter((match) => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
+
+          assert.ok(scripts.length > 0, 'index.html must contain inline application JavaScript');
+          scripts.forEach((match, index) => {
+            try {
+              new Function(match[2]);
+            } catch (error) {
+              throw new Error('index.html inline script ' + (index + 1) + ': ' + error.message);
+            }
+          });
+
+          try {
+            new Function(family);
+          } catch (error) {
+            throw new Error('family.js: ' + error.message);
+          }
+
+          const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((match) => match[1]);
+          const seen = new Set();
+          const duplicates = new Set();
+          for (const id of ids) {
+            if (seen.has(id)) duplicates.add(id);
+            seen.add(id);
+          }
+          assert.equal(duplicates.size, 0, 'Duplicate HTML IDs: ' + [...duplicates].join(', '));
+
+          const unsafeBlankLinks = [...html.matchAll(/<a\b[^>]*target=["']_blank["'][^>]*>/gi)]
+            .map((match) => match[0])
+            .filter((tag) => !/\brel=["'][^"']*(noopener|noreferrer)/i.test(tag));
+          assert.equal(unsafeBlankLinks.length, 0, 'target=_blank links must include noopener or noreferrer');
+
+          console.log('Validated ' + scripts.length + ' inline script(s), family.js, ' + ids.length + ' unique IDs, and safe target=_blank links.');
+          NODE
