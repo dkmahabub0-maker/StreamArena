@@ -47,7 +47,7 @@ jobs:
           if (!source.includes('listParticipants(roomName)')) throw new Error('Revocation must verify participant presence before releasing the slot.');
           if (!source.includes('requestedAt + 70_000')) throw new Error('Unused 60-second co-host tokens must expire before releasing a missing participant slot.');
           if (!schema.includes("'expired'")) throw new Error('Invitation schema must allow an explicit expired state.');
-          if (!schema.includes("where status in ('pending', 'accepted')")) throw new Error('Only pending and accepted invitations may occupy the co-host slot.');
+          if (!schema.includes("where status in ('pending', 'accepted', 'revoking')")) throw new Error('Pending, accepted and revoking invitations must reserve the co-host slot.');
           if (!source.includes('{ status: "expired" }')) throw new Error('Expired pending invitations must be transitioned to expired.');
           if (!source.includes('expires_at=lte.')) throw new Error('Expired pending invitations must be released before a replacement invite.');
           if (!source.includes('expires_at=gt.\\u0024{encodeURIComponent(acceptBefore)}')) {
