@@ -340,7 +340,7 @@ class MainActivity : ComponentActivity() {
             session,
             row
         )
-        return response.getJSONArray(0).getString("id")
+        return response.getJSONObject(0).getString("id")
     }
 
     private fun updateStreamRow(session: String, streamId: String, id: String, live: Boolean) {
