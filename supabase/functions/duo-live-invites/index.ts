@@ -327,6 +327,12 @@ Deno.serve(async (req: Request) => {
         const participantPresent = participants.some((participant) => participant.identity === invite.invitee_user_id);
         if (participantPresent) {
           await livekit.removeParticipant(roomName, invite.invitee_user_id);
+          // Confirm the participant is actually gone before releasing the co-host slot.
+          const remainingParticipants = await livekit.listParticipants(roomName);
+          if (remainingParticipants.some((participant) => participant.identity === invite.invitee_user_id)) {
+            return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
+              error: "LiveKit accepted removal but the co-host is still present. Retry removal." }, 202, origin);
+          }
         } else if (Date.now() < requestedAt + 70_000) {
           return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
             retryAfterMs: requestedAt + 70_000 - Date.now() }, 202, origin);
