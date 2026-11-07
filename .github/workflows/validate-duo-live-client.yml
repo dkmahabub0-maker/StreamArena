@@ -8,6 +8,8 @@ on:
   push:
     branches:
       - "feat/duo-live-client-and-dual-camera-layout"
+      - "feat/live-floating-controls-current-base"
+      - "fix/host-live-session-recovery"
     paths:
       - "index.html"
       - ".github/workflows/validate-duo-live-client.yml"
@@ -45,6 +47,32 @@ jobs:
           ]) {
             if (!html.includes(required)) throw new Error('Missing Duo Live browser contract: ' + required);
           }
+          const controlIds = [
+            'liveStageShell', 'liveStage', 'liveControlMenuToggle',
+            'liveBroadcastControls', 'liveScreenShareBtn',
+            'liveCameraSwitchBtn', 'liveCameraToggleBtn', 'liveMicToggleBtn'
+          ];
+          for (const id of controlIds) {
+            if (!ids.includes(id)) throw new Error('Missing floating live control element: ' + id);
+          }
+          const stageStart = html.indexOf('<div id="liveStageShell"');
+          const stageEnd = html.indexOf('<button class="btn" id="livePlayMediaBtn"', stageStart);
+          const stageShell = stageStart >= 0 && stageEnd > stageStart ? html.slice(stageStart, stageEnd) : '';
+          if (!stageShell.includes('id="liveControlMenuToggle"') || !stageShell.includes('id="liveBroadcastControls"')) {
+            throw new Error('Floating controls must remain grouped with the live stage.');
+          }
+          if (!html.includes("liveControlMenuToggle.getAttribute('aria-expanded')!=='true'")) {
+            throw new Error('Floating menu toggle must switch between open and closed states.');
+          }
+          if (!html.includes("event.key==='Escape'") || !html.includes('liveControlPopover?.contains(event.target)')) {
+            throw new Error('Floating menu must support Escape and outside-click dismissal.');
+          }
+          if (!html.includes('setLiveControlMenuOpen(false,true)') || !html.includes('liveControlMenuToggle.focus()')) {
+            throw new Error('Closing the floating menu by keyboard or action must restore trigger focus.');
+          }
+          if (!html.includes("document.getElementById('liveControlMenuToggle').style.display='grid'")) {
+            throw new Error('Only the host startup path should reveal the floating control trigger.');
+          }
           if (!html.includes("tile.dataset.participantId=identity")) {
             throw new Error('Every camera tile must be keyed by participant identity for correct unsubscribe cleanup.');
           }
@@ -63,11 +91,14 @@ jobs:
           if (!cleanup.includes("!media?.querySelector('video')")) {
             throw new Error('Unsubscribing an old camera track must not remove a tile that already contains its replacement.');
           }
-                    const cohostStart = html.indexOf('async function joinDuoLiveAsCohost');
+          const cohostStart = html.indexOf('async function joinDuoLiveAsCohost');
           const cohostEnd = html.indexOf("document.getElementById('leaveDuoLiveBtn').addEventListener", cohostStart);
           const cohostJoin = cohostStart >= 0 && cohostEnd > cohostStart ? html.slice(cohostStart, cohostEnd) : '';
           if (!cohostJoin.includes('TrackUnsubscribed') || !cohostJoin.includes('publication?.source===LivekitClient.Track.Source.ScreenShare') || !cohostJoin.includes('restoreDuoCameraTracks(room,stage,true)')) {
-            throw new Error('Co-host must restore both subscribed camera tiles after the host stops screen sharing.');
+            throw new Error('Co-host must restore both camera tiles after the host stops screen sharing.');
+          }
+          if (!cohostJoin.includes("liveControlMenuToggle').style.display='grid'") || !cohostJoin.includes("liveScreenShareBtn').style.display='none'")) {
+            throw new Error('Co-host controls must be available without granting screen sharing.');
           }
           if (!cohostJoin.includes('setCameraEnabled(true)') || !cohostJoin.includes('setMicrophoneEnabled(true)')) {
             throw new Error('Co-host must publish a local camera and microphone.');
@@ -76,24 +107,91 @@ jobs:
               !cohostJoin.includes('if(!cameraReady&&!microphoneReady)')) {
             throw new Error('Co-host camera and microphone startup must fail independently, allowing the available track to continue.');
           }
+          if (!html.includes('await room.localParticipant.setMicrophoneEnabled(next)')) {
+            throw new Error('Co-host microphone control must affect only the local participant.');
+          }
+          if (!html.includes('const room=activeLiveRoom||activeDuoCohostRoom;') || !html.includes('updateDuoCohostCameraPreview(room,next,previousTrack)')) {
+            throw new Error('Camera and microphone controls must target the local co-host participant when co-hosting.');
+          }
+          if (!html.includes('firstVisible?.focus()')) {
+            throw new Error('Opening the floating controls must move keyboard focus into the menu.');
+          }
+          for (const required of [
+            'async function recoverHostLiveSession',
+            'function attachHostRoomEvents',
+            'function startHostHeartbeat',
+            'function stopHostHeartbeat',
+            'async function touchHostStream',
+            'RoomEvent.Reconnecting',
+            'RoomEvent.Reconnected',
+            "document.addEventListener('visibilitychange'",
+            "window.addEventListener('pageshow'",
+            "document.getElementById('resumeLiveBtn').addEventListener"
+          ]) {
+            if (!html.includes(required)) throw new Error('Missing host Live recovery contract: ' + required);
+          }
           const startFlowStart = html.indexOf('async function startLiveBroadcast');
           const startFlowEnd = html.indexOf("document.getElementById('endLiveBtn').addEventListener", startFlowStart);
           const startFlow = startFlowStart >= 0 && startFlowEnd > startFlowStart ? html.slice(startFlowStart, startFlowEnd) : '';
-          if (!startFlow.includes('if(activeDuoCohostRoom)')) {
+          if (startFlow.includes('You already have an active live stream. End it before starting another.')) {
+            throw new Error('A duplicate-live conflict must not strand the host behind an already-live error.');
+          }
+          if (!startFlow.includes("if(err?.code==='23505'&&ownerId)") ||
+              !startFlow.includes('existing.data.id') ||
+              !startFlow.includes("recoverHostLiveSession('manual')")) {
+            throw new Error('A unique live-start conflict must reload and recover the existing owned stream.');
+          }
+          if (!startFlow.includes('existing.data[0].id') || !startFlow.includes('resumeLiveBtn')) {
+            throw new Error('An existing active stream must be offered for resumption.');
+          }
+          const recoveryStart = html.indexOf('async function recoverHostLiveSession');
+          const recoveryEnd = html.indexOf('async function startLiveBroadcast', recoveryStart);
+          const recovery = recoveryStart >= 0 && recoveryEnd > recoveryStart ? html.slice(recoveryStart, recoveryEnd) : '';
+          if (!recovery.includes('touchHostStream(streamId,userId)') || !recovery.includes("requestLiveKitToken('stream-'+userId,'publisher')")) {
+            throw new Error('Host recovery must refresh the same stream before obtaining a publisher token.');
+          }
+          if (!recovery.includes('mediaStreamTrack?.muted') || !recovery.includes('restartTrack')) {
+            throw new Error('Host recovery must reacquire camera/microphone tracks interrupted by backgrounding.');
+          }
+          if (!html.includes('if(includeLocal&&liveCameraEnabled)')) {
+            throw new Error('Duo Live camera restoration must respect an intentional camera-off state.');
+          }
+          const roleGuardStart = html.indexOf('async function startLiveBroadcast');
+          const roleGuardEnd = html.indexOf("document.getElementById('endLiveBtn').addEventListener", roleGuardStart);
+          const roleGuardFlow = roleGuardStart >= 0 && roleGuardEnd > roleGuardStart ? html.slice(roleGuardStart, roleGuardEnd) : '';
+          if (!roleGuardFlow.includes('if(activeDuoCohostRoom)')) {
             throw new Error('A co-host must leave Duo Live before starting a separate host stream.');
           }
-          const inboxStart = html.indexOf('async function loadDuoLiveInbox');
-          const inboxEnd = html.indexOf("document.getElementById('duoLiveRefreshInboxBtn')", inboxStart);
-          const inbox = inboxStart >= 0 && inboxEnd > inboxStart ? html.slice(inboxStart, inboxEnd) : '';
-          if (!inbox.includes("invite.status==='accepted'") || !inbox.includes('addJoinAction()')) {
+          const acceptedInboxStart = html.indexOf('async function loadDuoLiveInbox');
+          const acceptedInboxEnd = html.indexOf("document.getElementById('duoLiveRefreshInboxBtn')", acceptedInboxStart);
+          const acceptedInbox = acceptedInboxStart >= 0 && acceptedInboxEnd > acceptedInboxStart ? html.slice(acceptedInboxStart, acceptedInboxEnd) : '';
+          if (!acceptedInbox.includes("invite.status==='accepted'") || !acceptedInbox.includes('addJoinAction()')) {
             throw new Error('Accepted co-host invitations must remain joinable after a page refresh.');
           }
-          if (!inbox.includes("invite.status==='revoking'") || !inbox.includes('invite.host_live')) {
-            throw new Error('The invite inbox must distinguish revoking invitations and inactive host streams.');
+          console.log('Validated ' + scripts.length + ' inline script(s), ' + ids.length + ' unique HTML IDs, host recovery, participant-keyed camera replacement, persistent co-host rejoin and floating controls.');
+          NODE
+
+      - name: Verify Duo Live rejoin, revocation and floating controls
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const checks = [
+            "invite.status==='accepted'",
+            "invite.status==='revoking'",
+            "invite.host_live",
+            "RoomEvent.Reconnecting",
+            "RoomEvent.Reconnected",
+            "RoomEvent.Disconnected",
+            "Use the accepted invitation to rejoin",
+            "Retry removal",
+            "response.revocationPending",
+            "liveControlPopover?.addEventListener('focusout'",
+            "button.getClientRects().length>0",
+            "typeof navigator.mediaDevices?.getDisplayMedia!=='function'"
+          ];
+          for (const required of checks) {
+            if (!html.includes(required)) throw new Error('Missing current Live recovery/control behavior: ' + required);
           }
-          if (!cohostJoin.includes('RoomEvent.Reconnecting') || !cohostJoin.includes('RoomEvent.Reconnected') ||
-              !cohostJoin.includes('RoomEvent.Disconnected') || !cohostJoin.includes('loadDuoLiveInbox()')) {
-            throw new Error('Co-host disconnects must preserve a visible path to rejoin with a fresh token.');
-          }
-          console.log('Validated ' + scripts.length + ' inline script(s), ' + ids.length + ' unique HTML IDs, participant-keyed camera tile replacement, persistent co-host rejoin and role separation.');
+          console.log('Verified accepted-invite rejoin, retryable revocation, keyboard focus exit and screen-capture feature detection.');
           NODE

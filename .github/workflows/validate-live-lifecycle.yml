@@ -1,0 +1,116 @@
+name: Host live lifecycle validation
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-live-lifecycle.yml"
+  push:
+    branches:
+      - "fix/host-live-session-recovery"
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-live-lifecycle.yml"
+
+jobs:
+  validate-host-live-recovery:
+    name: Validate host Live recovery and JavaScript syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate inline scripts and host recovery contract
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+            .filter(match => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
+          if (!scripts.length) throw new Error('No inline application scripts found.');
+          scripts.forEach((match, index) => {
+            try { new Function(match[2]); }
+            catch (error) { throw new Error('Inline script ' + (index + 1) + ' failed syntax validation: ' + error.message); }
+          });
+          const checks = [
+            'async function recoverHostLiveSession',
+            'function attachHostRoomEvents',
+            'function startHostHeartbeat',
+            'function stopHostHeartbeat',
+            'async function touchHostStream',
+            'RoomEvent.Reconnecting',
+            'RoomEvent.Reconnected',
+            'RoomEvent.Disconnected',
+            "document.addEventListener('visibilitychange'",
+            "window.addEventListener('pageshow'",
+            "window.addEventListener('focus'",
+            "document.getElementById('resumeLiveBtn').addEventListener",
+            'This live session is no longer active.'
+          ];
+          for (const required of checks) {
+            if (!html.includes(required)) throw new Error('Host recovery is missing: ' + required);
+          }
+          const start = html.indexOf('async function startLiveBroadcast');
+          const end = html.indexOf("document.getElementById('endLiveBtn').addEventListener", start);
+          const startFlow = start >= 0 && end > start ? html.slice(start, end) : '';
+          if (startFlow.includes('You already have an active live stream. End it before starting another.')) {
+            throw new Error('A duplicate-live conflict must not strand the host behind an already-live error.');
+          }
+          if (!startFlow.includes("if(err?.code==='23505'&&ownerId)") ||
+              !startFlow.includes('existing.data.id') ||
+              !startFlow.includes("recoverHostLiveSession('manual')")) {
+            throw new Error('A unique live-start conflict must reload and recover the existing owned stream.');
+          }
+          if (!startFlow.includes('existing.data[0].id') || !startFlow.includes('resumeLiveBtn')) {
+            throw new Error('A fresh existing stream must be offered for resumption.');
+          }
+          const heartbeatStart = html.indexOf('function startHostHeartbeat');
+          const heartbeatEnd = html.indexOf('async function touchHostStream', heartbeatStart);
+          const heartbeat = heartbeatStart >= 0 && heartbeatEnd > heartbeatStart ? html.slice(heartbeatStart, heartbeatEnd) : '';
+          if (!heartbeat.includes("select('id').maybeSingle()") || !heartbeat.includes('if(!beat.data)') ||
+              !heartbeat.includes('clearHostLiveSession') || !heartbeat.includes('heartbeatInFlight')) {
+            throw new Error('Heartbeat must verify the exact live row and clear local state when it is no longer live.');
+          }
+          const recoveryStart = html.indexOf('async function recoverHostLiveSession');
+          const recoveryEnd = html.indexOf('async function startLiveBroadcast', recoveryStart);
+          const recovery = recoveryStart >= 0 && recoveryEnd > recoveryStart ? html.slice(recoveryStart, recoveryEnd) : '';
+          if (!recovery.includes('touchHostStream(streamId,userId)') || !recovery.includes("requestLiveKitToken('stream-'+userId,'publisher')")) {
+            throw new Error('Recovery must refresh the owned live heartbeat before requesting a publisher token.');
+          }
+          if (!recovery.includes('restoreDuoCameraTracks(room,stage,true)')) {
+            throw new Error('Recovery must restore host and co-host camera tiles after reconnecting.');
+          }
+          if (!html.includes('if(includeLocal&&liveCameraEnabled)')) {
+            throw new Error('Camera restoration must respect an intentional camera-off state.');
+          }
+          if (!recovery.includes('mediaStreamTrack?.muted') || !recovery.includes('restartTrack')) {
+            throw new Error('Recovery must reacquire tracks that were muted or ended while backgrounded.');
+          }
+          if (!recovery.includes("reason!=='reconnected'")) {
+            throw new Error('The automatic Reconnected event must not be throttled behind a visibility retry.');
+          }
+          const panelStart = html.indexOf('function openLivePanel');
+          const panelEnd = html.indexOf('function updateLiveControlLabels', panelStart);
+          const panel = panelStart >= 0 && panelEnd > panelStart ? html.slice(panelStart, panelEnd) : '';
+          if (!panel.includes("mode==='start'&&activeStreamId&&!hostLiveStopping") ||
+              !panel.includes("recoverHostLiveSession('open-panel')")) {
+            throw new Error('Opening the host Live panel must restore the existing session instead of presenting a duplicate start.');
+          }
+          const touchStart = html.indexOf('async function touchHostStream');
+          const touchEnd = html.indexOf('function attachHostRoomEvents', touchStart);
+          const touch = touchStart >= 0 && touchEnd > touchStart ? html.slice(touchStart, touchEnd) : '';
+          if (!touch.includes(".eq('id',streamId).eq('user_id',userId).eq('is_live',true).select('id').maybeSingle()")) {
+            throw new Error('Heartbeat refresh must be scoped to the exact active stream owned by the signed-in host.');
+          }
+          const endStart = html.indexOf("document.getElementById('endLiveBtn').addEventListener");
+          const endEnd = html.indexOf("const previousRefreshSession", endStart);
+          const endFlow = endStart >= 0 && endEnd > endStart ? html.slice(endStart, endEnd) : '';
+          if (!endFlow.includes('hostLiveStopping=true') || !endFlow.includes('stopHostHeartbeat()')) {
+            throw new Error('Intentional End Live must stop recovery and the heartbeat before disconnecting.');
+          }
+
+          console.log('Validated ' + scripts.length + ' inline scripts and the host Live lifecycle recovery contract.');
+          NODE
