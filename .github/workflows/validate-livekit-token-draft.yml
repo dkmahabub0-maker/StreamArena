@@ -1,0 +1,73 @@
+name: Validate Duo Live token draft
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/livekit-token/**"
+      - "docs/duo-live/livekit-token-cohost-authorization.md"
+      - ".github/workflows/validate-livekit-token-draft.yml"
+      - "docs/duo-live/cohost-token-test-cases.md"
+  push:
+    branches:
+      - "feat/duo-live-cohost-token-draft"
+    paths:
+      - "supabase/functions/livekit-token/**"
+      - "docs/duo-live/livekit-token-cohost-authorization.md"
+      - ".github/workflows/validate-livekit-token-draft.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check LiveKit token Edge Function
+        run: deno check supabase/functions/livekit-token/index.ts
+
+      - name: Verify co-host token restrictions
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const source = fs.readFileSync('supabase/functions/livekit-token/index.ts', 'utf8');
+          if (!source.includes('      ttl: role === "cohost" ? 60 : 60 * 60,')) {
+            throw new Error('Co-host token must have a real 60-second TTL.');
+          }
+          if (source.includes('window.\\n      ttl:')) {
+            throw new Error('Co-host TTL must not be escaped into the preceding line comment.');
+          }
+          if (!source.includes('identity: user.id')) throw new Error('Token identity must come from the authenticated user.');
+          if (!source.includes('invitee_user_id') || !source.includes('status", "eq.accepted')) {
+            throw new Error('Co-host token must require the accepted invitation for the authenticated invitee.');
+          }
+          if (!source.includes('last_token_issued_at')) {
+            throw new Error('Co-host token issuance must be recorded for race-safe revocation.');
+          }
+          if (!source.includes('claimUrl.searchParams.set("status", "eq.accepted")') ||
+              !source.includes('claimResponse.ok') ||
+              !source.includes('claimed.length !== 1')) {
+            throw new Error('A token must not be returned if revocation wins the final accepted-invitation update.');
+          }
+          if (!source.includes('participant.identity === roomOwnerId') || !source.includes('participant.tracks?.length')) {
+            throw new Error('Co-host token must verify a currently publishing host participant.');
+          }
+          const grantStart = source.lastIndexOf('if (role === "cohost") {');
+          const grantEnd = source.indexOf('} else {', grantStart);
+          const grant = grantStart >= 0 && grantEnd > grantStart ? source.slice(grantStart, grantEnd) : '';
+          for (const required of [
+            'roomJoin: true',
+            'canPublishSources: [TrackSource.CAMERA, TrackSource.MICROPHONE]',
+            'canSubscribe: true',
+            'canPublishData: false'
+          ]) {
+            if (!grant.includes(required)) throw new Error('Missing restricted co-host grant: ' + required);
+          }
+          if (grant.includes('TrackSource.SCREEN_SHARE') || grant.includes('canRecord') || grant.includes('roomAdmin')) {
+            throw new Error('Co-host grant contains a forbidden permission.');
+          }
+          console.log('Verified 60-second co-host token, authenticated identity, accepted invitation, active host and camera/microphone-only grant.');
+          NODE
