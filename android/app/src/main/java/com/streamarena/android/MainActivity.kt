@@ -223,6 +223,7 @@ class MainActivity : ComponentActivity() {
                 val liveRoom = LiveKit.create(applicationContext)
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
                 room = liveRoom
+                withContext(Dispatchers.IO) { updateStreamRow(token, createdStreamId, id, true) }
                 liveRoom.localParticipant.setMicrophoneEnabled(true)
                 liveRoom.localParticipant.setCameraEnabled(true)
                 heartbeatJob?.cancel()
@@ -333,9 +334,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun updateStreamRow(session: String, streamId: String, id: String, live: Boolean) {
-        val body = JSONObject()
-            .put("is_live", live)
-            .put("last_heartbeat_at", if (live) java.time.Instant.now().toString() else JSONObject.NULL)
+        val body = JSONObject().put("is_live", live)
+        if (live) body.put("last_heartbeat_at", java.time.Instant.now().toString())
         patchRestJson(
             "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/streams?id=eq.$streamId&user_id=eq.$id",
             session,
