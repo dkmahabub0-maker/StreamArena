@@ -7,7 +7,7 @@ create table if not exists public.stream_cohost_invites (
   host_user_id uuid not null references auth.users(id) on delete cascade,
   invitee_user_id uuid not null references auth.users(id) on delete cascade,
   status text not null default 'pending'
-    check (status in ('pending', 'accepted', 'declined', 'revoked')),
+    check (status in ('pending', 'accepted', 'declined', 'revoked', 'expired')),
   created_at timestamptz not null default now(),
   expires_at timestamptz not null default (now() + interval '10 minutes'),
   accepted_at timestamptz,
