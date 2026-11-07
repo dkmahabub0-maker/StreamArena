@@ -4,8 +4,9 @@ This is a separate native Android client workstream. It does not replace the exi
 
 ## Current prototype
 
-- Kotlin Android application module with a branded launcher icon, Android 12+ splash screen, and a dark native sign-in/host interface.
-- Uses the existing Supabase Auth password sign-in endpoint.
+- Kotlin Android application module with a branded launcher icon, Android 12+ splash screen, and separate authentication and Live Studio screens.
+- First screen supports Supabase email/password sign-in and account creation; successful authentication opens a separate Live Studio screen containing the stream controls.
+- Uses the existing Supabase Auth password sign-in and sign-up endpoints.
 - Requests a publisher token from the existing `livekit-token` Edge Function for the authenticated user's `stream-<user-id>` room.
 - Connects with the LiveKit Android SDK, enables host camera/microphone, and exposes host-only phone screen share start/stop controls.
 - Screen capture requires Android's system consent dialog and LiveKit's MediaProjection foreground service.
@@ -23,10 +24,10 @@ The Android debug build runs from pull requests that modify `android/**`, and ca
 
 ## Important limitations
 
-- This is an early prototype, not a production-ready release. The native UI and sign-in progress/error feedback are still being iterated.
+- This is an early prototype, not a production-ready release. Email confirmation may be required after account creation, depending on the Supabase Auth project settings.
 - No release-key-signed APK has been produced or published; the CI artifact is a debug build signed with the Android debug key.
 - No physical Android device test has been performed yet.
-- Current prototype uses email/password authentication; password reset, OAuth, session refresh, profile setup, and robust token refresh are not yet implemented.
+- Current prototype uses email/password authentication; password reset, OAuth, session refresh, profile setup, and robust token refresh are not yet implemented. Account creation follows the Supabase project's email-confirmation configuration.
 - The current implementation creates a `streams` row, marks it live, and sends the website's 25-second heartbeat. This path depends on the existing `streams` Data API exposure and owner-scoped RLS policies; no production schema or policy changes are included.
 - Internal game audio is intentionally not captured; the first pass publishes screen video plus microphone.
 - The user must explicitly approve each Android screen-capture session. Protected content may be blank.
