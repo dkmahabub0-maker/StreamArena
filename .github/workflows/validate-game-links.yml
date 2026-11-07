@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - "feat/game-store-links"
 
 jobs:
   game-links:
