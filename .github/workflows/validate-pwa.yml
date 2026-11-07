@@ -1,0 +1,68 @@
+name: PWA foundation validation
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "manifest.webmanifest"
+      - "service-worker.js"
+      - "offline.html"
+      - "pwa-icon.svg"
+      - ".github/workflows/validate-pwa.yml"
+  push:
+    branches:
+      - "feat/pwa-foundation-clean-main"
+    paths:
+      - "index.html"
+      - "manifest.webmanifest"
+      - "service-worker.js"
+      - "offline.html"
+      - "pwa-icon.svg"
+      - ".github/workflows/validate-pwa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate PWA manifest, service worker and app shell
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
+          const worker = fs.readFileSync('service-worker.js', 'utf8');
+          assert.equal(manifest.display, 'standalone');
+          assert.ok(manifest.name && manifest.start_url && manifest.scope);
+          assert.ok(manifest.icons.some(icon => icon.src === './pwa-icon.svg' && icon.sizes === 'any'));
+          assert.ok(fs.existsSync('pwa-icon.svg') && fs.existsSync('offline.html'));
+          assert.ok(html.includes('rel="manifest" href="./manifest.webmanifest"'));
+          assert.ok(html.includes('navigator.serviceWorker.register("./service-worker.js")'));
+          assert.ok(html.includes('id="installAppBtn"'));
+          assert.ok(html.includes("window.addEventListener('beforeinstallprompt'"));
+          assert.ok(html.includes("installAppButton.addEventListener('click', async () => {"));
+          assert.ok(html.includes('await promptEvent.prompt()'));
+          assert.ok(html.includes('await promptEvent.userChoice'));
+          assert.ok(worker.includes('!url.search') && worker.includes('!responseUrl.search'));
+          assert.ok(worker.includes('cache.put(ROOT_URL'));
+          const ids = [...html.matchAll(/\\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          const duplicates = ids.filter((id,index) => ids.indexOf(id) !== index);
+          assert.equal(duplicates.length, 0, 'HTML IDs must be unique');
+          const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)]
+            .filter(match => !/\\bsrc\\s*=/.test(match[1]) && match[2].trim());
+          scripts.forEach((match,index) => {
+            try { new Function(match[2]); }
+            catch(error) { throw new Error('Inline script ' + (index + 1) + ': ' + error.message); }
+          });
+          new Function(fs.readFileSync('family.js','utf8'));
+          console.log('PWA manifest, install flow, safe offline cache, inline JS and IDs validated.');
+          NODE
+      - name: Check service worker syntax
+        run: node --check service-worker.js
