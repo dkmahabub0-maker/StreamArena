@@ -108,6 +108,104 @@ Deno.serve(async (req: Request) => {
       return Array.isArray(rows) ? rows[0] ?? null : null;
     };
 
+    if (action === "search") {
+      const username = typeof body?.username === "string" ? body.username.trim() : "";
+      if (username.length < 2 || username.length > 32 || !/^[a-zA-Z0-9_. -]+$/.test(username)) {
+        return reply({ error: "Enter a username with 2–32 letters, numbers, spaces, dots or underscores" }, 400, origin);
+      }
+      if (!await consumeRateLimit("search", 60_000, 30)) {
+        return reply({ error: "You are searching too quickly. Wait a minute and try again." }, 429, origin);
+      }
+      const params = new URLSearchParams({
+        select: "id,username",
+        username: `ilike.*${username.replace(/[%_]/g, "")}*`,
+        id: `neq.${user.id}`,
+        limit: "10",
+      });
+      const matches = await rest(`profiles?${params}`);
+      return reply({ users: Array.isArray(matches) ? matches : [] }, 200, origin);
+    }
+
+    if (action === "host-inbox") {
+      const stream = await activeStreamFor(user.id);
+      if (!stream) return reply({ invitations: [] }, 200, origin);
+      const now = new Date().toISOString();
+      await rest(
+        `stream_cohost_invites?stream_id=eq.${stream.id}&host_user_id=eq.${user.id}&status=eq.pending&expires_at=lte.${encodeURIComponent(now)}`,
+        "PATCH",
+        { status: "expired" },
+      );
+      const params = new URLSearchParams({
+        select: "id,stream_id,invitee_user_id,status,expires_at,created_at,accepted_at,revocation_requested_at,last_token_issued_at",
+        host_user_id: `eq.${user.id}`,
+        stream_id: `eq.${stream.id}`,
+        status: "in.(pending,accepted,revoking)",
+        order: "created_at.desc",
+        limit: "20",
+      });
+      const invitations = await rest(`stream_cohost_invites?${params}`);
+      const rows = Array.isArray(invitations) ? invitations : [];
+      const activeRows = rows.filter((row: {status:string;expires_at:string}) =>
+        row.status === "accepted" || row.status === "revoking" || Date.parse(row.expires_at) > Date.now()
+      );
+      const inviteeIds = [...new Set(activeRows.map((row: {invitee_user_id:string}) => row.invitee_user_id))];
+      let invitees: Array<{id:string;username:string}> = [];
+      if (inviteeIds.length) {
+        const inviteeParams = new URLSearchParams({select:"id,username",id:`in.(${inviteeIds.join(",")})`});
+        invitees = await rest(`profiles?${inviteeParams}`);
+      }
+      const names = new Map(invitees.map((profile: {id:string;username:string}) => [profile.id, profile.username]));
+      return reply({
+        invitations: activeRows.map((row: {invitee_user_id:string}) => ({
+          ...row,
+          invitee_username: names.get(row.invitee_user_id) || "Player",
+        })),
+      }, 200, origin);
+    }
+
+    if (action === "inbox") {
+      const now = new Date().toISOString();
+      await rest(
+        `stream_cohost_invites?invitee_user_id=eq.${user.id}&status=eq.pending&expires_at=lte.${encodeURIComponent(now)}`,
+        "PATCH",
+        { status: "expired" },
+      );
+      const params = new URLSearchParams({
+        select: "id,stream_id,host_user_id,status,expires_at,created_at,accepted_at,revocation_requested_at",
+        invitee_user_id: `eq.${user.id}`,
+        status: "in.(pending,accepted,revoking)",
+        order: "created_at.desc",
+        limit: "20",
+      });
+      const invitations = await rest(`stream_cohost_invites?${params}`);
+      const rows = (Array.isArray(invitations) ? invitations : []).filter((row: {status:string;expires_at:string}) =>
+        row.status !== "pending" || Date.parse(row.expires_at) > Date.now()
+      );
+      const hostIds = [...new Set(rows.map((row: {host_user_id:string}) => row.host_user_id))];
+      let hosts: Array<{id:string;username:string}> = [];
+      let streams: Array<{id:string;user_id:string}> = [];
+      if (hostIds.length) {
+        const hostParams = new URLSearchParams({select:"id,username",id:`in.(${hostIds.join(",")})`});
+        hosts = await rest(`profiles?${hostParams}`);
+        const streamParams = new URLSearchParams({
+          select: "id,user_id",
+          user_id: `in.(${hostIds.join(",")})`,
+          is_live: "eq.true",
+          last_heartbeat_at: `gt.${new Date(Date.now() - 120_000).toISOString()}`,
+        });
+        streams = await rest(`streams?${streamParams}`);
+      }
+      const hostNames = new Map(hosts.map((host: {id:string;username:string}) => [host.id, host.username]));
+      const activeStreams = new Map(streams.map((stream: {id:string;user_id:string}) => [stream.user_id, stream.id]));
+      return reply({
+        invitations: rows.map((row: {host_user_id:string;stream_id:string}) => ({
+          ...row,
+          host_username: hostNames.get(row.host_user_id) || "Player",
+          host_live: activeStreams.get(row.host_user_id) === row.stream_id,
+        })),
+      }, 200, origin);
+    }
+
     if (action === "invite") {
       const inviteeUserId = typeof body?.inviteeUserId === "string" ? body.inviteeUserId : "";
       if (!uuidPattern.test(inviteeUserId) || inviteeUserId === user.id) {
@@ -118,6 +216,7 @@ Deno.serve(async (req: Request) => {
       }
       const stream = await activeStreamFor(user.id);
       if (!stream) return reply({ error: "Start your Live before inviting a co-host" }, 409, origin);
+
       // Expired pending invitations must release the stream's single co-host slot.
       const expiredBefore = new Date().toISOString();
       await rest(
@@ -186,7 +285,6 @@ Deno.serve(async (req: Request) => {
       if (invite.host_user_id !== user.id || !["pending", "accepted", "revoking"].includes(invite.status)) {
         return reply({ error: "Only the host can revoke an active invitation" }, 403, origin);
       }
-
       if (invite.status === "pending") {
         const revoked = await rest(
           `stream_cohost_invites?id=eq.${invitationId}&host_user_id=eq.${user.id}&status=eq.pending`,
@@ -198,7 +296,6 @@ Deno.serve(async (req: Request) => {
         }
         return reply({ invitation: revoked[0], participantRemoved: true, revocationPending: false }, 200, origin);
       }
-
       let revoking = invite;
       if (invite.status === "accepted") {
         const marked = await rest(
@@ -211,7 +308,6 @@ Deno.serve(async (req: Request) => {
         }
         revoking = marked[0];
       }
-
       const requestedAt = Math.max(
         Date.parse(revoking.revocation_requested_at || "") || 0,
         Date.parse(revoking.last_token_issued_at || "") || 0,
@@ -220,7 +316,6 @@ Deno.serve(async (req: Request) => {
         return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
           error: "Revocation is pending but its start time is missing. Keep this co-host slot reserved and retry after review." }, 202, origin);
       }
-
       try {
         const livekit = new RoomServiceClient(
           requiredEnv("LIVEKIT_URL").replace(/^wss:/i, "https:"),
@@ -230,9 +325,7 @@ Deno.serve(async (req: Request) => {
         const roomName = `stream-${user.id}`;
         const participants = await livekit.listParticipants(roomName);
         const participantPresent = participants.some((participant) => participant.identity === invite.invitee_user_id);
-
         if (participantPresent) {
-          // LiveKit removes the active participant and revokes its current token.
           await livekit.removeParticipant(roomName, invite.invitee_user_id);
           // Confirm the participant is actually gone before releasing the co-host slot.
           const remainingParticipants = await livekit.listParticipants(roomName);
@@ -241,12 +334,9 @@ Deno.serve(async (req: Request) => {
               error: "LiveKit accepted removal but the co-host is still present. Retry removal." }, 202, origin);
           }
         } else if (Date.now() < requestedAt + 70_000) {
-          // A previously issued 60-second token may still be unused. Keep the
-          // partial-unique-index slot reserved until its expiry plus clock skew.
           return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
             retryAfterMs: requestedAt + 70_000 - Date.now() }, 202, origin);
         }
-
         const completed = await rest(
           `stream_cohost_invites?id=eq.${invitationId}&host_user_id=eq.${user.id}&status=eq.revoking`,
           "PATCH",
