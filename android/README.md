@@ -7,7 +7,7 @@ This is a separate native Android client workstream. It does not replace the exi
 - Kotlin Android application module with a branded launcher icon, Android 12+ splash screen, a dedicated authentication screen, and an app-style creator dashboard.
 - Authentication screen has explicit Log in and Sign up tabs. When Supabase email confirmation is required, the app accepts the email OTP and verifies it through the Supabase Auth verification endpoint before opening the dashboard.
 - The dashboard includes a hero banner, sample game categories, creator shortcuts, and a fixed bottom navigation bar (Home, +, Notifications, Community, Menu). The + action reveals the live setup panel.
-- Live setup allows Camera Live or Phone Screen Live selection; Screen Live requests Android's MediaProjection permission after the stream connects.
+- Live setup allows Camera Live or Phone Screen Live selection. Camera Live requests camera and microphone access; Phone Screen Live requests microphone access plus Android's MediaProjection consent and publishes the captured display instead of the camera.
 - Uses the existing Supabase Auth password sign-in, sign-up, and email verification endpoints.
 - Requests a publisher token from the existing `livekit-token` Edge Function for the authenticated user's `stream-<user-id>` room.
 - Signing out attempts to mark the active stream offline before the in-memory session is discarded.
