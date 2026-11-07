@@ -126,7 +126,7 @@ async function loadFamilyWorkspace(){
    const chatForm=document.createElement('form');chatForm.className='family-chat-form';
    const messageInput=make('input');messageInput.placeholder='Write to your Family…';messageInput.maxLength=1000;messageInput.required=true;
    const send=make('button','btn primary','Send');send.type='submit';chatForm.append(messageInput,send);
-   chatForm.onsubmit=async event=>{event.preventDefault();send.disabled=true;try{const saved=await supabaseClient.from('family_messages').insert({family_id:family.id,user_id:currentUser.id,message:messageInput.value.trim()});if(saved.error)throw saved.error;messageInput.value='';await loadFamilyWorkspace();}catch(error){toast(error.message||'Message could not be sent.');}finally{send.disabled=false;}};
+   chatForm.onsubmit=async event=>{event.preventDefault();const message=messageInput.value.trim();if(!message){toast('Write a message before sending.');messageInput.focus();return;}send.disabled=true;try{const saved=await supabaseClient.from('family_messages').insert({family_id:family.id,user_id:currentUser.id,message});if(saved.error)throw saved.error;messageInput.value='';await loadFamilyWorkspace();}catch(error){toast(error.message||'Message could not be sent.');}finally{send.disabled=false;}};
    chat.append(chatForm);card.append(chat);families.append(card);
   }
   root.append(families);
