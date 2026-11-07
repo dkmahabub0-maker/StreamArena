@@ -67,6 +67,33 @@ jobs:
           }
           console.log('Validated focus management, ARIA state, co-host camera/mic controls and screen-share capability checks.');
           NODE
+      - name: Verify co-host control availability and cleanup
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const joinStart = html.indexOf('async function joinDuoLiveAsCohost');
+          const joinEnd = html.indexOf("document.getElementById('leaveDuoLiveBtn').addEventListener", joinStart);
+          if (joinStart < 0 || joinEnd <= joinStart) throw new Error('Could not isolate the co-host join flow');
+          const join = html.slice(joinStart, joinEnd);
+          for (const required of [
+            "document.getElementById('liveControlMenuToggle').style.display='grid'",
+            "document.getElementById('liveScreenShareBtn').style.display='none'",
+            'updateLiveControlLabels()'
+          ]) {
+            if (!join.includes(required)) throw new Error('Co-host must receive local camera/microphone controls without screen-share access: ' + required);
+          }
+          const leaveStart = joinEnd;
+          const leaveEnd = html.indexOf('function attachLiveTrack', leaveStart);
+          const leave = html.slice(leaveStart, leaveEnd);
+          for (const required of [
+            "document.getElementById('liveControlMenuToggle').style.display='none'",
+            "document.getElementById('liveScreenShareBtn').style.display=''"
+          ]) {
+            if (!leave.includes(required)) throw new Error('Leaving Duo Live must hide the co-host control trigger and restore host screen-share availability: ' + required);
+          }
+          console.log('Verified co-host camera/microphone menu visibility, screen-share restriction, and leave cleanup.');
+          NODE
       - name: Check duplicate HTML IDs
         run: |
           node <<'NODE'
