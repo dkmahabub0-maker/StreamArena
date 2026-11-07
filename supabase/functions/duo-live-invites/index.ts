@@ -145,7 +145,7 @@ Deno.serve(async (req: Request) => {
       return reply({ error: "A valid invitation ID is required" }, 400, origin);
     }
     const inviteRows = await rest(
-      `stream_cohost_invites?select=id,stream_id,host_user_id,invitee_user_id,status,expires_at,revocation_requested_at&id=eq.${invitationId}&limit=1`,
+      `stream_cohost_invites?select=id,stream_id,host_user_id,invitee_user_id,status,expires_at,revocation_requested_at,last_token_issued_at&id=eq.${invitationId}&limit=1`,
     );
     const invite = Array.isArray(inviteRows) ? inviteRows[0] : null;
     if (!invite) return reply({ error: "Invitation not found" }, 404, origin);
@@ -212,8 +212,11 @@ Deno.serve(async (req: Request) => {
         revoking = marked[0];
       }
 
-      const requestedAt = Date.parse(revoking.revocation_requested_at || "");
-      if (!Number.isFinite(requestedAt)) {
+      const requestedAt = Math.max(
+        Date.parse(revoking.revocation_requested_at || "") || 0,
+        Date.parse(revoking.last_token_issued_at || "") || 0,
+      );
+      if (!requestedAt) {
         return reply({ invitation: revoking, participantRemoved: false, revocationPending: true,
           error: "Revocation is pending but its start time is missing. Keep this co-host slot reserved and retry after review." }, 202, origin);
       }
