@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var otpVerifyButton: Button
     private lateinit var liveCard: LinearLayout
     private var pendingSignupEmail: String? = null
+    private var selectedLiveMode: String = "camera"
 
     private var accessToken: String? = null
     private var userId: String? = null
@@ -343,6 +344,33 @@ class MainActivity : ComponentActivity() {
         })
         root.addView(banner, bottomMargin(dp(22)))
         root.addView(TextView(this).apply {
+            text = "EXPLORE GAMES"
+            textSize = 12f
+            setTextColor(Color.rgb(128, 190, 255))
+            typeface = Typeface.DEFAULT_BOLD
+            letterSpacing = 0.14f
+        }, bottomMargin(dp(10)))
+        val gameStrip = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf("ACTION", "BATTLE", "SPORTS", "RACING").forEach { game ->
+            val chip = TextView(this).apply {
+                text = game
+                textSize = 11f
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                setPadding(dp(12), dp(12), dp(12), dp(12))
+                background = GradientDrawable().apply {
+                    setColor(Color.rgb(27, 42, 68))
+                    cornerRadius = dp(13).toFloat()
+                    setStroke(dp(1), Color.rgb(51, 78, 117))
+                }
+            }
+            gameStrip.addView(chip, LinearLayout.LayoutParams(0, dp(46), 1f).apply {
+                setMargins(dp(3), 0, dp(3), dp(12))
+            })
+        }
+        root.addView(gameStrip)
+        root.addView(TextView(this).apply {
             text = "CREATOR TOOLS"
             textSize = 12f
             setTextColor(Color.rgb(128, 190, 255))
@@ -379,12 +407,30 @@ class MainActivity : ComponentActivity() {
             visibility = android.view.View.GONE
         }
         liveCard.addView(TextView(this).apply {
-            text = "LIVE CONTROLS"
+            text = "CREATE A LIVE"
             textSize = 12f
             setTextColor(Color.rgb(115, 205, 255))
             typeface = Typeface.DEFAULT_BOLD
             letterSpacing = 0.12f
         }, bottomMargin(dp(14)))
+        liveCard.addView(TextView(this).apply {
+            text = "Choose how you want to broadcast"
+            textSize = 14f
+            setTextColor(Color.rgb(197, 207, 225))
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(10)))
+        val liveModes = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        liveModes.addView(makeButton("Camera Live", true) {
+            selectedLiveMode = "camera"
+            startLiveButton.text = "Start Camera Live"
+            setStatus("Camera Live selected. Add a title and tap Start Live.")
+        }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(5) })
+        liveModes.addView(makeButton("Phone Screen", false) {
+            selectedLiveMode = "screen"
+            startLiveButton.text = "Start Screen Live"
+            setStatus("Phone Screen selected. Start Live, then approve Android's screen-capture prompt.")
+        }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { leftMargin = dp(5) })
+        liveCard.addView(liveModes, bottomMargin(dp(16)))
         liveCard.addView(fieldLabel("Stream title"), bottomMargin(dp(7)))
         titleInput = EditText(this).apply {
             hint = "Enter your live title"
@@ -396,7 +442,7 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(15), 0, dp(15), 0)
         }
         liveCard.addView(titleInput, fieldLayout(dp(54), dp(14)))
-        startLiveButton = makeButton("Start Live", true) { startLive() }
+        startLiveButton = makeButton("Start ${if (selectedLiveMode == "screen") "Screen Live" else "Camera Live"}", true) { startLive() }
         liveCard.addView(startLiveButton, fieldLayout(dp(52), dp(10)))
         shareButton = makeButton("Share phone screen", false) {
             val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
