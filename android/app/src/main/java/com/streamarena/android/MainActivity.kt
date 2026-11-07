@@ -1,0 +1,294 @@
+package com.streamarena.android
+
+import android.app.Activity
+import android.content.Intent
+import android.media.projection.MediaProjectionManager
+import android.os.Bundle
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import io.livekit.android.LiveKit
+import io.livekit.android.room.Room
+import io.livekit.android.room.track.screencapture.ScreenCaptureParams
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+
+/**
+ * First native Android host prototype.
+ *
+ * Uses the same Supabase Auth + livekit-token endpoint as the website.
+ * Credentials and session tokens remain in memory and are never written to disk.
+ */
+class MainActivity : ComponentActivity() {
+    private lateinit var emailInput: EditText
+    private lateinit var passwordInput: EditText
+    private lateinit var status: TextView
+    private lateinit var signInButton: Button
+    private lateinit var startLiveButton: Button
+    private lateinit var shareButton: Button
+    private lateinit var stopShareButton: Button
+    private lateinit var endLiveButton: Button
+
+    private var accessToken: String? = null
+    private var userId: String? = null
+    private var room: Room? = null
+    private var sharing = false
+
+    private val screenCaptureLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val data = result.data
+        if (result.resultCode != Activity.RESULT_OK || data == null) {
+            setStatus("Screen sharing was cancelled.")
+            return@registerForActivityResult
+        }
+        lifecycleScope.launch {
+            try {
+                val activeRoom = room ?: error("Start your Live first.")
+                val started = activeRoom.localParticipant.setScreenShareEnabled(
+                    true,
+                    ScreenCaptureParams(mediaProjectionPermissionResultData = data)
+                )
+                sharing = started
+                updateControls()
+                setStatus(if (started) "Your phone screen is now being shared." else "LiveKit could not start screen sharing.")
+            } catch (error: Exception) {
+                sharing = false
+                updateControls()
+                setStatus("Screen share failed: ${error.message ?: "unknown error"}")
+            }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        buildUi()
+        updateControls()
+    }
+
+    private fun buildUi() {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(28, 36, 28, 28)
+        }
+        fun add(view: android.view.View, height: Int = ViewGroup.LayoutParams.WRAP_CONTENT) {
+            root.addView(view, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height).apply {
+                bottomMargin = 14
+            })
+        }
+        add(TextView(this).apply {
+            text = "StreamArena — Android Host"
+            textSize = 24f
+        })
+        add(TextView(this).apply {
+            text = "Sign in, start your Live, then share your phone screen. Only the authenticated host can publish."
+            textSize = 14f
+        })
+        emailInput = EditText(this).apply {
+            hint = "StreamArena account email"
+            inputType = 33
+        }
+        add(emailInput)
+        passwordInput = EditText(this).apply {
+            hint = "Password"
+            inputType = 129
+        }
+        add(passwordInput)
+        signInButton = Button(this).apply {
+            text = "Sign in"
+            setOnClickListener { signIn() }
+        }
+        add(signInButton)
+        startLiveButton = Button(this).apply {
+            text = "Start Live"
+            setOnClickListener { startLive() }
+        }
+        add(startLiveButton)
+        shareButton = Button(this).apply {
+            text = "Share phone screen"
+            setOnClickListener {
+                val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                screenCaptureLauncher.launch(manager.createScreenCaptureIntent())
+            }
+        }
+        add(shareButton)
+        stopShareButton = Button(this).apply {
+            text = "Stop screen share"
+            setOnClickListener { stopScreenShare() }
+        }
+        add(stopShareButton)
+        endLiveButton = Button(this).apply {
+            text = "End Live"
+            setOnClickListener { endLive() }
+        }
+        add(endLiveButton)
+        status = TextView(this).apply {
+            text = "Not signed in."
+            textSize = 14f
+        }
+        add(status)
+        setContentView(root)
+    }
+
+    private fun signIn() {
+        val email = emailInput.text.toString().trim()
+        val password = passwordInput.text.toString()
+        if (email.isBlank() || password.isBlank()) {
+            setStatus("Enter your account email and password.")
+            return
+        }
+        signInButton.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                val auth = withContext(Dispatchers.IO) { requestPasswordSignIn(email, password) }
+                accessToken = auth.getString("access_token")
+                userId = auth.getJSONObject("user").getString("id")
+                passwordInput.text.clear()
+                setStatus("Signed in. You can start your Live.")
+            } catch (error: Exception) {
+                accessToken = null
+                userId = null
+                setStatus("Sign in failed: ${error.message ?: "unknown error"}")
+            } finally {
+                signInButton.isEnabled = true
+                updateControls()
+            }
+        }
+    }
+
+    private fun startLive() {
+        val token = accessToken ?: run {
+            setStatus("Sign in before starting a Live.")
+            return
+        }
+        val id = userId ?: return
+        startLiveButton.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                val credentials = withContext(Dispatchers.IO) { requestPublisherToken(token, id) }
+                val liveRoom = LiveKit.create(applicationContext)
+                liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
+                room = liveRoom
+                liveRoom.localParticipant.setMicrophoneEnabled(true)
+                liveRoom.localParticipant.setCameraEnabled(true)
+                setStatus("You are live. Tap Share phone screen when ready.")
+            } catch (error: Exception) {
+                room?.disconnect()
+                room = null
+                setStatus("Could not start Live: ${error.message ?: "unknown error"}")
+            } finally {
+                startLiveButton.isEnabled = true
+                updateControls()
+            }
+        }
+    }
+
+    private fun stopScreenShare() {
+        lifecycleScope.launch {
+            try {
+                room?.localParticipant?.setScreenShareEnabled(false)
+                sharing = false
+                setStatus("Screen sharing stopped. Your Live is still active.")
+            } catch (error: Exception) {
+                setStatus("Could not stop screen sharing: ${error.message ?: "unknown error"}")
+            } finally {
+                updateControls()
+            }
+        }
+    }
+
+    private fun endLive() {
+        lifecycleScope.launch {
+            try {
+                if (sharing) room?.localParticipant?.setScreenShareEnabled(false)
+                sharing = false
+                room?.disconnect()
+                room = null
+                setStatus("Live ended.")
+            } catch (error: Exception) {
+                setStatus("Live cleanup issue: ${error.message ?: "unknown error"}")
+            } finally {
+                updateControls()
+            }
+        }
+    }
+
+    private fun updateControls() {
+        val signedIn = accessToken != null
+        val live = room != null
+        startLiveButton.isEnabled = signedIn && !live
+        shareButton.isEnabled = live && !sharing
+        stopShareButton.isEnabled = live && sharing
+        endLiveButton.isEnabled = live
+        emailInput.isEnabled = !signedIn
+        passwordInput.isEnabled = !signedIn
+        signInButton.isEnabled = !signedIn
+    }
+
+    private fun setStatus(message: String) {
+        status.text = message
+    }
+
+    private fun requestPasswordSignIn(email: String, password: String): JSONObject {
+        val body = JSONObject().put("email", email).put("password", password)
+        return postJson(
+            "https://ovoufvyevnixpmswfrgl.supabase.co/auth/v1/token?grant_type=password",
+            "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+            null,
+            body
+        )
+    }
+
+    private fun requestPublisherToken(session: String, id: String): JSONObject {
+        val body = JSONObject().put("roomName", "stream-$id").put("role", "publisher")
+        return postJson(
+            "https://ovoufvyevnixpmswfrgl.supabase.co/functions/v1/livekit-token",
+            "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+            session,
+            body
+        )
+    }
+
+    private fun postJson(endpoint: String, apiKey: String, bearer: String?, body: JSONObject): JSONObject {
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 15000
+            readTimeout = 20000
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("apikey", apiKey)
+            if (bearer != null) setRequestProperty("Authorization", "Bearer $bearer")
+        }
+        try {
+            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val response = stream.bufferedReader().use { it.readText() }
+            if (code !in 200..299) {
+                val message = runCatching { JSONObject(response).optString("msg").ifBlank { JSONObject(response).optString("error") } }.getOrDefault("")
+                throw IllegalStateException(message.ifBlank { "Server returned HTTP $code" })
+            }
+            return JSONObject(response)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // The app does not persist credentials. Explicit Live teardown is handled by End Live.
+        // Avoid blocking lifecycle teardown with a network disconnect call.
+        room = null
+        accessToken = null
+        userId = null
+    }
+}
