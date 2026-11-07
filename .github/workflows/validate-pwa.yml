@@ -45,6 +45,7 @@ jobs:
           assert.ok(fs.existsSync('pwa-icon.svg') && fs.existsSync('offline.html'));
           assert.ok(html.includes('rel="manifest" href="./manifest.webmanifest"'));
           assert.ok(html.includes('navigator.serviceWorker.register("./service-worker.js")'));
+          assert.equal((html.match(/navigator\.serviceWorker\.register\(["']\.\/service-worker\.js["']\)/g) || []).length, 1, 'Service worker must be registered exactly once');
           assert.ok(html.includes('id="installAppBtn"'));
           assert.ok(html.includes("window.addEventListener('beforeinstallprompt'"));
           assert.ok(html.includes("installAppButton.addEventListener('click', async () => {"));
