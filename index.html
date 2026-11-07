@@ -70,6 +70,14 @@
 #families .family-chat-log{max-height:220px;overflow:auto;background:#070b16;border:1px solid var(--line);border-radius:9px;padding:8px}
 #families .family-message{margin:5px 0;padding:6px 8px;border-radius:7px;background:#121a2c;overflow-wrap:anywhere}
 @media(max-width:600px){#families .family-card-head{align-items:flex-start;flex-direction:column}#families .family-create>*{width:100%}}
+
+.live-stage-shell{position:relative;isolation:isolate}
+.live-control-trigger{position:absolute;right:18px;top:20px;z-index:8;width:42px;height:42px;border:1px solid #65739a;border-radius:50%;background:#10172aeF;color:#fff;display:grid;place-items:center;font-size:19px;box-shadow:0 4px 18px #0009;backdrop-filter:blur(8px)}
+.live-control-trigger:focus-visible,.live-control-popover button:focus-visible{outline:2px solid #8f7bff;outline-offset:2px}
+.live-control-popover{position:absolute;right:18px;top:68px;z-index:8;width:min(240px,calc(100% - 36px));padding:10px;gap:8px;flex-direction:column;border:1px solid #394466;border-radius:13px;background:#0b1020f2;box-shadow:0 12px 32px #000c;backdrop-filter:blur(12px)}
+.live-control-popover .btn{width:100%;text-align:left;white-space:normal}
+.live-control-popover .sub{font-size:12px;line-height:1.4;max-height:84px;overflow:auto}
+@media(max-width:520px){.live-control-trigger{right:12px;top:14px;width:40px;height:40px}.live-control-popover{right:12px;top:62px;width:min(220px,calc(100% - 24px))}}
 </style>
 </head>
 <body>
@@ -151,7 +159,17 @@
 <footer class="footer"><div><b>▲ StreamArena</b><br>Your Game. Your Stream. Your Arena.</div><div><a href="#help" style="color:inherit">Help Center</a> · Terms · Privacy · Contact</div><div>© 2026 StreamArena · Prototype</div></footer>
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Join StreamArena</h2><p class="sub" id="modalDesc">Create your account to join the arena.</p><form id="modalForm"><input id="modalName" placeholder="Username" required><input id="modalEmail" type="email" placeholder="Email address" required><input id="modalPassword" type="password" placeholder="Password" required minlength="6"><select id="modalCountry"><option>Choose your country</option><option>Bangladesh</option><option>India</option><option>Saudi Arabia</option><option>Pakistan</option><option>Other</option></select><button type="submit" class="btn primary" id="modalSubmit">Continue</button></form><p class="sub" id="forgotPasswordRow" style="display:none;margin:10px 0 0"><button type="button" id="forgotPasswordBtn" class="textbtn">Forgot password / Reset password</button></p><p class="sub" id="authSwitchRow" style="margin:10px 0 0"></p><p class="sub">Your account is handled by Supabase Authentication.</p></div></div>
 <div class="toast" id="toast"></div>
-<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div><button class="btn" id="livePlayMediaBtn" type="button" style="display:none;margin:8px 0">Tap to play stream video</button>
+<div class="modal-backdrop" id="liveBackdrop"><div class="modal" style="width:min(760px,100%)"><button class="close" id="liveClose">×</button><h2 id="liveHeading">Live stream</h2><p class="sub" id="liveStatus">Sign in to start or watch a stream.</p><div id="liveStageShell" class="live-stage-shell">
+  <div id="liveStage" style="background:#03050a;min-height:260px;border-radius:12px;display:grid;place-items:center;overflow:hidden;margin:12px 0"><span class="sub">Video will appear here</span></div>
+  <button class="live-control-trigger" id="liveControlMenuToggle" type="button" aria-label="Open live controls" aria-expanded="false" aria-controls="liveBroadcastControls" style="display:none">☰</button>
+  <div id="liveBroadcastControls" class="live-control-popover" role="group" aria-label="Live broadcast controls" aria-hidden="true" style="display:none">
+    <button class="btn" id="liveScreenShareBtn" type="button">Share game screen</button>
+    <button class="btn" id="liveCameraSwitchBtn" type="button">Switch camera</button>
+    <button class="btn" id="liveCameraToggleBtn" type="button">Turn camera off</button>
+    <button class="btn" id="liveMicToggleBtn" type="button">Mute microphone</button>
+    <p class="sub" id="liveControlsHint" role="status" aria-live="polite" style="margin:0">Camera, microphone and screen sharing are separate controls. Screen and system-audio support depends on your browser and device.</p>
+  </div>
+</div><button class="btn" id="livePlayMediaBtn" type="button" style="display:none;margin:8px 0">Tap to play stream video</button>
 <button class="btn" id="liveEnableAudioBtn" type="button" style="display:none;margin:8px 0">Enable stream audio</button><div id="liveSetup" style="display:grid;gap:9px;margin-top:12px">
   <label class="sub" for="liveTitle">Stream title</label>
   <input id="liveTitle" maxlength="120" placeholder="Stream title" style="width:100%;background:#11182a;border:1px solid #293451;border-radius:9px;padding:10px;color:white">
@@ -193,13 +211,7 @@
 </div>
 <button class="btn" id="endLiveBtn" type="button" style="display:none;margin-top:10px">End Live</button>
 <button class="btn" id="leaveDuoLiveBtn" type="button" style="display:none;margin-top:10px">Leave Duo Live</button>
-<div id="liveBroadcastControls" style="display:none;gap:8px;flex-wrap:wrap;margin-top:10px">
-  <button class="btn" id="liveScreenShareBtn" type="button">Share game screen</button>
-  <button class="btn" id="liveCameraSwitchBtn" type="button">Switch camera</button>
-  <button class="btn" id="liveCameraToggleBtn" type="button">Turn camera off</button>
-  <button class="btn" id="liveMicToggleBtn" type="button">Mute microphone</button>
-  <p class="sub" id="liveControlsHint" role="status" aria-live="polite" style="flex:1 1 100%;margin:0">Camera, microphone and screen sharing are separate controls. Screen and system-audio support depends on your browser and device.</p>
-</div>
+
 <div id="duoLiveInvitePanel" style="display:none;gap:8px;flex-wrap:wrap;margin-top:12px;padding:12px;border:1px solid #394466;border-radius:12px">
   <b style="flex:1 1 100%">Duo Live · Invite one friend</b>
   <label class="sub" for="duoLiveFriendSearch" style="flex:1 1 100%">Search by StreamArena username</label>
@@ -695,6 +707,8 @@ function openLivePanel(mode = 'start') {
   document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'), {className:'sub', textContent:'Video will appear here'}));
   const enableAudio=document.getElementById('liveEnableAudioBtn');if(enableAudio)enableAudio.style.display='none';
   const playMedia=document.getElementById('livePlayMediaBtn');if(playMedia)playMedia.style.display='none';
+  const controlToggle=document.getElementById('liveControlMenuToggle');if(controlToggle)controlToggle.style.display='none';
+  setLiveControlMenuOpen(false);
   liveMode = mode;
 }
 function updateLiveControlLabels() {
@@ -731,7 +745,7 @@ async function toggleLiveScreenShare() {
   const hint=document.getElementById('liveControlsHint');
   try {
     if(!liveScreenShareEnabled) {
-      if(!window.isSecureContext||!navigator.mediaDevices?.getDisplayMedia) {
+      if(!window.isSecureContext||typeof navigator.mediaDevices?.getDisplayMedia!=='function'||typeof activeLiveRoom.localParticipant.setScreenShareEnabled!=='function') {
         throw new Error('This browser does not expose web screen capture. Use HTTPS and a browser/device that supports getDisplayMedia. iPhone/iPad Safari may require a native iOS app with a ReplayKit Broadcast Extension to share other apps.');
       }
       hint.textContent='Choose a screen, window or browser tab in the browser dialog. Enable tab/system audio there if the browser offers it.';
@@ -774,40 +788,70 @@ async function toggleLiveScreenShare() {
   } finally {button.disabled=false;updateLiveControlLabels();}
 }
 async function switchLiveCamera() {
-  if(!activeLiveRoom||!liveCameraEnabled)return;
+  const room=activeLiveRoom||activeDuoCohostRoom;
+  if(!room||!liveCameraEnabled)return;
   const button=document.getElementById('liveCameraSwitchBtn');button.disabled=true;
   try {
-    const publication=activeLiveRoom.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+    const publication=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
     if(!publication?.track)throw new Error('Camera is not currently enabled.');
     liveCameraFacingMode=liveCameraFacingMode==='user'?'environment':'user';
     await publication.track.restartTrack({facingMode:liveCameraFacingMode});
-    if(!liveScreenShareEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
+    if(activeLiveRoom&&!liveScreenShareEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
+    else if(activeDuoCohostRoom&&document.getElementById('liveStage').dataset.videoSource!=='screen') {
+      const camera=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+      if(camera?.track)attachDuoRoomTrack(camera.track,document.getElementById('liveStage'),room.localParticipant,true);
+    }
   } catch(err) {
     liveCameraFacingMode=liveCameraFacingMode==='user'?'environment':'user';
     toast(err.message||'Could not switch camera. Your device may not have another camera.');
   } finally {button.disabled=false;}
 }
+function updateDuoCohostCameraPreview(room,enabled,previousTrack) {
+  const stage=document.getElementById('liveStage');
+  if(!stage)return;
+  if(!enabled) {
+    previousTrack?.detach().forEach(element=>element.remove());
+    if(stage.dataset.videoSource==='screen')return;
+    const grid=stage.querySelector(':scope > .duo-camera-grid');
+    const tile=grid&&[...grid.querySelectorAll('.duo-camera-tile')].find(node=>node.dataset.participantId===room.localParticipant.identity);
+    if(tile)tile.remove();
+    if(grid&&!grid.querySelector('.duo-camera-tile')){grid.remove();stage.dataset.videoSource='';}
+    if(!stage.querySelector(':scope > .duo-camera-grid')){
+      stage.querySelector('[data-duo-camera-off]')?.remove();
+      const note=document.createElement('span');note.className='sub';note.dataset.duoCameraOff='true';note.textContent='Your camera is off. Your microphone can continue.';
+      stage.append(note);
+    }
+    return;
+  }
+  if(stage.dataset.videoSource==='screen')return;
+  const publication=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+  if(publication?.track)attachDuoRoomTrack(publication.track,stage,room.localParticipant,true);
+}
 async function toggleLiveCamera() {
-  if(!activeLiveRoom)return;
+  const room=activeLiveRoom||activeDuoCohostRoom;
+  if(!room)return;
   const button=document.getElementById('liveCameraToggleBtn');button.disabled=true;
   const next=!liveCameraEnabled;
+  const previousTrack=room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera)?.track;
   try {
-    await activeLiveRoom.localParticipant.setCameraEnabled(next);
+    await room.localParticipant.setCameraEnabled(next);
     liveCameraEnabled=next;
-    if(!liveScreenShareEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
-    document.getElementById('liveControlsHint').textContent=next?'Camera is on.':'Camera is off; microphone and screen sharing can continue.';
+    if(activeLiveRoom&&!liveScreenShareEnabled)showLocalBroadcastVideo(LivekitClient.Track.Source.Camera);
+    else if(activeDuoCohostRoom)updateDuoCohostCameraPreview(room,next,previousTrack);
+    document.getElementById('liveControlsHint').textContent=next?'Camera is on.':'Camera is off; your microphone can continue.';
   } catch(err) {
     toast((err.name==='NotAllowedError'?'Camera permission was denied. Allow camera access in browser settings. ': '')+(err.message||'Could not change camera state.'));
   } finally {button.disabled=false;updateLiveControlLabels();}
 }
 async function toggleLiveMicrophone() {
-  if(!activeLiveRoom)return;
+  const room=activeLiveRoom||activeDuoCohostRoom;
+  if(!room)return;
   const button=document.getElementById('liveMicToggleBtn');button.disabled=true;
   const next=!liveMicEnabled;
   try {
-    await activeLiveRoom.localParticipant.setMicrophoneEnabled(next);
+    await room.localParticipant.setMicrophoneEnabled(next);
     liveMicEnabled=next;
-    document.getElementById('liveControlsHint').textContent=next?'Microphone is on.':'Microphone is muted; viewers can still see your video or screen.';
+    document.getElementById('liveControlsHint').textContent=next?'Microphone is on.':'Microphone is muted; your camera can continue.';
   } catch(err) {
     const reason=err.name==='NotAllowedError'?'Microphone permission was denied. Allow microphone access in browser settings. ': '';
     document.getElementById('liveControlsHint').textContent=reason+(err.message||'Could not change microphone state.');
@@ -822,10 +866,34 @@ document.getElementById('liveEnableAudioBtn').addEventListener('click',async()=>
   catch(err){toast(err.message||'Tap again to enable stream audio in this browser.');}
   finally{button.disabled=false;}
 });
-document.getElementById('liveScreenShareBtn').addEventListener('click',toggleLiveScreenShare);
-document.getElementById('liveCameraSwitchBtn').addEventListener('click',switchLiveCamera);
-document.getElementById('liveCameraToggleBtn').addEventListener('click',toggleLiveCamera);
-document.getElementById('liveMicToggleBtn').addEventListener('click',toggleLiveMicrophone);
+const liveControlMenuToggle=document.getElementById('liveControlMenuToggle');
+const liveControlPopover=document.getElementById('liveBroadcastControls');
+function setLiveControlMenuOpen(open,restoreFocus=false) {
+  if(!liveControlPopover||!liveControlMenuToggle)return;
+  liveControlPopover.style.display=open?'flex':'none';
+  liveControlPopover.setAttribute('aria-hidden',String(!open));
+  liveControlMenuToggle.setAttribute('aria-expanded',String(open));
+  liveControlMenuToggle.setAttribute('aria-label',open?'Close live controls':'Open live controls');
+  liveControlMenuToggle.textContent=open?'×':'☰';
+  if(open){
+    const firstVisible=[...liveControlPopover.querySelectorAll('button')].find(button=>button.style.display!=='none'&&!button.disabled&&button.getClientRects().length>0);
+    firstVisible?.focus();
+  }
+  if(!open&&restoreFocus&&liveControlMenuToggle.style.display!=='none')liveControlMenuToggle.focus();
+}
+liveControlPopover?.addEventListener('focusout',event=>{
+  const next=event.relatedTarget;
+  if(!next||(!liveControlPopover.contains(next)&&next!==liveControlMenuToggle))setLiveControlMenuOpen(false);
+});
+liveControlMenuToggle?.addEventListener('click',()=>setLiveControlMenuOpen(liveControlMenuToggle.getAttribute('aria-expanded')!=='true'));
+document.getElementById('liveScreenShareBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false,true);toggleLiveScreenShare();});
+document.getElementById('liveCameraSwitchBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false,true);switchLiveCamera();});
+document.getElementById('liveCameraToggleBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false,true);toggleLiveCamera();});
+document.getElementById('liveMicToggleBtn').addEventListener('click',()=>{setLiveControlMenuOpen(false,true);toggleLiveMicrophone();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&liveControlMenuToggle?.getAttribute('aria-expanded')==='true'){event.preventDefault();setLiveControlMenuOpen(false,true);}});
+document.addEventListener('click',event=>{
+  if(liveControlMenuToggle?.getAttribute('aria-expanded')==='true'&&!liveControlPopover?.contains(event.target)&&!liveControlMenuToggle?.contains(event.target))setLiveControlMenuOpen(false);
+});
 
 function renderLiveThumbnail(url) {
   const preview=document.getElementById('liveThumbnailPreview');
@@ -1237,6 +1305,9 @@ async function joinDuoLiveAsCohost(invite,button) {
   if(activeDuoCohostRoom){toast('You are already connected as a co-host.');return;}
   if(!window.LivekitClient){toast('LiveKit browser SDK did not load. Refresh and try again.');return;}
   if(button)button.disabled=true;
+  document.getElementById('liveControlMenuToggle').style.display='none';
+  document.getElementById('liveScreenShareBtn').style.display='';
+  setLiveControlMenuOpen(false);
   try{
     if(activeLiveRoom){await activeLiveRoom.disconnect();activeLiveRoom=null;}
     openLivePanel('watch');
@@ -1266,6 +1337,9 @@ async function joinDuoLiveAsCohost(invite,button) {
         activeDuoCohostRoom=null;
         document.getElementById('liveStatus').textContent='Duo Live disconnected. Use the accepted invitation to rejoin.';
         document.getElementById('leaveDuoLiveBtn').style.display='none';
+        document.getElementById('liveControlMenuToggle').style.display='none';
+        document.getElementById('liveScreenShareBtn').style.display='';
+        setLiveControlMenuOpen(false);
         stage.replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'Connection ended. Rejoin from Duo Live invitations.'}));
         loadDuoLiveInbox();
       }
@@ -1288,7 +1362,11 @@ async function joinDuoLiveAsCohost(invite,button) {
       if(!microphoneReady)mediaIssues.push('Microphone did not publish an audio track.');
     }catch(microphoneError){mediaIssues.push('Microphone unavailable: '+(microphoneError.message||'permission or device issue'));}
     liveCameraEnabled=cameraReady;liveMicEnabled=microphoneReady;liveScreenShareEnabled=false;liveCameraFacingMode='user';
+    document.getElementById('liveScreenShareBtn').style.display='none';
+    document.getElementById('liveControlMenuToggle').style.display='grid';
+    setLiveControlMenuOpen(false);
     updateLiveControlLabels();
+    document.getElementById('liveControlsHint').textContent=(mediaIssues.length?mediaIssues.join(' · ')+' · ':'')+'Co-host controls: camera, microphone and camera switching. Screen sharing is controlled by the host.';
     if(!cameraReady&&!microphoneReady)throw new Error('Camera and microphone are both unavailable. '+mediaIssues.join(' · '));
     room.remoteParticipants.forEach(participant=>{
       for(const publication of participant.trackPublications.values()){
@@ -1302,6 +1380,9 @@ async function joinDuoLiveAsCohost(invite,button) {
     document.getElementById('leaveDuoLiveBtn').style.display='inline-block';
   }catch(error){
     if(activeDuoCohostRoom){try{await activeDuoCohostRoom.disconnect();}catch{}activeDuoCohostRoom=null;}
+    document.getElementById('liveControlMenuToggle').style.display='none';
+    document.getElementById('liveScreenShareBtn').style.display='';
+    setLiveControlMenuOpen(false);
     document.getElementById('liveStatus').textContent=error.message||'Could not join Duo Live.';
     toast(error.message||'Could not join Duo Live.');
   }finally{if(button)button.disabled=false;}
@@ -1310,7 +1391,7 @@ document.getElementById('leaveDuoLiveBtn').addEventListener('click',async()=>{
   const button=document.getElementById('leaveDuoLiveBtn');button.disabled=true;
   try{if(activeDuoCohostRoom)await activeDuoCohostRoom.disconnect();}
   catch(error){toast(error.message||'Could not leave the LiveKit room.');}
-  finally{activeDuoCohostRoom=null;button.style.display='none';button.disabled=false;document.getElementById('liveStatus').textContent='You left Duo Live.';document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'You are no longer co-hosting.'}));loadDuoLiveInbox();}
+  finally{activeDuoCohostRoom=null;button.style.display='none';button.disabled=false;document.getElementById('liveControlMenuToggle').style.display='none';document.getElementById('liveScreenShareBtn').style.display='';setLiveControlMenuOpen(false);document.getElementById('liveStatus').textContent='You left Duo Live.';document.getElementById('liveStage').replaceChildren(Object.assign(document.createElement('span'),{className:'sub',textContent:'You are no longer co-hosting.'}));loadDuoLiveInbox();}
 });
 function attachLiveTrack(track, stage, muted = false) {
   const element = track.attach();
@@ -1494,7 +1575,8 @@ async function startLiveBroadcast(){
     } catch(micError) {
       startupIssues.push('Microphone unavailable: '+(micError.message||'permission or device issue'));
     }
-    document.getElementById('liveBroadcastControls').style.display='flex';
+    document.getElementById('liveControlMenuToggle').style.display='grid';
+    setLiveControlMenuOpen(false);
     document.getElementById('duoLiveInvitePanel').style.display='flex';
     loadDuoLiveHostInvites();
     document.getElementById('liveControlsHint').textContent=startupIssues.length
@@ -1518,6 +1600,8 @@ async function startLiveBroadcast(){
     if(activeLiveRoom){try{await activeLiveRoom.disconnect();}catch{} activeLiveRoom=null;}
     liveMicEnabled=true;liveCameraEnabled=true;liveScreenShareEnabled=false;liveCameraFacingMode='user';
     document.getElementById('liveBroadcastControls').style.display='none';
+    document.getElementById('liveControlMenuToggle').style.display='none';
+    setLiveControlMenuOpen(false);
     document.getElementById('duoLiveInvitePanel').style.display='none';
     if(createdId) await supabaseClient.from('streams').update({is_live:false}).eq('id',createdId).eq('user_id',currentUser.id);
     activeStreamId=null;
@@ -1547,6 +1631,8 @@ document.getElementById('endLiveBtn').addEventListener('click',async()=>{
     }
     liveMicEnabled=true;liveCameraEnabled=true;liveScreenShareEnabled=false;liveCameraFacingMode='user';
     document.getElementById('liveBroadcastControls').style.display='none';
+    document.getElementById('liveControlMenuToggle').style.display='none';
+    setLiveControlMenuOpen(false);
     activeStreamId=null;
     document.getElementById('liveStatus').textContent='Stream ended.';
     document.getElementById('endLiveBtn').style.display='none';
