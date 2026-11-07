@@ -19,7 +19,7 @@ Open the `android/` folder in Android Studio with JDK 17 and Android SDK 35 inst
 gradle :app:assembleDebug
 ```
 
-The CI workflow builds the debug APK and uploads it as the `streamarena-android-debug` artifact when the build succeeds. No signed release APK is produced.
+The repository pull-request workflow builds the debug APK and uploads it as the `streamarena-android-debug` artifact when the build succeeds. No signed release APK is produced.
 
 ## Important limitations
 
