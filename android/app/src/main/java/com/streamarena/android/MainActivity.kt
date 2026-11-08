@@ -415,7 +415,8 @@ class MainActivity : ComponentActivity() {
         }
         root.addView(titleInput, fieldLayout(dp(48), dp(12)))
         fieldLabel("Select Category")
-        val categoryButton = makeButton("🎮   $selectedGameCategory     ▾", false) {
+        lateinit var categoryButton: Button
+        categoryButton = makeButton("🎮   $selectedGameCategory     ▾", false) {
             val choices = arrayOf("FREE FIRE", "PUBG MOBILE", "BGMI", "CALL OF DUTY", "OTHER")
             AlertDialog.Builder(this).setTitle("Select Game")
                 .setItems(choices) { _, which ->
