@@ -2847,46 +2847,64 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun stopScreenShare() {
+        val session = accessToken ?: return
+        val streamId = activeStreamId ?: return
+        val activeRoom = room ?: return
         lifecycleScope.launch {
             try {
-                room?.localParticipant?.setScreenShareEnabled(false)
+                activeRoom.localParticipant.setScreenShareEnabled(false)
+                if (accessToken != session || activeStreamId != streamId || room !== activeRoom) return@launch
                 sharing = false
                 setStatus("Screen sharing stopped. Your Live is still active.")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
-                setStatus("Could not stop screen sharing: ${error.message ?: "unknown error"}")
+                if (accessToken == session && activeStreamId == streamId && room === activeRoom) {
+                    setStatus("Could not stop screen sharing: ${error.message ?: "unknown error"}")
+                }
             } finally {
-                updateControls()
+                if (accessToken == session && activeStreamId == streamId && room === activeRoom) {
+                    updateControls()
+                }
             }
         }
     }
 
     private fun endLive() {
         if (endLiveJob?.isActive == true) return
+        val session = accessToken ?: return
+        val ownerId = userId ?: return
+        val streamId = activeStreamId ?: return
+        val activeRoom = room ?: return
         endLiveButton.isEnabled = false
         endLiveJob = lifecycleScope.launch {
             var cleanupWarning: String? = null
             heartbeatJob?.cancel()
             heartbeatJob = null
             try {
-                if (sharing) room?.localParticipant?.setScreenShareEnabled(false)
+                if (sharing) activeRoom.localParticipant.setScreenShareEnabled(false)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 cleanupWarning = "Screen-share stop issue: ${error.message ?: "unknown error"}"
             }
             sharing = false
-            val streamId = activeStreamId
-            val token = accessToken
-            val id = userId
-            if (streamId != null && token != null && id != null) {
-                try {
-                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
-                } catch (error: Exception) {
-                    cleanupWarning = "Live status update failed: ${error.message ?: "unknown error"}"
-                }
+            try {
+                withContext(Dispatchers.IO) { updateStreamRow(session, streamId, ownerId, false) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                cleanupWarning = "Live status update failed: ${error.message ?: "unknown error"}"
             }
             try {
-                room?.disconnect()
+                activeRoom.disconnect()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 cleanupWarning = cleanupWarning ?: "Room disconnect issue: ${error.message ?: "unknown error"}"
+            }
+            if (accessToken != session || userId != ownerId || activeStreamId != streamId || room !== activeRoom) {
+                return@launch
             }
             room = null
             window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
