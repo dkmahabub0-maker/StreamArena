@@ -799,8 +799,10 @@ class MainActivity : ComponentActivity() {
             filters = arrayOf(android.text.InputFilter.LengthFilter(1000))
         }
         composer.addView(input, LinearLayout.LayoutParams(0, dp(50), 1f))
+        var chatSending = false
         lateinit var sendButton: Button
         sendButton = makeButton("Send", true) {
+            if (chatSending) return@makeButton
             val message = input.text.toString().trim()
             val uid = userId
             val token = accessToken
@@ -810,7 +812,9 @@ class MainActivity : ComponentActivity() {
                 return@makeButton
             }
             // Disable the button until the request completes to prevent duplicate posts.
+            chatSending = true
             sendButton.isEnabled = false
+            input.isEnabled = false
             input.text.clear()
             lifecycleScope.launch {
                 try {
@@ -821,14 +825,22 @@ class MainActivity : ComponentActivity() {
                             JSONObject().put("stream_id", streamId).put("user_id", uid).put("message", message)
                         )
                     }
-                    loadStreamChat(streamId, chat)
+                    if (viewerRenderer === renderer && chat.isAttachedToWindow) loadStreamChat(streamId, chat)
+                } catch (error: kotlinx.coroutines.CancellationException) {
+                    throw error
                 } catch (error: Exception) {
-                    if (input.text.isNullOrEmpty()) input.setText(message)
-                    else input.setText(message + "\n" + input.text.toString())
-                    input.setSelection(input.text.length)
-                    setStatus("Chat send failed: " + (error.message ?: "unknown error"), true)
+                    if (viewerRenderer === renderer && chat.isAttachedToWindow) {
+                        if (input.text.isNullOrEmpty()) input.setText(message)
+                        else input.setText(message + "\n" + input.text.toString())
+                        input.setSelection(input.text.length)
+                        setStatus("Chat send failed: " + (error.message ?: "unknown error"), true)
+                    }
                 } finally {
-                    sendButton.isEnabled = true
+                    chatSending = false
+                    if (viewerRenderer === renderer && chat.isAttachedToWindow) {
+                        input.isEnabled = true
+                        sendButton.isEnabled = true
+                    }
                 }
             }
         }
@@ -890,7 +902,9 @@ class MainActivity : ComponentActivity() {
             try {
                 val endpoint = "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/chat_messages?select=id,user_id,message,created_at&stream_id=eq." + streamId + "&order=created_at.asc&limit=80"
                 val rows = withContext(Dispatchers.IO) { getRestJson(endpoint, accessToken) }
+                if (viewerRenderer == null || !target.isAttachedToWindow) return@launch
                 val scroll = target.parent as? ScrollView
+                val previousScrollY = scroll?.scrollY ?: 0
                 val wasAtBottom = scroll != null && scroll.height > 0 &&
                     scroll.scrollY + scroll.height >= target.height - dp(24)
                 target.removeAllViews()
@@ -911,18 +925,25 @@ class MainActivity : ComponentActivity() {
                     gravity = Gravity.CENTER
                     setPadding(0, dp(20), 0, dp(20))
                 })
-                if (wasAtBottom || rows.length() <= 1) scroll?.post {
-                    scroll.fullScroll(ScrollView.FOCUS_DOWN)
+                scroll?.post {
+                    if (!target.isAttachedToWindow || viewerRenderer == null) return@post
+                    if (wasAtBottom || rows.length() <= 1) {
+                        scroll.fullScroll(ScrollView.FOCUS_DOWN)
+                    } else {
+                        scroll.scrollTo(0, previousScrollY)
+                    }
                 }
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
             } catch (error: Exception) {
-                target.removeAllViews()
-                target.addView(TextView(this@MainActivity).apply {
-                    text = "Chat unavailable: " + (error.message ?: "network error")
-                    setTextColor(Color.LTGRAY)
-                    setPadding(dp(12), dp(10), dp(12), dp(10))
-                })
+                if (viewerRenderer != null && target.isAttachedToWindow) {
+                    target.removeAllViews()
+                    target.addView(TextView(this@MainActivity).apply {
+                        text = "Chat unavailable: " + (error.message ?: "network error")
+                        setTextColor(Color.LTGRAY)
+                        setPadding(dp(12), dp(10), dp(12), dp(10))
+                    })
+                }
             }
         }
     }
