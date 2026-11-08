@@ -159,6 +159,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        keepScreenAwakeDuringLive = getSharedPreferences("streamarena_settings", MODE_PRIVATE)
+            .getBoolean("keep_screen_awake_during_live", true)
         buildUi()
         updateControls()
     }
@@ -1727,6 +1729,9 @@ class MainActivity : ComponentActivity() {
             .setView(keepAwake)
             .setPositiveButton("Save") { _, _ ->
                 keepScreenAwakeDuringLive = keepAwake.isChecked
+                getSharedPreferences("streamarena_settings", MODE_PRIVATE).edit()
+                    .putBoolean("keep_screen_awake_during_live", keepScreenAwakeDuringLive)
+                    .apply()
                 if (room != null && keepScreenAwakeDuringLive) {
                     window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 } else {
