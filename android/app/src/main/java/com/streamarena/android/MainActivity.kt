@@ -814,9 +814,9 @@ class MainActivity : ComponentActivity() {
         liveScreen.addView(root, LinearLayout.LayoutParams(-1, -1))
         loadStreamChat(streamId, chat)
         liveChatRefreshJob = lifecycleScope.launch {
-            while (viewerRenderer === renderer && viewerRoom != null) {
+            while (viewerRenderer === renderer) {
                 delay(6000)
-                if (viewerRenderer === renderer && viewerRoom != null) loadStreamChat(streamId, chat)
+                if (viewerRenderer === renderer) loadStreamChat(streamId, chat)
             }
         }
 
