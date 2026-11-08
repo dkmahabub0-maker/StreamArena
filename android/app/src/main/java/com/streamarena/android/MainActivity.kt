@@ -112,16 +112,35 @@ class MainActivity : ComponentActivity() {
     private val profileImagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) lifecycleScope.launch {
             try {
-                val bitmap = withContext(Dispatchers.IO) {
-                    contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
-                        ?: error("Could not read the selected image.")
+                val resized = withContext(Dispatchers.IO) {
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+                        ?: error("Could not inspect the selected image.")
+                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) error("The selected file is not a supported image.")
+                    var sampleSize = 1
+                    while (bounds.outWidth / (sampleSize * 2) >= 384 &&
+                        bounds.outHeight / (sampleSize * 2) >= 384) {
+                        sampleSize *= 2
+                    }
+                    val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                    val decoded = contentResolver.openInputStream(uri)?.use {
+                        BitmapFactory.decodeStream(it, null, options)
+                    } ?: error("Could not decode the selected image.")
+                    val scale = minOf(384f / decoded.width, 384f / decoded.height, 1f)
+                    val output = if (scale < 1f) Bitmap.createScaledBitmap(
+                        decoded,
+                        (decoded.width * scale).toInt().coerceAtLeast(1),
+                        (decoded.height * scale).toInt().coerceAtLeast(1),
+                        true
+                    ) else decoded
+                    if (output !== decoded) decoded.recycle()
+                    output
                 }
-                val scale = minOf(384f / bitmap.width, 384f / bitmap.height, 1f)
-                val resized = Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt().coerceAtLeast(1), (bitmap.height * scale).toInt().coerceAtLeast(1), true)
                 val bytes = java.io.ByteArrayOutputStream().use { out ->
                     resized.compress(Bitmap.CompressFormat.JPEG, 72, out)
                     out.toByteArray()
                 }
+                profileAvatarBitmap?.takeIf { it !== resized }?.recycle()
                 profileAvatarBitmap = resized
                 profileAvatarDataUrl = "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
                 profileAvatarView?.setImageBitmap(resized)
