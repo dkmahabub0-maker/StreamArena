@@ -216,7 +216,7 @@ class MainActivity : ComponentActivity() {
         root.addView(otpVerifyButton,fieldLayout(dp(50),dp(8)))
         val links=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL }
         links.addView(TextView(this).apply { text="Create Account"; setTextColor(Color.WHITE); setOnClickListener { setAuthMode(true) } },LinearLayout.LayoutParams(0,dp(42),1f))
-        links.addView(TextView(this).apply { text="Forgot Password?"; gravity=Gravity.END; setTextColor(Color.WHITE); setOnClickListener { AlertDialog.Builder(this@MainActivity).setMessage("Password reset is not available in this Android build yet.").setPositiveButton("OK",null).show() } },LinearLayout.LayoutParams(0,dp(42),1f))
+        links.addView(TextView(this).apply { text="Forgot Password?"; gravity=Gravity.END; setTextColor(Color.WHITE); setOnClickListener { requestPasswordReset() } },LinearLayout.LayoutParams(0,dp(42),1f))
         root.addView(links)
         setAuthMode(false)
     }
@@ -1674,6 +1674,36 @@ class MainActivity : ComponentActivity() {
         val color = if (isError) Color.rgb(255, 125, 125) else Color.rgb(166, 207, 231)
         if (::status.isInitialized) { status.text = message; status.setTextColor(color) }
         if (::liveStatus.isInitialized) { liveStatus.text = message; liveStatus.setTextColor(color) }
+    }
+
+    private fun requestPasswordReset() {
+        val email = emailInput.text.toString().trim()
+        if (email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            setStatus("Enter a valid email address first.", true)
+            emailInput.requestFocus()
+            return
+        }
+        setStatus("Requesting password reset…")
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    postJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/auth/v1/recover",
+                        "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+                        null,
+                        JSONObject().put("email", email)
+                    )
+                }
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Check your email")
+                    .setMessage("If an account exists for $email, Supabase will send a password recovery email. Open the link in that email and follow the website instructions to choose a new password.")
+                    .setPositiveButton("OK", null)
+                    .show()
+                setStatus("Password recovery request submitted.")
+            } catch (error: Exception) {
+                setStatus("Password recovery request failed: " + (error.message ?: "network error"), true)
+            }
+        }
     }
 
     private fun requestPasswordSignIn(email: String, password: String): JSONObject {
