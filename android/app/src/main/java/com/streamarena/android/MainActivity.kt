@@ -813,7 +813,9 @@ class MainActivity : ComponentActivity() {
                     )
                     if (verified.length() != 1) error("No profile row was updated for this account.")
                     val saved = verified.getJSONObject(0)
-                    if (saved.optString("full_name") != fullName || saved.optString("username") != username) {
+                    val savedName = saved.optString("full_name").takeUnless { it == "null" } ?: ""
+                    val savedUsername = saved.optString("username").takeUnless { it == "null" } ?: ""
+                    if (savedName != fullName || savedUsername != username) {
                         error("The saved profile values could not be verified.")
                     }
                 }
