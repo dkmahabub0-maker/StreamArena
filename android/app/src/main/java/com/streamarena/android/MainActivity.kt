@@ -748,6 +748,7 @@ class MainActivity : ComponentActivity() {
             showUnavailableAccountFeature("Orders", "No orders or purchase-history table is configured in this backend.")
         }, fieldLayout(dp(48), dp(4)))
         root.addView(makeButton("Help & Support", false) { showSupportTickets() }, fieldLayout(dp(48), dp(4)))
+        root.addView(makeButton("Create Support Request", false) { showCreateSupportTicket() }, fieldLayout(dp(48), dp(4)))
         root.addView(makeButton("Settings", false) { showLiveSettings() }, fieldLayout(dp(48), dp(4)))
         root.addView(makeButton("Notifications", false) {
             showUnavailableAccountFeature("Notifications", "A notifications inbox is not connected yet.")
@@ -908,6 +909,79 @@ class MainActivity : ComponentActivity() {
                 }
             }
         )
+    }
+
+    private fun showCreateSupportTicket() {
+        if (accessToken == null || userId == null) {
+            showUnavailableAccountFeature("Contact Support", "Sign in to create a support request.")
+            return
+        }
+        liveScreen.removeAllViews()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(20), dp(16), dp(16))
+        }
+        root.addView(makeButton("‹  Back to Profile", false) { showProfileScreen() }, fieldLayout(dp(46), dp(10)))
+        root.addView(TextView(this).apply {
+            text = "New Support Request"
+            textSize = 22f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(14)))
+        val subjectInput = EditText(this).apply {
+            hint = "Subject (up to 160 characters)"
+            setSingleLine(true)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            background = inputBackground()
+            setPadding(dp(12), 0, dp(12), 0)
+        }
+        root.addView(subjectInput, fieldLayout(dp(52), dp(10)))
+        val messageInput = EditText(this).apply {
+            hint = "Describe your issue (up to 5000 characters)"
+            minLines = 5
+            gravity = Gravity.TOP
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            background = inputBackground()
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+        }
+        root.addView(messageInput, fieldLayout(dp(150), dp(10)))
+        val statusText = TextView(this).apply {
+            textSize = 12f
+            setTextColor(Color.LTGRAY)
+        }
+        root.addView(statusText, bottomMargin(dp(8)))
+        root.addView(makeButton("Submit Request", true) {
+            val subject = subjectInput.text.toString().trim()
+            val message = messageInput.text.toString().trim()
+            val uid = userId ?: return@makeButton
+            val token = accessToken ?: return@makeButton
+            if (subject.isEmpty() || subject.length > 160 || message.isEmpty() || message.length > 5000) {
+                statusText.text = "Enter a subject (1–160 chars) and message (1–5000 chars)."
+                return@makeButton
+            }
+            statusText.text = "Submitting…"
+            lifecycleScope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        postRestJson(
+                            "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/support_tickets?select=id",
+                            token,
+                            JSONObject().put("user_id", uid).put("subject", subject).put("message", message)
+                        )
+                    }
+                    statusText.text = "Support request submitted."
+                    subjectInput.text.clear()
+                    messageInput.text.clear()
+                    showSupportTickets()
+                } catch (error: Exception) {
+                    statusText.text = "Request failed: " + (error.message ?: "network or access policy error")
+                }
+            }
+        }, fieldLayout(dp(50), dp(8)))
+        liveScreen.addView(root, LinearLayout.LayoutParams(-1, 0, 1f))
+        addBottomNav()
     }
 
     private fun showSupportTickets() {
