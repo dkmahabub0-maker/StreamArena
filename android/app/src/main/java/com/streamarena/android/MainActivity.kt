@@ -94,6 +94,10 @@ class MainActivity : ComponentActivity() {
     private var heartbeatJob: Job? = null
     private lateinit var liveStreamsContainer: LinearLayout
     private lateinit var gamesContainer: LinearLayout
+    private lateinit var communityFamiliesContainer: LinearLayout
+    private lateinit var communityChatContainer: LinearLayout
+    private lateinit var communityMessageInput: EditText
+    private var activeCommunityFamilyId: String? = null
 
     private val cameraPreviewPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -465,16 +469,220 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showCommunityScreen() {
-        liveScreen.removeAllViews(); val sc=ScrollView(this); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(16),dp(22),dp(16),dp(16)) }
-        sc.addView(root); liveScreen.addView(sc,LinearLayout.LayoutParams(-1,0,1f))
-        root.addView(TextView(this).apply { text="‹     Community"; textSize=21f; setTextColor(Color.WHITE) },bottomMargin(dp(18)))
-        root.addView(makeButton("👥     Community Hub                      Join",true) { setStatus("Community join service is not connected yet.") },fieldLayout(dp(92),dp(12)))
-        root.addView(TextView(this).apply { text="Chat                         Members"; textSize=16f; gravity=Gravity.CENTER; setTextColor(Color.MAGENTA) },bottomMargin(dp(12)))
-        listOf("Gaming Lover|Welcome to StreamArena! 🎉|2m ago","Riya Islam|Great platform! ❤️|3m ago","Tanvir Ahmed|Let's grow together! 💪|5m ago").forEach { item ->
-            val a=item.split("|"); root.addView(TextView(this).apply { text="👤   "+a[0]+"\n       "+a[1]+"\n       "+a[2]; textSize=14f; setTextColor(Color.WHITE); setPadding(dp(14),dp(14),dp(14),dp(14)); background=panelBackground() },bottomMargin(dp(8)))
+        liveScreen.removeAllViews()
+        val sc = ScrollView(this)
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(22), dp(16), dp(16))
         }
-        root.addView(EditText(this).apply { hint="Type a message..."; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(12),0,dp(12),0) },fieldLayout(dp(50),dp(8))); addBottomNav()
+        sc.addView(root)
+        liveScreen.addView(sc, LinearLayout.LayoutParams(-1, 0, 1f))
+        val heading = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        heading.addView(TextView(this).apply {
+            text = "Community"
+            textSize = 22f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, LinearLayout.LayoutParams(0, dp(48), 1f))
+        heading.addView(makeButton("Refresh", false) { loadCommunityFamilies() })
+        root.addView(heading, bottomMargin(dp(12)))
+        root.addView(TextView(this).apply {
+            text = "Your communities"
+            textSize = 15f
+            setTextColor(Color.LTGRAY)
+        }, bottomMargin(dp(8)))
+        communityFamiliesContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(communityFamiliesContainer, bottomMargin(dp(14)))
+        root.addView(TextView(this).apply {
+            text = "Community chat"
+            textSize = 17f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(8)))
+        communityChatContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val chatScroll = ScrollView(this).apply {
+            background = panelBackground()
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+        }
+        chatScroll.addView(communityChatContainer)
+        root.addView(chatScroll, LinearLayout.LayoutParams(-1, dp(260)).apply { bottomMargin = dp(8) })
+        val composer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        communityMessageInput = EditText(this).apply {
+            hint = "Type a community message..."
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            background = inputBackground()
+            setPadding(dp(12), 0, dp(12), 0)
+            isEnabled = false
+        }
+        composer.addView(communityMessageInput, LinearLayout.LayoutParams(0, dp(50), 1f))
+        composer.addView(makeButton("Send", true) { sendCommunityMessage() },
+            LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
+        root.addView(composer, bottomMargin(dp(10)))
+        addBottomNav()
+        loadCommunityFamilies()
     }
+
+    private fun loadCommunityFamilies() {
+        if (!::communityFamiliesContainer.isInitialized) return
+        val session = accessToken
+        val uid = userId
+        communityFamiliesContainer.removeAllViews()
+        communityChatContainer.removeAllViews()
+        communityMessageInput.isEnabled = false
+        activeCommunityFamilyId = null
+        if (session == null || uid == null) {
+            communityFamiliesContainer.addView(TextView(this).apply {
+                text = "Sign in to view your communities."
+                setTextColor(Color.LTGRAY)
+            })
+            return
+        }
+        communityFamiliesContainer.addView(TextView(this).apply {
+            text = "Loading communities…"
+            setTextColor(Color.LTGRAY)
+        })
+        lifecycleScope.launch {
+            try {
+                val memberships = withContext(Dispatchers.IO) {
+                    getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/family_members?select=family_id&user_id=eq.$uid",
+                        session
+                    )
+                }
+                val memberIds = HashSet<String>()
+                for (i in 0 until memberships.length()) {
+                    memberIds.add(memberships.getJSONObject(i).optString("family_id"))
+                }
+                val families = withContext(Dispatchers.IO) {
+                    getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/families?select=id,name&order=created_at.desc&limit=50",
+                        session
+                    )
+                }
+                communityFamiliesContainer.removeAllViews()
+                var shown = 0
+                for (i in 0 until families.length()) {
+                    val family = families.getJSONObject(i)
+                    val familyId = family.optString("id")
+                    if (familyId !in memberIds) continue
+                    shown++
+                    val familyName = family.optString("name", "Community")
+                    communityFamiliesContainer.addView(
+                        makeButton("👥   $familyName   ›", shown == 1) {
+                            openCommunityFamily(familyId, familyName)
+                        },
+                        fieldLayout(dp(50), dp(6))
+                    )
+                }
+                if (shown == 0) {
+                    communityFamiliesContainer.addView(TextView(this@MainActivity).apply {
+                        text = "You have not joined a community yet. Ask a community owner to invite your account."
+                        textSize = 13f
+                        setTextColor(Color.LTGRAY)
+                        setPadding(dp(8), dp(10), dp(8), dp(10))
+                    })
+                    communityChatContainer.addView(TextView(this@MainActivity).apply {
+                        text = "Community messages will appear here after you join."
+                        setTextColor(Color.LTGRAY)
+                    })
+                }
+            } catch (error: Exception) {
+                communityFamiliesContainer.removeAllViews()
+                communityFamiliesContainer.addView(TextView(this@MainActivity).apply {
+                    text = "Communities could not load: " + (error.message ?: "network error")
+                    setTextColor(Color.rgb(255, 140, 140))
+                })
+            }
+        }
+    }
+
+    private fun openCommunityFamily(familyId: String, familyName: String) {
+        activeCommunityFamilyId = familyId
+        communityMessageInput.isEnabled = true
+        communityChatContainer.removeAllViews()
+        communityChatContainer.addView(TextView(this).apply {
+            text = "Loading $familyName chat…"
+            setTextColor(Color.LTGRAY)
+        })
+        loadCommunityMessages(familyId)
+    }
+
+    private fun loadCommunityMessages(familyId: String) {
+        val session = accessToken ?: return
+        lifecycleScope.launch {
+            try {
+                val messages = withContext(Dispatchers.IO) {
+                    getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/family_messages?select=id,user_id,message,created_at&family_id=eq.$familyId&order=created_at.asc&limit=100",
+                        session
+                    )
+                }
+                if (activeCommunityFamilyId != familyId || !::communityChatContainer.isInitialized) return@launch
+                communityChatContainer.removeAllViews()
+                if (messages.length() == 0) {
+                    communityChatContainer.addView(TextView(this@MainActivity).apply {
+                        text = "No messages yet. Start the conversation."
+                        setTextColor(Color.LTGRAY)
+                        setPadding(dp(8), dp(12), dp(8), dp(12))
+                    })
+                }
+                for (i in 0 until messages.length()) {
+                    val row = messages.getJSONObject(i)
+                    val sender = if (row.optString("user_id") == userId) "You" else "Member"
+                    communityChatContainer.addView(TextView(this@MainActivity).apply {
+                        text = "$sender: " + row.optString("message")
+                        textSize = 14f
+                        setTextColor(Color.WHITE)
+                        setPadding(dp(10), dp(8), dp(10), dp(8))
+                        background = panelBackground()
+                    }, bottomMargin(dp(6)))
+                }
+            } catch (error: Exception) {
+                if (activeCommunityFamilyId != familyId) return@launch
+                communityChatContainer.removeAllViews()
+                communityChatContainer.addView(TextView(this@MainActivity).apply {
+                    text = "Community chat unavailable: " + (error.message ?: "network error")
+                    setTextColor(Color.rgb(255, 140, 140))
+                })
+            }
+        }
+    }
+
+    private fun sendCommunityMessage() {
+        val familyId = activeCommunityFamilyId ?: run {
+            setStatus("Select a community before sending a message.")
+            return
+        }
+        val uid = userId ?: return
+        val session = accessToken ?: return
+        val message = communityMessageInput.text.toString().trim()
+        if (message.isEmpty()) return
+        if (message.length > 1000) {
+            setStatus("Community messages must be 1000 characters or fewer.", true)
+            return
+        }
+        communityMessageInput.text.clear()
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    postRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/family_messages?select=id",
+                        session,
+                        JSONObject().put("family_id", familyId).put("user_id", uid).put("message", message)
+                    )
+                }
+                loadCommunityMessages(familyId)
+            } catch (error: Exception) {
+                communityMessageInput.setText(message)
+                setStatus("Message was not sent: " + (error.message ?: "database policy or network error"), true)
+            }
+        }
+    }
+
     private fun showProfileScreen() {
         liveScreen.removeAllViews(); val sc=ScrollView(this); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(16),dp(20),dp(16),dp(18)) }
         sc.addView(root); liveScreen.addView(sc,LinearLayout.LayoutParams(-1,0,1f))
