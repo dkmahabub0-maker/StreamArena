@@ -790,30 +790,44 @@ class MainActivity : ComponentActivity() {
             setHintTextColor(Color.LTGRAY)
             background = inputBackground()
             setPadding(dp(12), 0, dp(12), 0)
+            filters = arrayOf(android.text.InputFilter.LengthFilter(1000))
         }
         composer.addView(input, LinearLayout.LayoutParams(0, dp(50), 1f))
-        composer.addView(makeButton("Send", true) {
+        val sendButton = makeButton("Send", true) {
             val message = input.text.toString().trim()
             val uid = userId
             val token = accessToken
-            if (message.isNotEmpty() && uid != null && token != null) {
-                input.text.clear()
-                lifecycleScope.launch {
-                    try {
-                        withContext(Dispatchers.IO) {
-                            postRestJson(
-                                "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/chat_messages?select=id",
-                                token,
-                                JSONObject().put("stream_id", streamId).put("user_id", uid).put("message", message)
-                            )
-                        }
-                        loadStreamChat(streamId, chat)
-                    } catch (error: Exception) {
-                        setStatus("Chat send failed: " + (error.message ?: "unknown error"), true)
+            if (message.isEmpty()) return@makeButton
+            if (uid == null || token == null) {
+                setStatus("Sign in again before sending chat messages.", true)
+                return@makeButton
+            }
+            sendButton@ run {
+                // The button is disabled until this request completes to prevent duplicate posts.
+                composer.getChildAt(1).isEnabled = false
+            }
+            input.text.clear()
+            lifecycleScope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        postRestJson(
+                            "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/chat_messages?select=id",
+                            token,
+                            JSONObject().put("stream_id", streamId).put("user_id", uid).put("message", message)
+                        )
                     }
+                    loadStreamChat(streamId, chat)
+                } catch (error: Exception) {
+                    if (input.text.isNullOrEmpty()) input.setText(message)
+                    else input.setText(message + "\n" + input.text.toString())
+                    input.setSelection(input.text.length)
+                    setStatus("Chat send failed: " + (error.message ?: "unknown error"), true)
+                } finally {
+                    sendButton.isEnabled = true
                 }
             }
-        }, LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
+        }
+        composer.addView(sendButton, LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
         root.addView(composer, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(8) })
         liveScreen.addView(root, LinearLayout.LayoutParams(-1, -1))
         loadStreamChat(streamId, chat)
