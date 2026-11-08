@@ -1010,10 +1010,11 @@ class MainActivity : ComponentActivity() {
             isEnabled = false
         }
         composer.addView(communityMessageInput, LinearLayout.LayoutParams(0, dp(50), 1f))
-        communitySendButton = makeButton("Send", true) { sendCommunityMessage() }.apply {
+        val sendCommunityButton = makeButton("Send", true) { sendCommunityMessage() }.apply {
             isEnabled = false
         }
-        composer.addView(communitySendButton, LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
+        communitySendButton = sendCommunityButton
+        composer.addView(sendCommunityButton, LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
         root.addView(composer, bottomMargin(dp(10)))
         addBottomNav(3)
         loadCommunityFamilies()
