@@ -1209,7 +1209,9 @@ class MainActivity : ComponentActivity() {
                     communityMessageInput.setText(message)
                     communityMessageInput.setSelection(communityMessageInput.text.length)
                 }
-                setStatus("Message was not sent: " + (error.message ?: "database policy or network error"), true)
+                if (activeCommunityFamilyId == familyId) {
+                    setStatus("Message was not sent: " + (error.message ?: "database policy or network error"), true)
+                }
             } finally {
                 communityMessageSending = false
                 if (activeCommunityFamilyId != null && ::communityMessageInput.isInitialized) {
