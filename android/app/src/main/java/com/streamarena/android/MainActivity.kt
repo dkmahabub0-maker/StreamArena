@@ -1839,7 +1839,8 @@ class MainActivity : ComponentActivity() {
         supportTicketRefreshJob = lifecycleScope.launch {
             while (activeSupportTicketId == ticketId && messages.isAttachedToWindow) {
                 delay(8000)
-                if (activeSupportTicketId == ticketId && messages.isAttachedToWindow) {
+                if (activeSupportTicketId == ticketId && messages.isAttachedToWindow &&
+                    supportTicketRepliesLoadJob?.isActive != true) {
                     loadSupportTicketReplies(ticketId, messages)
                 }
             }
