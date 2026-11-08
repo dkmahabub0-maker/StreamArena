@@ -1677,7 +1677,10 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.LTGRAY)
         }
         root.addView(statusText, bottomMargin(dp(8)))
-        root.addView(makeButton("Submit Request", true) {
+        var ticketSending = false
+        lateinit var submitTicketButton: Button
+        submitTicketButton = makeButton("Submit Request", true) {
+            if (ticketSending) return@makeButton
             val subject = subjectInput.text.toString().trim()
             val message = messageInput.text.toString().trim()
             val uid = userId ?: return@makeButton
@@ -1686,6 +1689,11 @@ class MainActivity : ComponentActivity() {
                 statusText.text = "Enter a subject (1–160 chars) and message (1–5000 chars)."
                 return@makeButton
             }
+            ticketSending = true
+            subjectInput.isEnabled = false
+            messageInput.isEnabled = false
+            submitTicketButton.isEnabled = false
+            submitTicketButton.text = "Submitting…"
             statusText.text = "Submitting…"
             lifecycleScope.launch {
                 try {
@@ -1702,9 +1710,16 @@ class MainActivity : ComponentActivity() {
                     showSupportTickets()
                 } catch (error: Exception) {
                     statusText.text = "Request failed: " + (error.message ?: "network or access policy error")
+                } finally {
+                    ticketSending = false
+                    subjectInput.isEnabled = true
+                    messageInput.isEnabled = true
+                    submitTicketButton.isEnabled = true
+                    submitTicketButton.text = "Submit Request"
                 }
             }
-        }, fieldLayout(dp(50), dp(8)))
+        }
+        root.addView(submitTicketButton, fieldLayout(dp(50), dp(8)))
         liveScreen.addView(root, LinearLayout.LayoutParams(-1, 0, 1f))
         addBottomNav()
     }
