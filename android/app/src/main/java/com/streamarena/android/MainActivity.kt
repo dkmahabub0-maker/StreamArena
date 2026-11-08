@@ -84,6 +84,7 @@ class MainActivity : ComponentActivity() {
     private var sharing = false
     private var activeStreamId: String? = null
     private var heartbeatJob: Job? = null
+    private lateinit var liveStreamsContainer: LinearLayout
 
     private val cameraPreviewPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -258,7 +259,9 @@ class MainActivity : ComponentActivity() {
         }
         root.addView(games,bottomMargin(dp(18)))
         addSectionTitle(root,"Live Streams","See All →") { showLivePlayer() }
-        root.addView(makeButton("🔴 LIVE     Gaming with Mahabub  ✓\n              12.5K Watching",false) { showLivePlayer() },fieldLayout(dp(76),dp(18)))
+        liveStreamsContainer=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+        root.addView(liveStreamsContainer,bottomMargin(dp(18)))
+        loadLiveStreams()
         liveCard=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; background=panelBackground(); setPadding(dp(16),dp(16),dp(16),dp(16)); visibility=android.view.View.GONE }
         liveCard.addView(TextView(this).apply { text="Go Live"; textSize=20f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },bottomMargin(dp(12)))
         cameraPreviewView=PreviewView(this).apply { implementationMode=PreviewView.ImplementationMode.COMPATIBLE; scaleType=PreviewView.ScaleType.FILL_CENTER; setBackgroundColor(Color.BLACK) }
@@ -304,14 +307,96 @@ class MainActivity : ComponentActivity() {
         listOf("Free Fire","PUBG MOBILE","BGMI","ACTION","BATTLE","SPORTS","RACING").forEach { game -> root.addView(makeButton("🎮   "+game,false) { selectedGameCategory=game.uppercase(); buildLiveScreen(); setContentView(liveScreen) },fieldLayout(dp(58),dp(8))) }
         addBottomNav()
     }
-    private fun showLivePlayer() {
-        liveScreen.removeAllViews(); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(12),dp(16),dp(12),dp(12)) }
-        root.addView(makeButton("🔴 LIVE     ◉ 8.7K                                  ✕",false) { buildLiveScreen(); setContentView(liveScreen) },fieldLayout(dp(46),dp(8)))
-        root.addView(TextView(this).apply { text="🎮\n\n\n\n\n\n\n"; textSize=42f; gravity=Gravity.CENTER; background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(29,101,150),Color.rgb(11,19,47))) },LinearLayout.LayoutParams(-1,dp(260)))
-        root.addView(TextView(this).apply { text="Rony Hasan\nNice gameplay! 🔥\n\nGaming Lover\nGo for Booyah! 💪\n\nNusrat Jahan\nAwesome! ❤️"; textSize=14f; setTextColor(Color.WHITE); setPadding(dp(8),dp(12),dp(8),dp(8)) },LinearLayout.LayoutParams(-1,0,1f))
-        root.addView(EditText(this).apply { hint="Type a message..."; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(14),0,dp(14),0) },fieldLayout(dp(50),dp(6)))
-        liveScreen.addView(root,LinearLayout.LayoutParams(-1,0,1f))
+    private fun showLivePlayer(streamId: String, streamTitle: String) {
+        liveScreen.removeAllViews()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(16), dp(12), dp(12))
+            setBackgroundColor(Color.rgb(5, 7, 19))
+        }
+        root.addView(makeButton("LIVE   " + streamTitle + "     ✕", false) {
+            buildLiveScreen()
+            setContentView(liveScreen)
+        }, fieldLayout(dp(48), dp(8)))
+        root.addView(TextView(this).apply {
+            text = "Stream video player\n\nViewer playback renderer is not yet connected."
+            textSize = 15f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            background = panelBackground()
+        }, LinearLayout.LayoutParams(-1, dp(210)))
+        val chat = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val chatScroll = ScrollView(this)
+        chatScroll.addView(chat)
+        root.addView(chatScroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        val composer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val input = EditText(this).apply {
+            hint = "Type a message..."
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            background = inputBackground()
+            setPadding(dp(12), 0, dp(12), 0)
+        }
+        composer.addView(input, LinearLayout.LayoutParams(0, dp(50), 1f))
+        composer.addView(makeButton("Send", true) {
+            val message = input.text.toString().trim()
+            val uid = userId
+            val token = accessToken
+            if (message.isNotEmpty() && uid != null && token != null) {
+                input.text.clear()
+                lifecycleScope.launch {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            postRestJson(
+                                "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/chat_messages?select=id",
+                                token,
+                                JSONObject().put("stream_id", streamId).put("user_id", uid).put("message", message)
+                            )
+                        }
+                        loadStreamChat(streamId, chat)
+                    } catch (error: Exception) {
+                        setStatus("Chat send failed: " + (error.message ?: "unknown error"), true)
+                    }
+                }
+            }
+        }, LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
+        root.addView(composer, topMargin(dp(8)))
+        liveScreen.addView(root, LinearLayout.LayoutParams(-1, -1))
+        loadStreamChat(streamId, chat)
     }
+
+    private fun loadStreamChat(streamId: String, target: LinearLayout) {
+        lifecycleScope.launch {
+            try {
+                val endpoint = "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/chat_messages?select=id,user_id,message,created_at&stream_id=eq." + streamId + "&order=created_at.asc&limit=80"
+                val rows = withContext(Dispatchers.IO) { getRestJson(endpoint, accessToken) }
+                target.removeAllViews()
+                for (index in 0 until rows.length()) {
+                    val row = rows.getJSONObject(index)
+                    val label = if (row.optString("user_id") == userId) "You" else "Player"
+                    target.addView(TextView(this@MainActivity).apply {
+                        text = label + ": " + row.optString("message")
+                        textSize = 14f
+                        setTextColor(Color.WHITE)
+                        setPadding(dp(12), dp(10), dp(12), dp(10))
+                        background = panelBackground()
+                    }, bottomMargin(dp(6)))
+                }
+                if (rows.length() == 0) target.addView(TextView(this@MainActivity).apply {
+                    text = "Be the first to chat."
+                    setTextColor(Color.LTGRAY)
+                    gravity = Gravity.CENTER
+                    setPadding(0, dp(20), 0, dp(20))
+                })
+            } catch (error: Exception) {
+                target.addView(TextView(this@MainActivity).apply {
+                    text = "Chat unavailable: " + (error.message ?: "network error")
+                    setTextColor(Color.LTGRAY)
+                })
+            }
+        }
+    }
+
     private fun showCommunityScreen() {
         liveScreen.removeAllViews(); val sc=ScrollView(this); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(16),dp(22),dp(16),dp(16)) }
         sc.addView(root); liveScreen.addView(sc,LinearLayout.LayoutParams(-1,0,1f))
@@ -572,6 +657,7 @@ class MainActivity : ComponentActivity() {
                 passwordInput.text.clear()
                 otpInput.text.clear()
                 setContentView(liveScreen)
+                loadLiveStreams()
                 setStatus("Email confirmed. Welcome to StreamArena.")
             } catch (error: Exception) {
                 setStatus("Code verification failed: ${error.message ?: "unknown error"}", true)
@@ -611,6 +697,7 @@ class MainActivity : ComponentActivity() {
                 userId = auth.getJSONObject("user").getString("id")
                 passwordInput.text.clear()
                 setContentView(liveScreen)
+                loadLiveStreams()
                 setStatus("Signed in successfully. You can start your Live.")
             } catch (error: Exception) {
                 accessToken = null
@@ -843,6 +930,63 @@ class MainActivity : ComponentActivity() {
             session,
             body
         )
+    }
+
+    private fun getRestJson(endpoint: String, bearer: String?): org.json.JSONArray {
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 12000
+            readTimeout = 15000
+            setRequestProperty("apikey", "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2")
+            if (bearer != null) setRequestProperty("Authorization", "Bearer $bearer")
+        }
+        try {
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val response = stream.bufferedReader().use { it.readText() }
+            if (code !in 200..299) throw IllegalStateException("Database request failed (HTTP $code): $response")
+            return org.json.JSONArray(response)
+        } finally { connection.disconnect() }
+    }
+
+    private fun loadLiveStreams() {
+        if (!::liveStreamsContainer.isInitialized) return
+        lifecycleScope.launch {
+            try {
+                val freshAfter = java.time.Instant.now().minusSeconds(120).toString()
+                val encoded = java.net.URLEncoder.encode(freshAfter, "UTF-8")
+                val endpoint = "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/streams?select=id,title,caption,user_id&is_live=eq.true&last_heartbeat_at=gt." + encoded + "&order=last_heartbeat_at.desc&limit=8"
+                val rows = withContext(Dispatchers.IO) { getRestJson(endpoint, accessToken) }
+                liveStreamsContainer.removeAllViews()
+                if (rows.length() == 0) {
+                    liveStreamsContainer.addView(TextView(this@MainActivity).apply {
+                        text = "No live streams right now."
+                        textSize = 13f
+                        setTextColor(Color.LTGRAY)
+                        setPadding(dp(8), dp(12), dp(8), dp(12))
+                    })
+                }
+                for (index in 0 until rows.length()) {
+                    val row = rows.getJSONObject(index)
+                    val streamId = row.getString("id")
+                    val streamTitle = row.optString("title", "Live Stream")
+                    val caption = row.optString("caption", "")
+                    liveStreamsContainer.addView(
+                        makeButton("🔴 LIVE   " + streamTitle + "\n" + caption + "\nWatch Live  ›", false) {
+                            showLivePlayer(streamId, streamTitle)
+                        },
+                        fieldLayout(dp(76), dp(8))
+                    )
+                }
+            } catch (error: Exception) {
+                liveStreamsContainer.removeAllViews()
+                liveStreamsContainer.addView(TextView(this@MainActivity).apply {
+                    text = "Live streams could not load: " + (error.message ?: "network error")
+                    textSize = 12f
+                    setTextColor(Color.rgb(255, 140, 140))
+                })
+            }
+        }
     }
 
     private fun postRestJson(endpoint: String, bearer: String, body: JSONObject): org.json.JSONArray {
