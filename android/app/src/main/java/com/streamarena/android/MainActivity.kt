@@ -693,6 +693,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showLivePlayer(streamId: String, streamTitle: String) {
+        recordWatchedStream(streamId, streamTitle)
         closeLiveViewer()
         liveScreen.removeAllViews()
         val root = LinearLayout(this).apply {
@@ -1168,9 +1169,7 @@ class MainActivity : ComponentActivity() {
             }, LinearLayout.LayoutParams(-1, dp(1)))
         }
         menuRow("▣", "My Streams", { showMyStreams() })
-        menuRow("◷", "Watch History", {
-            showUnavailableAccountFeature("Watch History", "The app does not currently record watched streams.")
-        })
+        menuRow("◷", "Watch History", { showWatchHistory() })
         menuRow("⚙", "Settings", { showLiveSettings() })
         menuRow("♧", "Notifications", {
             showUnavailableAccountFeature("Notifications", "A notifications inbox is not connected yet.")
@@ -1253,6 +1252,64 @@ class MainActivity : ComponentActivity() {
             }
         }
         addBottomNav()
+    }
+
+    private fun recordWatchedStream(streamId: String, streamTitle: String) {
+        val prefs = getSharedPreferences("streamarena_watch_history", MODE_PRIVATE)
+        val previous = runCatching { JSONArray(prefs.getString("items", "[]") ?: "[]") }
+            .getOrDefault(JSONArray())
+        val updated = JSONArray()
+        updated.put(JSONObject().put("id", streamId).put("title", streamTitle)
+            .put("opened_at", java.time.Instant.now().toString()))
+        for (i in 0 until previous.length()) {
+            val item = previous.optJSONObject(i) ?: continue
+            if (item.optString("id") != streamId && updated.length() < 30) updated.put(item)
+        }
+        prefs.edit().putString("items", updated.toString()).apply()
+    }
+
+    private fun showWatchHistory() {
+        val prefs = getSharedPreferences("streamarena_watch_history", MODE_PRIVATE)
+        val items = runCatching { JSONArray(prefs.getString("items", "[]") ?: "[]") }
+            .getOrDefault(JSONArray())
+        liveScreen.removeAllViews()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(18), dp(16), dp(16))
+        }
+        root.addView(TextView(this).apply {
+            text = "Watch History"; textSize = 22f; setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(12)))
+        root.addView(TextView(this).apply {
+            text = "Streams you recently opened on this device"
+            textSize = 12f; setTextColor(Color.LTGRAY)
+        }, bottomMargin(dp(14)))
+        if (items.length() == 0) {
+            root.addView(TextView(this).apply {
+                text = "No watch history yet. Open a live stream and it will appear here."
+                textSize = 14f; setTextColor(Color.LTGRAY)
+                setPadding(dp(4), dp(18), dp(4), dp(18))
+            })
+        } else {
+            for (i in 0 until items.length()) {
+                val item = items.optJSONObject(i) ?: continue
+                val id = item.optString("id")
+                val title = item.optString("title", "Live Stream")
+                val opened = item.optString("opened_at")
+                root.addView(makeButton("▶  $title\nOpened: $opened", false) {
+                    showLivePlayer(id, title)
+                }, fieldLayout(dp(64), dp(8)))
+            }
+            root.addView(makeButton("Clear Watch History", false) {
+                prefs.edit().remove("items").apply()
+                showWatchHistory()
+            }, fieldLayout(dp(46), dp(10)))
+        }
+        root.addView(makeButton("Back to Profile", true) { showProfileScreen() },
+            fieldLayout(dp(48), dp(8)))
+        liveScreen.addView(root, LinearLayout.LayoutParams(-1, 0, 1f))
+        addBottomNav(4)
     }
 
     private fun showUnavailableAccountFeature(title: String, reason: String) {
