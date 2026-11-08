@@ -1984,11 +1984,14 @@ class MainActivity : ComponentActivity() {
     private fun loadProfileSummary() {
         val session = accessToken ?: return
         val uid = userId ?: return
+        val targetAvatarView = profileAvatarView
         lifecycleScope.launch {
             try {
                 val rows = withContext(Dispatchers.IO) {
                     getRestJson("https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?select=full_name,username,avatar_url&id=eq.$uid&limit=1", session)
                 }
+                if (accessToken != session || userId != uid || profileAvatarView !== targetAvatarView ||
+                    targetAvatarView?.isAttachedToWindow != true) return@launch
                 if (rows.length() == 0) return@launch
                 val row = rows.getJSONObject(0)
                 val name = row.optString("full_name").takeUnless { it == "null" } ?: ""
@@ -1999,7 +2002,8 @@ class MainActivity : ComponentActivity() {
                 if (avatar != null && avatar.startsWith("data:image/")) {
                     val bytes = Base64.decode(avatar.substringAfter(",", ""), Base64.DEFAULT)
                     profileAvatarBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    profileAvatarView?.setImageBitmap(profileAvatarBitmap)
+                    if (accessToken == session && userId == uid && profileAvatarView === targetAvatarView &&
+                        targetAvatarView?.isAttachedToWindow == true) targetAvatarView.setImageBitmap(profileAvatarBitmap)
                 } else if (avatar != null && (avatar.startsWith("https://") || avatar.startsWith("http://"))) {
                     val bitmap = withContext(Dispatchers.IO) {
                         (URL(avatar).openConnection() as HttpURLConnection).run {
@@ -2007,9 +2011,16 @@ class MainActivity : ComponentActivity() {
                             try { inputStream.use { BitmapFactory.decodeStream(it) } } finally { disconnect() }
                         }
                     }
-                    profileAvatarBitmap = bitmap
-                    profileAvatarView?.setImageBitmap(bitmap)
+                    if (accessToken == session && userId == uid && profileAvatarView === targetAvatarView &&
+                        targetAvatarView?.isAttachedToWindow == true) {
+                        profileAvatarBitmap = bitmap
+                        targetAvatarView.setImageBitmap(bitmap)
+                    } else {
+                        bitmap?.recycle()
+                    }
                 }
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (_: Exception) { }
         }
     }
