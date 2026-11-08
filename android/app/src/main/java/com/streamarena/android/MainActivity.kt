@@ -908,10 +908,14 @@ class MainActivity : ComponentActivity() {
                 if (wasAtBottom || rows.length() <= 1) scroll?.post {
                     scroll.fullScroll(ScrollView.FOCUS_DOWN)
                 }
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (error: Exception) {
+                target.removeAllViews()
                 target.addView(TextView(this@MainActivity).apply {
                     text = "Chat unavailable: " + (error.message ?: "network error")
                     setTextColor(Color.LTGRAY)
+                    setPadding(dp(12), dp(10), dp(12), dp(10))
                 })
             }
         }
