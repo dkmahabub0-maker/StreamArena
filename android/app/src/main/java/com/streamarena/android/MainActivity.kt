@@ -197,9 +197,12 @@ class MainActivity : ComponentActivity() {
             setStatus("Screen sharing was cancelled.")
             return@registerForActivityResult
         }
+        val session = accessToken ?: return@registerForActivityResult
+        val streamId = activeStreamId ?: return@registerForActivityResult
+        val activeRoom = room ?: return@registerForActivityResult
         lifecycleScope.launch {
             try {
-                val activeRoom = room ?: error("Start your Live first.")
+                if (accessToken != session || activeStreamId != streamId || room !== activeRoom) return@launch
                 val started = activeRoom.localParticipant.setScreenShareEnabled(
                     true,
                     ScreenCaptureParams(
@@ -213,13 +216,16 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 )
+                if (accessToken != session || activeStreamId != streamId || room !== activeRoom) return@launch
                 sharing = started
                 updateControls()
                 setStatus(if (started) "Your phone screen is now being shared." else "LiveKit could not start screen sharing.")
             } catch (error: Exception) {
-                sharing = false
-                updateControls()
-                setStatus("Screen share failed: ${error.message ?: "unknown error"}")
+                if (accessToken == session && activeStreamId == streamId && room === activeRoom) {
+                    sharing = false
+                    updateControls()
+                    setStatus("Screen share failed: ${error.message ?: "unknown error"}")
+                }
             }
         }
     }
