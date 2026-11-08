@@ -103,6 +103,7 @@ class MainActivity : ComponentActivity() {
     private var accountListLoadJob: Job? = null
     private val respondingInvitationIds = mutableSetOf<String>()
     private var gamesLoadJob: Job? = null
+    private var profileLoadJob: Job? = null
     private var activeSupportTicketId: String? = null
     private var communityMessageSending = false
     private var communitySendButton: Button? = null
@@ -2094,8 +2095,11 @@ class MainActivity : ComponentActivity() {
             profileUsernameInput.setText("")
             return
         }
+        val targetAvatarView = profileAvatarView
+        profileLoadJob?.cancel()
         profileStatus.text = "Loading profile…"
-        lifecycleScope.launch {
+        profileLoadJob = lifecycleScope.launch {
+            var downloadedBitmap: Bitmap? = null
             try {
                 val rows = withContext(Dispatchers.IO) {
                     getRestJson(
@@ -2103,6 +2107,8 @@ class MainActivity : ComponentActivity() {
                         session
                     )
                 }
+                if (accessToken != session || userId != uid ||
+                    profileAvatarView !== targetAvatarView || targetAvatarView?.isAttachedToWindow != true) return@launch
                 if (rows.length() == 0) {
                     profileStatus.text = "No profile row exists for this account yet. Profile cannot be saved until a row is created."
                     return@launch
@@ -2111,27 +2117,42 @@ class MainActivity : ComponentActivity() {
                 val savedName = row.optString("full_name").takeUnless { it == "null" } ?: ""
                 val savedUsername = row.optString("username").takeUnless { it == "null" } ?: ""
                 val avatarUrl = row.optString("avatar_url").takeUnless { it == "null" || it.isBlank() }
-                profileAvatarStoredUrl = avatarUrl
-                profileNameInput.setText(savedName)
-                profileUsernameInput.setText(savedUsername)
                 if (avatarUrl != null && avatarUrl.startsWith("data:image/")) {
                     val bytes = Base64.decode(avatarUrl.substringAfter(",", ""), Base64.DEFAULT)
-                    profileAvatarBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    profileAvatarView?.setImageBitmap(profileAvatarBitmap)
+                    downloadedBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 } else if (avatarUrl != null && (avatarUrl.startsWith("https://") || avatarUrl.startsWith("http://"))) {
-                    val bitmap = withContext(Dispatchers.IO) {
+                    downloadedBitmap = withContext(Dispatchers.IO) {
                         (URL(avatarUrl).openConnection() as HttpURLConnection).run {
                             connectTimeout = 10000; readTimeout = 10000
                             try { inputStream.use { BitmapFactory.decodeStream(it) } } finally { disconnect() }
                         }
                     }
-                    profileAvatarBitmap = bitmap
-                    profileAvatarView?.setImageBitmap(bitmap)
                 }
+                if (accessToken != session || userId != uid ||
+                    profileAvatarView !== targetAvatarView || targetAvatarView?.isAttachedToWindow != true) {
+                    downloadedBitmap?.recycle()
+                    downloadedBitmap = null
+                    return@launch
+                }
+                profileAvatarStoredUrl = avatarUrl
+                profileNameInput.setText(savedName)
+                profileUsernameInput.setText(savedUsername)
+                val previousBitmap = profileAvatarBitmap
+                profileAvatarBitmap = downloadedBitmap
+                targetAvatarView.setImageBitmap(downloadedBitmap)
+                if (previousBitmap !== downloadedBitmap) previousBitmap?.recycle()
+                downloadedBitmap = null
                 profileHeroNameUpdate(savedName, savedUsername)
                 profileStatus.text = "Profile loaded."
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                downloadedBitmap?.recycle()
+                throw cancelled
             } catch (error: Exception) {
-                profileStatus.text = "Profile could not load: " + (error.message ?: "network error")
+                downloadedBitmap?.recycle()
+                if (accessToken == session && userId == uid &&
+                    profileAvatarView === targetAvatarView && targetAvatarView?.isAttachedToWindow == true) {
+                    profileStatus.text = "Profile could not load: " + (error.message ?: "network error")
+                }
             }
         }
     }
