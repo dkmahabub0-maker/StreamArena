@@ -178,6 +178,8 @@ class MainActivity : ComponentActivity() {
                 profileAvatarDataUrl = "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
                 targetView.setImageBitmap(resized)
                 profileStatus.text = "Photo selected. Tap Save to update your profile picture."
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 if (accessToken == session && profileAvatarView === targetView && targetView?.isAttachedToWindow == true) {
                     profileStatus.text = "Could not use this image: ${error.message ?: "unsupported image"}"
@@ -2269,8 +2271,11 @@ class MainActivity : ComponentActivity() {
             profileStatus.text = "Username can contain only letters, numbers, and underscores."
             return
         }
+        if (profileSaveJob?.isActive == true) {
+            profileStatus.text = "A profile save is already in progress."
+            return
+        }
         profileStatus.text = if (pendingAvatar != null) "Uploading profile photo and saving…" else "Saving profile…"
-        profileSaveJob?.cancel()
         profileSaveJob = lifecycleScope.launch {
             try {
                 val savedAvatar = withContext(Dispatchers.IO) {
@@ -2303,6 +2308,8 @@ class MainActivity : ComponentActivity() {
                 profileAvatarStoredUrl = savedAvatar
                 profileAvatarDataUrl = null
                 profileStatus.text = "Profile name and photo saved."
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 if (accessToken == session && userId == uid) {
                     profileStatus.text = "Profile save failed: " + (error.message ?: "database policy or network error")
