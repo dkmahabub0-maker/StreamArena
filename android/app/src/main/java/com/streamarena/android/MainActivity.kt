@@ -100,6 +100,7 @@ class MainActivity : ComponentActivity() {
     private var communityMessageSending = false
     private var communitySendButton: Button? = null
     private var communityFamiliesLoadJob: Job? = null
+    private var communityMessageSending = false
     private var viewerVideoTrack: VideoTrack? = null
     private var viewerRenderer: SurfaceViewRenderer? = null
     private var sharing = false
@@ -1178,6 +1179,7 @@ class MainActivity : ComponentActivity() {
             setStatus("Select a community before sending a message.")
             return
         }
+        if (communityMessageSending) return
         val uid = userId ?: return
         val session = accessToken ?: return
         val message = communityMessageInput.text.toString().trim()
@@ -1186,9 +1188,8 @@ class MainActivity : ComponentActivity() {
             setStatus("Community messages must be 1000 characters or fewer.", true)
             return
         }
-        if (communityMessageSending) return
         communityMessageSending = true
-        communitySendButton?.isEnabled = false
+        communityMessageInput.isEnabled = false
         communityMessageInput.text.clear()
         lifecycleScope.launch {
             try {
@@ -1199,24 +1200,23 @@ class MainActivity : ComponentActivity() {
                         JSONObject().put("family_id", familyId).put("user_id", uid).put("message", message)
                     )
                 }
-                loadCommunityMessages(familyId)
+                if (activeCommunityFamilyId == familyId) loadCommunityMessages(familyId)
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
             } catch (error: Exception) {
-                if (activeCommunityFamilyId == familyId && ::communityMessageInput.isInitialized) {
-                    val currentText = communityMessageInput.text.toString()
-                    if (currentText.isBlank()) communityMessageInput.setText(message)
-                    else communityMessageInput.setText(message + "\n" + currentText)
+                if (activeCommunityFamilyId == familyId && communityMessageInput.text.isNullOrEmpty()) {
+                    communityMessageInput.setText(message)
                     communityMessageInput.setSelection(communityMessageInput.text.length)
                 }
                 setStatus("Message was not sent: " + (error.message ?: "database policy or network error"), true)
             } finally {
                 communityMessageSending = false
-                communitySendButton?.isEnabled = activeCommunityFamilyId != null
+                if (activeCommunityFamilyId != null && ::communityMessageInput.isInitialized) {
+                    communityMessageInput.isEnabled = true
+                }
             }
         }
     }
-
 
     private fun showProfileScreen() {
         liveScreen.removeAllViews()
