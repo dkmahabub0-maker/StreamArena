@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
     private var communityRefreshJob: Job? = null
     private var streamChatLoadJob: Job? = null
     private var communityMessageLoadJob: Job? = null
+    private var communityFamiliesLoadJob: Job? = null
     private var viewerVideoTrack: VideoTrack? = null
     private var viewerRenderer: SurfaceViewRenderer? = null
     private var sharing = false
@@ -1016,6 +1017,8 @@ class MainActivity : ComponentActivity() {
         if (!::communityFamiliesContainer.isInitialized) return
         val session = accessToken
         val uid = userId
+        communityFamiliesLoadJob?.cancel()
+        communityFamiliesLoadJob = null
         communityFamiliesContainer.removeAllViews()
         communityChatContainer.removeAllViews()
         communityMessageInput.isEnabled = false
@@ -1035,7 +1038,7 @@ class MainActivity : ComponentActivity() {
             text = "Loading communities…"
             setTextColor(Color.LTGRAY)
         })
-        lifecycleScope.launch {
+        communityFamiliesLoadJob = lifecycleScope.launch {
             try {
                 val memberships = withContext(Dispatchers.IO) {
                     getRestJson(
@@ -1080,11 +1083,14 @@ class MainActivity : ComponentActivity() {
                         setTextColor(Color.LTGRAY)
                     })
                 }
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (error: Exception) {
                 communityFamiliesContainer.removeAllViews()
                 communityFamiliesContainer.addView(TextView(this@MainActivity).apply {
                     text = "Communities could not load: " + (error.message ?: "network error")
                     setTextColor(Color.rgb(255, 140, 140))
+                    setPadding(dp(8), dp(8), dp(8), dp(8))
                 })
             }
         }
