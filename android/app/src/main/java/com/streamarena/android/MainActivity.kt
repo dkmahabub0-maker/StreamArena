@@ -1859,6 +1859,12 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 if (activeSupportTicketId != ticketId || !target.isAttachedToWindow) return@launch
+                val parentScroll = target.parent as? ScrollView
+                val previousScrollY = parentScroll?.scrollY ?: 0
+                val wasAtBottom = parentScroll?.let { scrollView ->
+                    val contentHeight = target.height
+                    contentHeight <= scrollView.height + scrollView.scrollY + dp(24)
+                } ?: true
                 target.removeAllViews()
                 if (rows.length() == 0) {
                     target.addView(TextView(this@MainActivity).apply {
@@ -1879,6 +1885,14 @@ class MainActivity : ComponentActivity() {
                         setPadding(dp(12), dp(10), dp(12), dp(10))
                         background = panelBackground()
                     }, bottomMargin(dp(8)))
+                }
+                parentScroll?.post {
+                    if (!target.isAttachedToWindow || activeSupportTicketId != ticketId) return@post
+                    if (wasAtBottom) {
+                        parentScroll.fullScroll(ScrollView.FOCUS_DOWN)
+                    } else {
+                        parentScroll.scrollTo(0, previousScrollY)
+                    }
                 }
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
