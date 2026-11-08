@@ -1897,10 +1897,15 @@ class MainActivity : ComponentActivity() {
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
             } catch (error: Exception) {
-                target.addView(TextView(this@MainActivity).apply {
-                    text = "Replies could not load: " + (error.message ?: "network error")
-                    setTextColor(Color.rgb(255, 140, 140))
-                })
+                if (activeSupportTicketId == ticketId && target.isAttachedToWindow &&
+                    (0 until target.childCount).none { target.getChildAt(it).tag == "support-replies-load-error" }) {
+                    target.addView(TextView(this@MainActivity).apply {
+                        tag = "support-replies-load-error"
+                        text = "Replies could not refresh: " + (error.message ?: "network error")
+                        setTextColor(Color.rgb(255, 140, 140))
+                        setPadding(dp(8), dp(8), dp(8), dp(8))
+                    })
+                }
             }
         }
     }
