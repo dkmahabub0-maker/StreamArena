@@ -191,6 +191,8 @@ class MainActivity : ComponentActivity() {
         root.addView(passwordInput,fieldLayout(dp(54),dp(14)))
         signInButton=makeButton("Login",true) { if(isSignUpMode) signUp() else signIn() }
         root.addView(signInButton,fieldLayout(dp(54),dp(8)))
+        loginTabButton=makeButton("Log in",false) { setAuthMode(false) }
+        signUpTabButton=makeButton("Sign up",false) { setAuthMode(true) }
         status=TextView(this).apply { text=""; textSize=13f; gravity=Gravity.CENTER; setTextColor(Color.rgb(255,145,160)); setPadding(dp(8),dp(6),dp(8),dp(6)) }
         root.addView(status,LinearLayout.LayoutParams(-1,-2))
         otpInput=EditText(this).apply { hint="6-digit email code"; inputType=InputType.TYPE_CLASS_NUMBER; setSingleLine(true); setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(16),0,dp(16),0); visibility=android.view.View.GONE }
