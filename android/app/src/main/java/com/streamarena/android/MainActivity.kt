@@ -472,7 +472,11 @@ class MainActivity : ComponentActivity() {
             }
         }
         root.addView(screenToggle, fieldLayout(dp(42), dp(2)))
-        startLiveButton = makeButton("Start Live  ▶", true) { startLive() }
+        startLiveButton = makeButton(
+            if (selectedLiveMode == "screen") "Continue to Screen Share  ▶" else "Start Live  ▶", true
+        ) {
+            if (selectedLiveMode == "screen") showScreenShareIntro() else startLive()
+        }
         root.addView(startLiveButton, fieldLayout(dp(52), dp(14)))
         liveStatus = TextView(this).apply {
             text = "Ready to stream"
@@ -491,6 +495,46 @@ class MainActivity : ComponentActivity() {
             cameraPreviewView.visibility = android.view.View.GONE
             screenShareHint.visibility = android.view.View.VISIBLE
         }
+    }
+
+    private fun showScreenShareIntro() {
+        stopCameraPreview()
+        liveScreen.removeAllViews()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(28), dp(28), dp(28), dp(28))
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(5, 8, 25), Color.rgb(24, 18, 53), Color.rgb(8, 10, 29)))
+        }
+        liveScreen.addView(root, LinearLayout.LayoutParams(-1, -1))
+        root.addView(TextView(this).apply {
+            text = "▣"
+            textSize = 76f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(0, 151, 255))
+        }, LinearLayout.LayoutParams(-1, dp(150)))
+        root.addView(TextView(this).apply {
+            text = "Share Your Screen"
+            textSize = 23f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(12)))
+        root.addView(TextView(this).apply {
+            text = "Allow screen sharing to show your gameplay or app. Android will ask you to confirm before capture starts."
+            textSize = 15f
+            gravity = Gravity.CENTER
+            setTextColor(Color.LTGRAY)
+            setLineSpacing(dp(4).toFloat(), 1f)
+        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(28) })
+        root.addView(makeButton("Start Sharing", true) {
+            selectedLiveMode = "screen"
+            startLive()
+        }, LinearLayout.LayoutParams(-1, dp(54)).apply { bottomMargin = dp(12) })
+        root.addView(makeButton("Cancel", false) {
+            showCreateScreen()
+        }, LinearLayout.LayoutParams(-1, dp(48)))
     }
 
     private fun showExploreScreen() {
