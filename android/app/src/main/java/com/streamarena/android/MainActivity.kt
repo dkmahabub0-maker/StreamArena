@@ -1004,16 +1004,116 @@ class MainActivity : ComponentActivity() {
             render = { rows, list ->
                 for (i in 0 until rows.length()) {
                     val row = rows.getJSONObject(i)
-                    list.addView(TextView(this@MainActivity).apply {
-                        text = row.optString("subject") + "\n" + row.optString("status") + " • " + row.optString("created_at")
-                        textSize = 14f
-                        setTextColor(Color.WHITE)
-                        setPadding(dp(12), dp(12), dp(12), dp(12))
-                        background = panelBackground()
-                    }, bottomMargin(dp(8)))
+                    val ticketId = row.optString("id")
+                    val subject = row.optString("subject")
+                    val state = row.optString("status")
+                    list.addView(makeButton(subject + "\n" + state + " • " + row.optString("created_at") + "\nView conversation ›", false) {
+                        showSupportTicketConversation(ticketId, subject, state)
+                    }, fieldLayout(dp(76), dp(8)))
                 }
             }
         )
+    }
+
+    private fun showSupportTicketConversation(ticketId: String, subject: String, ticketStatus: String) {
+        val token = accessToken ?: return
+        liveScreen.removeAllViews()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(16), dp(14), dp(12))
+        }
+        root.addView(makeButton("‹  Back to Support", false) { showSupportTickets() }, fieldLayout(dp(44), dp(8)))
+        root.addView(TextView(this).apply {
+            text = subject
+            textSize = 20f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(4)))
+        root.addView(TextView(this).apply {
+            text = "Status: $ticketStatus"
+            textSize = 12f
+            setTextColor(Color.LTGRAY)
+        }, bottomMargin(dp(8)))
+        val messages = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val scroll = ScrollView(this)
+        scroll.addView(messages)
+        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        val composer = EditText(this).apply {
+            hint = "Write a reply (up to 5000 characters)"
+            minLines = 2
+            maxLines = 4
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            background = inputBackground()
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+        }
+        root.addView(composer, fieldLayout(dp(90), dp(8)))
+        root.addView(makeButton("Send Reply", true) {
+            val message = composer.text.toString().trim()
+            val uid = userId ?: return@makeButton
+            if (message.isEmpty() || message.length > 5000) {
+                setStatus("Reply must contain 1–5000 characters.", true)
+                return@makeButton
+            }
+            lifecycleScope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        postRestJson(
+                            "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/support_replies?select=id",
+                            token,
+                            JSONObject().put("ticket_id", ticketId).put("sender_id", uid).put("message", message)
+                        )
+                    }
+                    composer.text.clear()
+                    loadSupportTicketReplies(ticketId, messages)
+                } catch (error: Exception) {
+                    setStatus("Reply failed: " + (error.message ?: "network or access policy error"), true)
+                }
+            }
+        }, fieldLayout(dp(48), dp(4)))
+        liveScreen.addView(root, LinearLayout.LayoutParams(-1, 0, 1f))
+        addBottomNav()
+        loadSupportTicketReplies(ticketId, messages)
+    }
+
+    private fun loadSupportTicketReplies(ticketId: String, target: LinearLayout) {
+        val token = accessToken ?: return
+        lifecycleScope.launch {
+            try {
+                val rows = withContext(Dispatchers.IO) {
+                    getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/support_replies?select=id,sender_id,message,created_at&ticket_id=eq.$ticketId&order=created_at.asc&limit=100",
+                        token
+                    )
+                }
+                target.removeAllViews()
+                if (rows.length() == 0) {
+                    target.addView(TextView(this@MainActivity).apply {
+                        text = "No replies yet. Send a message to support."
+                        setTextColor(Color.LTGRAY)
+                        setPadding(dp(8), dp(12), dp(8), dp(12))
+                    })
+                }
+                val uid = userId
+                for (i in 0 until rows.length()) {
+                    val row = rows.getJSONObject(i)
+                    val mine = row.optString("sender_id") == uid
+                    target.addView(TextView(this@MainActivity).apply {
+                        text = (if (mine) "You" else "Support") + "\n" + row.optString("message") +
+                            "\n" + row.optString("created_at")
+                        textSize = 13f
+                        setTextColor(Color.WHITE)
+                        setPadding(dp(12), dp(10), dp(12), dp(10))
+                        background = panelBackground()
+                    }, bottomMargin(dp(8)))
+                }
+            } catch (error: Exception) {
+                target.addView(TextView(this@MainActivity).apply {
+                    text = "Replies could not load: " + (error.message ?: "network error")
+                    setTextColor(Color.rgb(255, 140, 140))
+                })
+            }
+        }
     }
 
     private lateinit var profileNameInput: EditText
@@ -1729,7 +1829,7 @@ class MainActivity : ComponentActivity() {
             val code = connection.responseCode
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val response = stream.bufferedReader().use { it.readText() }
-            if (code !in 200..299) throw IllegalStateException("Stream creation failed (HTTP $code): $response")
+            if (code !in 200..299) throw IllegalStateException("Request failed (HTTP $code): $response")
             return org.json.JSONArray(response)
         } finally {
             connection.disconnect()
