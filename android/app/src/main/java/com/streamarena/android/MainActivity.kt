@@ -2409,6 +2409,7 @@ class MainActivity : ComponentActivity() {
 
 
     private fun signUp() {
+        val attempt = authAttemptGeneration
         val email = emailInput.text.toString().trim()
         val password = passwordInput.text.toString()
         if (email.isBlank() || password.isBlank()) {
@@ -2427,6 +2428,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 val response = withContext(Dispatchers.IO) { requestSignUp(email, password) }
+                if (attempt != authAttemptGeneration) return@launch
                 val token = response.optString("access_token")
                 val user = response.optJSONObject("user")
                 if (token.isNotBlank() && user != null) {
@@ -2447,12 +2449,16 @@ class MainActivity : ComponentActivity() {
                     setStatus("A confirmation code was sent to your email. Enter it below.")
                 }
             } catch (error: Exception) {
-                setStatus("Account creation failed: " + (error.message ?: "unknown error"), true)
-            } finally {
-                if (accessToken == null) {
-                    signInButton.text = if (isSignUpMode) "Create StreamArena account" else "Sign in to StreamArena"
+                if (attempt == authAttemptGeneration) {
+                    setStatus("Account creation failed: " + (error.message ?: "unknown error"), true)
                 }
-                updateControls()
+            } finally {
+                if (attempt == authAttemptGeneration) {
+                    if (accessToken == null) {
+                        signInButton.text = if (isSignUpMode) "Create StreamArena account" else "Sign in to StreamArena"
+                    }
+                    updateControls()
+                }
             }
         }
     }
