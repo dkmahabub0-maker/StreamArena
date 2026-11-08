@@ -42,7 +42,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -398,8 +399,7 @@ class MainActivity : ComponentActivity() {
                 val liveRoom = LiveKit.create(applicationContext)
                 viewerRoom = liveRoom
                 liveRoom.initVideoRenderer(renderer)
-                viewerEventJob = launch {
-                    liveRoom.events.collect { event ->
+                viewerEventJob = liveRoom.events.onEach { event ->
                         when (event) {
                             is RoomEvent.TrackSubscribed -> {
                                 val video = event.track as? VideoTrack
@@ -421,8 +421,7 @@ class MainActivity : ComponentActivity() {
                             is RoomEvent.Disconnected -> playbackStatus.text = "Disconnected from live stream."
                             else -> Unit
                         }
-                    }
-                }
+                    }.launchIn(lifecycleScope)
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
                 playbackStatus.text = "Connected • Waiting for video…"
             } catch (error: Exception) {
