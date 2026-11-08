@@ -95,6 +95,8 @@ class MainActivity : ComponentActivity() {
     private var viewerEventJob: Job? = null
     private var liveChatRefreshJob: Job? = null
     private var communityRefreshJob: Job? = null
+    private var streamChatLoadJob: Job? = null
+    private var communityMessageLoadJob: Job? = null
     private var viewerVideoTrack: VideoTrack? = null
     private var viewerRenderer: SurfaceViewRenderer? = null
     private var sharing = false
@@ -737,6 +739,8 @@ class MainActivity : ComponentActivity() {
         private fun closeLiveViewer() {
         liveChatRefreshJob?.cancel()
         liveChatRefreshJob = null
+        streamChatLoadJob?.cancel()
+        streamChatLoadJob = null
         viewerEventJob?.cancel()
         viewerEventJob = null
         viewerVideoTrack?.let { track -> viewerRenderer?.let { renderer -> runCatching { track.removeRenderer(renderer) } } }
@@ -862,7 +866,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun loadStreamChat(streamId: String, target: LinearLayout) {
-        lifecycleScope.launch {
+        streamChatLoadJob?.cancel()
+        streamChatLoadJob = lifecycleScope.launch {
             try {
                 val endpoint = "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/chat_messages?select=id,user_id,message,created_at&stream_id=eq." + streamId + "&order=created_at.asc&limit=80"
                 val rows = withContext(Dispatchers.IO) { getRestJson(endpoint, accessToken) }
@@ -999,6 +1004,8 @@ class MainActivity : ComponentActivity() {
         communityMessageInput.isEnabled = false
         communityRefreshJob?.cancel()
         communityRefreshJob = null
+        communityMessageLoadJob?.cancel()
+        communityMessageLoadJob = null
         activeCommunityFamilyId = null
         if (session == null || uid == null) {
             communityFamiliesContainer.addView(TextView(this).apply {
@@ -1068,6 +1075,7 @@ class MainActivity : ComponentActivity() {
 
     private fun openCommunityFamily(familyId: String, familyName: String) {
         communityRefreshJob?.cancel()
+        communityMessageLoadJob?.cancel()
         activeCommunityFamilyId = familyId
         communityMessageInput.isEnabled = true
         communityChatContainer.removeAllViews()
@@ -1086,7 +1094,8 @@ class MainActivity : ComponentActivity() {
 
     private fun loadCommunityMessages(familyId: String) {
         val session = accessToken ?: return
-        lifecycleScope.launch {
+        communityMessageLoadJob?.cancel()
+        communityMessageLoadJob = lifecycleScope.launch {
             try {
                 val messages = withContext(Dispatchers.IO) {
                     getRestJson(
