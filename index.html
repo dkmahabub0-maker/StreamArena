@@ -541,7 +541,12 @@ async function registerForTournament(t,button){
  button.disabled=true;
  try{
   const saved=await supabaseClient.from('tournament_registrations').insert({tournament_id:t.id,user_id:currentUser.id});
-  if(saved.error?.code==='23505')throw new Error('You are already registered.');
+  if(saved.error?.code==='23505'){
+   button.textContent='Already registered';
+   button.disabled=true;
+   toast('You are already registered.');
+   return;
+  }
   if(saved.error)throw saved.error;
   button.textContent='Registered';toast('Registration saved.');
  }catch(err){toast(err.message||'Registration failed.');button.disabled=false;}
