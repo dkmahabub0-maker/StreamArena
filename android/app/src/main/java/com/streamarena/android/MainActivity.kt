@@ -101,6 +101,7 @@ class MainActivity : ComponentActivity() {
     private var supportTicketRepliesLoadJob: Job? = null
     private var supportTicketRefreshJob: Job? = null
     private var accountListLoadJob: Job? = null
+    private var gamesLoadJob: Job? = null
     private var activeSupportTicketId: String? = null
     private var communityMessageSending = false
     private var communitySendButton: Button? = null
@@ -2786,21 +2787,25 @@ class MainActivity : ComponentActivity() {
 
     private fun loadGames() {
         if (!::gamesContainer.isInitialized) return
-        lifecycleScope.launch {
+        gamesLoadJob?.cancel()
+        val target = gamesContainer
+        val session = accessToken
+        gamesLoadJob = lifecycleScope.launch {
             try {
                 val rows = withContext(Dispatchers.IO) {
-                    getRestJson("https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/games?select=id,name&order=name.asc&limit=12", accessToken)
+                    getRestJson("https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/games?select=id,name&order=name.asc&limit=12", session)
                 }
-                gamesContainer.removeAllViews()
+                if (gamesContainer !== target || !target.isAttachedToWindow || accessToken != session) return@launch
+                target.removeAllViews()
                 if (rows.length() == 0) {
-                    gamesContainer.addView(TextView(this@MainActivity).apply {
+                    target.addView(TextView(this@MainActivity).apply {
                         text = "No games have been added yet."
                         setTextColor(Color.LTGRAY)
                     })
                 }
                 for (i in 0 until rows.length()) {
                     val name = rows.getJSONObject(i).optString("name", "Game")
-                    gamesContainer.addView(TextView(this@MainActivity).apply {
+                    target.addView(TextView(this@MainActivity).apply {
                         text = name
                         gravity = Gravity.CENTER
                         textSize = 14f
@@ -2818,12 +2823,16 @@ class MainActivity : ComponentActivity() {
                         setMargins(dp(3), 0, dp(3), 0)
                     })
                 }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
-                gamesContainer.removeAllViews()
-                gamesContainer.addView(TextView(this@MainActivity).apply {
-                    text = "Games could not load: " + (error.message ?: "network error")
-                    setTextColor(Color.LTGRAY)
-                })
+                if (gamesContainer === target && target.isAttachedToWindow && accessToken == session) {
+                    target.removeAllViews()
+                    target.addView(TextView(this@MainActivity).apply {
+                        text = "Games could not load: " + (error.message ?: "network error")
+                        setTextColor(Color.LTGRAY)
+                    })
+                }
             }
         }
     }
