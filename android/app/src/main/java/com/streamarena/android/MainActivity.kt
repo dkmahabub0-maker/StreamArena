@@ -248,7 +248,7 @@ class MainActivity : ComponentActivity() {
         val hero=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.BOTTOM; setPadding(dp(16),dp(16),dp(16),dp(16)); background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(118,16,151),Color.rgb(26,38,111),Color.rgb(7,16,45))).apply { cornerRadius=dp(20).toFloat() } }
         hero.addView(TextView(this).apply { text="🔴 LIVE     ◉ 12.5K"; textSize=13f; setTextColor(Color.WHITE) },bottomMargin(dp(42)))
         hero.addView(TextView(this).apply { text="FREE FIRE"; textSize=30f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
-        hero.addView(makeButton("Play Now  ▶",true) { showLivePlayer() },topMargin(dp(8)))
+        hero.addView(makeButton("Play Now  ▶",true) { showLivePlayer() },LinearLayout.LayoutParams(-1,dp(44)).apply { topMargin=dp(8) })
         root.addView(hero,LinearLayout.LayoutParams(-1,dp(190)).apply { bottomMargin=dp(12) })
         root.addView(makeButton("✦ ADS     Add System                         Go",true) { setStatus("Ad system is not connected yet.") },fieldLayout(dp(48),dp(16)))
         addSectionTitle(root,"Popular Games","See All →") { showExploreScreen() }
