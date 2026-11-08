@@ -1858,6 +1858,7 @@ class MainActivity : ComponentActivity() {
                         token
                     )
                 }
+                if (activeSupportTicketId != ticketId || !target.isAttachedToWindow) return@launch
                 target.removeAllViews()
                 if (rows.length() == 0) {
                     target.addView(TextView(this@MainActivity).apply {
