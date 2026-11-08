@@ -198,7 +198,24 @@ class MainActivity : ComponentActivity() {
         root.addView(TextView(this).apply { text="StreamArena"; textSize=30f; gravity=Gravity.CENTER; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },bottomMargin(dp(22)))
         root.addView(TextView(this).apply { text="Welcome Back!"; textSize=19f; gravity=Gravity.CENTER; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
         root.addView(TextView(this).apply { text="Sign in to continue"; textSize=14f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) },bottomMargin(dp(24)))
-        root.addView(makeButton("🌐   Continue with Google",false) { AlertDialog.Builder(this).setMessage("Google sign-in is not configured in this Android client yet.").setPositiveButton("OK",null).show() },fieldLayout(dp(52),dp(10)))
+        val googleButton = Button(this).apply {
+            text = "🌐   Continue with Google"
+            textSize = 14f
+            isAllCaps = false
+            setTextColor(Color.rgb(24, 24, 32))
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(14).toFloat()
+            }
+            elevation = dp(2).toFloat()
+            setOnClickListener {
+                AlertDialog.Builder(this@MainActivity)
+                    .setMessage("Google sign-in is not configured in this Android client yet.")
+                    .setPositiveButton("OK", null).show()
+            }
+        }
+        root.addView(googleButton, fieldLayout(dp(52), dp(10)))
         root.addView(makeButton("✉   Login with Email",true) { emailInput.requestFocus() },fieldLayout(dp(52),dp(18)))
         root.addView(TextView(this).apply { text="──────────────  or  ──────────────"; textSize=14f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) },bottomMargin(dp(14)))
         emailInput=EditText(this).apply { hint="Email Address"; inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS; setSingleLine(true); textSize=15f; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(16),0,dp(16),0) }
