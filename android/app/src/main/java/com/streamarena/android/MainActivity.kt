@@ -405,7 +405,7 @@ class MainActivity : ComponentActivity() {
         header.addView(menu,LinearLayout.LayoutParams(dp(42),dp(48)))
         header.addView(ImageView(this).apply { setImageResource(R.drawable.ic_streamarena) },LinearLayout.LayoutParams(dp(34),dp(34)))
         header.addView(TextView(this).apply { text="StreamArena"; textSize=21f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },LinearLayout.LayoutParams(0,-2,1f).apply { leftMargin=dp(8) })
-        header.addView(makeButton("♧",false) { setStatus("No new notifications.") })
+        header.addView(makeButton("♧",false) { showNotifications() })
         root.addView(header,bottomMargin(dp(12)))
         val hero=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.BOTTOM; setPadding(dp(16),dp(16),dp(16),dp(16)); background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(118,16,151),Color.rgb(26,38,111),Color.rgb(7,16,45))).apply { cornerRadius=dp(20).toFloat() } }
         hero.addView(TextView(this).apply { text="🔴 LIVE GAMING"; textSize=13f; setTextColor(Color.WHITE) },bottomMargin(dp(42)))
@@ -2525,6 +2525,7 @@ class MainActivity : ComponentActivity() {
                     userId = user.getString("id")
                     passwordInput.text.clear()
                     setContentView(liveScreen)
+                    loadGames()
                     loadLiveStreams()
                     setStatus("Account created. You are signed in.")
                 } else {
@@ -2593,6 +2594,7 @@ class MainActivity : ComponentActivity() {
                 passwordInput.text.clear()
                 otpInput.text.clear()
                 setContentView(liveScreen)
+                loadGames()
                 loadLiveStreams()
                 setStatus("Email confirmed. Welcome to StreamArena.")
             } catch (error: Exception) {
@@ -2639,6 +2641,7 @@ class MainActivity : ComponentActivity() {
                 userId = auth.getJSONObject("user").getString("id")
                 passwordInput.text.clear()
                 setContentView(liveScreen)
+                loadGames()
                 loadLiveStreams()
                 setStatus("Signed in successfully. You can start your Live.")
             } catch (error: Exception) {
