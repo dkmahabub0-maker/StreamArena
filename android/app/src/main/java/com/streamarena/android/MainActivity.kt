@@ -1774,7 +1774,8 @@ class MainActivity : ComponentActivity() {
         }
         root.addView(composer, fieldLayout(dp(90), dp(8)))
         var replySending = false
-        val sendReplyButton = makeButton("Send Reply", true) {
+        lateinit var sendReplyButton: Button
+        sendReplyButton = makeButton("Send Reply", true) {
             if (replySending) return@makeButton
             val message = composer.text.toString().trim()
             val uid = userId ?: return@makeButton
