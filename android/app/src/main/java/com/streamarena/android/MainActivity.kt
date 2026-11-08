@@ -108,6 +108,7 @@ class MainActivity : ComponentActivity() {
     private var accountListLoadJob: Job? = null
     private val respondingInvitationIds = mutableSetOf<String>()
     private var gamesLoadJob: Job? = null
+    private var exploreGamesLoadJob: Job? = null
     private var liveStreamsLoadJob: Job? = null
     private var profileLoadJob: Job? = null
     private var profileImageLoadJob: Job? = null
@@ -253,7 +254,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         authAttemptGeneration++
         listOf(
-            accountListLoadJob, gamesLoadJob, liveStreamsLoadJob, profileLoadJob,
+            accountListLoadJob, gamesLoadJob, exploreGamesLoadJob, liveStreamsLoadJob, profileLoadJob,
             profileImageLoadJob, profileSaveJob, communityFamiliesLoadJob,
             communityMessageLoadJob, communityRefreshJob, supportTicketRepliesLoadJob,
             supportTicketRefreshJob, liveChatRefreshJob, streamChatLoadJob,
@@ -741,66 +742,84 @@ class MainActivity : ComponentActivity() {
             textSize = 13f
             setTextColor(Color.LTGRAY)
         })
-        lifecycleScope.launch {
-            try {
-                val rows = withContext(Dispatchers.IO) {
-                    getRestJson("https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/games?select=id,name&order=name.asc&limit=50", accessToken)
-                }
-                games.removeAllViews()
-                games.addView(TextView(this@MainActivity).apply {
-                    text = "Popular Games"
-                    textSize = 17f
-                    setTextColor(Color.WHITE)
-                    typeface = Typeface.DEFAULT_BOLD
-                }, bottomMargin(dp(8)))
-                if (rows.length() == 0) {
-                    games.addView(TextView(this@MainActivity).apply {
-                        text = "No games have been added yet."
-                        setTextColor(Color.LTGRAY)
-                        textSize = 13f
-                    })
-                }
-                for (index in 0 until rows.length()) {
-                    val name = rows.getJSONObject(index).optString("name", "Game")
-                    val item = LinearLayout(this@MainActivity).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        gravity = Gravity.CENTER_VERTICAL
-                        setPadding(dp(10), dp(4), dp(10), dp(4))
-                        background = inputBackground()
-                        isClickable = true
-                        isFocusable = true
-                        setOnClickListener {
-                            selectedGameCategory = name.uppercase()
-                            showCreateScreen()
-                        }
+        exploreGamesLoadJob?.cancel()
+        val session = accessToken
+        if (session == null) {
+            games.removeAllViews()
+            games.addView(TextView(this).apply {
+                text = "Sign in to load the game catalogue."
+                setTextColor(Color.LTGRAY)
+                textSize = 13f
+            })
+        } else {
+            exploreGamesLoadJob = lifecycleScope.launch {
+                try {
+                    val rows = withContext(Dispatchers.IO) {
+                        getRestJson("https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/games?select=id,name&order=name.asc&limit=50", session)
                     }
-                    item.addView(TextView(this@MainActivity).apply {
-                        text = "🎮"
-                        textSize = 22f
-                        gravity = Gravity.CENTER
-                    }, LinearLayout.LayoutParams(dp(44), dp(52)))
-                    item.addView(TextView(this@MainActivity).apply {
-                        text = name
-                        textSize = 14f
+                    if (accessToken != session || !games.isAttachedToWindow) return@launch
+                    games.removeAllViews()
+                    games.addView(TextView(this@MainActivity).apply {
+                        text = "Popular Games"
+                        textSize = 17f
                         setTextColor(Color.WHITE)
                         typeface = Typeface.DEFAULT_BOLD
-                    }, LinearLayout.LayoutParams(0, dp(52), 1f))
-                    item.addView(TextView(this@MainActivity).apply {
-                        text = "›"
-                        textSize = 24f
-                        setTextColor(Color.LTGRAY)
-                    })
-                    games.addView(item, LinearLayout.LayoutParams(-1, dp(56)).apply {
-                        bottomMargin = dp(6)
-                    })
+                    }, bottomMargin(dp(8)))
+                    if (rows.length() == 0) {
+                        games.addView(TextView(this@MainActivity).apply {
+                            text = "No games have been added yet."
+                            setTextColor(Color.LTGRAY)
+                            textSize = 13f
+                        })
+                    }
+                    for (index in 0 until rows.length()) {
+                        val name = rows.getJSONObject(index).optString("name", "Game")
+                        val item = LinearLayout(this@MainActivity).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = Gravity.CENTER_VERTICAL
+                            setPadding(dp(10), dp(4), dp(10), dp(4))
+                            background = inputBackground()
+                            isClickable = true
+                            isFocusable = true
+                            setOnClickListener {
+                                selectedGameCategory = name.uppercase()
+                                showCreateScreen()
+                            }
+                        }
+                        item.addView(TextView(this@MainActivity).apply {
+                            text = "🎮"
+                            textSize = 22f
+                            gravity = Gravity.CENTER
+                        }, LinearLayout.LayoutParams(dp(44), dp(52)))
+                        item.addView(TextView(this@MainActivity).apply {
+                            text = name
+                            textSize = 14f
+                            setTextColor(Color.WHITE)
+                            typeface = Typeface.DEFAULT_BOLD
+                        }, LinearLayout.LayoutParams(0, dp(52), 1f))
+                        item.addView(TextView(this@MainActivity).apply {
+                            text = "›"
+                            textSize = 24f
+                            setTextColor(Color.LTGRAY)
+                        })
+                        games.addView(item, LinearLayout.LayoutParams(-1, dp(56)).apply {
+                            bottomMargin = dp(6)
+                        })
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    if (accessToken == session && games.isAttachedToWindow) {
+                        games.removeAllViews()
+                        games.addView(TextView(this@MainActivity).apply {
+                            text = "Games could not load: " + (error.message ?: "network error")
+                            setTextColor(Color.LTGRAY)
+                            textSize = 13f
+                        })
+                    }
+                } finally {
+                    if (exploreGamesLoadJob?.isActive == false) exploreGamesLoadJob = null
                 }
-            } catch (error: Exception) {
-                games.removeAllViews()
-                games.addView(TextView(this@MainActivity).apply {
-                    text = "Games could not load: " + (error.message ?: "network error")
-                    setTextColor(Color.LTGRAY)
-                    textSize = 13f
-                })
             }
         }
         root.addView(makeButton("Go Live", true) { showCreateScreen() },
@@ -2648,6 +2667,7 @@ class MainActivity : ComponentActivity() {
         // Invalidate account-bound work immediately so late responses cannot update the signed-out UI.
         accountListLoadJob?.cancel(); accountListLoadJob = null
         gamesLoadJob?.cancel(); gamesLoadJob = null
+        exploreGamesLoadJob?.cancel(); exploreGamesLoadJob = null
         liveStreamsLoadJob?.cancel(); liveStreamsLoadJob = null
         profileLoadJob?.cancel(); profileLoadJob = null
         profileImageLoadJob?.cancel(); profileImageLoadJob = null
