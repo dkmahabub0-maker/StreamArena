@@ -2776,11 +2776,14 @@ class MainActivity : ComponentActivity() {
                 }
 
                 room = liveRoom
-                connectingRoom = null
                 if (keepScreenAwakeDuringLive) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 liveRoom.localParticipant.setMicrophoneEnabled(true)
                 // Screen Live publishes the captured display, not the front-facing camera.
                 liveRoom.localParticipant.setCameraEnabled(selectedLiveMode == "camera")
+                if (!isActive || accessToken != token || userId != id) {
+                    throw CancellationException("Live session ended during publisher setup.")
+                }
+                connectingRoom = null
                 heartbeatJob?.cancel()
                 heartbeatJob = lifecycleScope.launch {
                     while (activeStreamId == streamId && accessToken == token && userId == id) {
