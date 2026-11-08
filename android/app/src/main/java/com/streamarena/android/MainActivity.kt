@@ -100,7 +100,6 @@ class MainActivity : ComponentActivity() {
     private var communityMessageSending = false
     private var communitySendButton: Button? = null
     private var communityFamiliesLoadJob: Job? = null
-    private var communityMessageSending = false
     private var viewerVideoTrack: VideoTrack? = null
     private var viewerRenderer: SurfaceViewRenderer? = null
     private var sharing = false
@@ -1216,6 +1215,7 @@ class MainActivity : ComponentActivity() {
                 communityMessageSending = false
                 if (activeCommunityFamilyId != null && ::communityMessageInput.isInitialized) {
                     communityMessageInput.isEnabled = true
+                    communitySendButton?.isEnabled = true
                 }
             }
         }
