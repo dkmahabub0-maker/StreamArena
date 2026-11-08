@@ -244,6 +244,37 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onDestroy() {
+        authAttemptGeneration++
+        listOf(
+            accountListLoadJob, gamesLoadJob, liveStreamsLoadJob, profileLoadJob,
+            profileImageLoadJob, profileSaveJob, communityFamiliesLoadJob,
+            communityMessageLoadJob, communityRefreshJob, supportTicketRepliesLoadJob,
+            supportTicketRefreshJob, liveChatRefreshJob, streamChatLoadJob,
+            heartbeatJob, startLiveJob, endLiveJob, viewerConnectJob, viewerEventJob
+        ).forEach { it?.cancel() }
+        stopCameraPreview()
+        viewerVideoTrack?.let { track ->
+            viewerRenderer?.let { renderer -> runCatching { track.removeRenderer(renderer) } }
+        }
+        viewerVideoTrack = null
+        viewerRenderer?.let { renderer -> runCatching { renderer.release() } }
+        viewerRenderer = null
+        val activeViewer = viewerRoom
+        viewerRoom = null
+        val activePublisher = room
+        room = null
+        lifecycleScope.launch {
+            runCatching { activeViewer?.disconnect() }
+            runCatching { activePublisher?.localParticipant?.setScreenShareEnabled(false) }
+            runCatching { activePublisher?.disconnect() }
+        }
+        profileAvatarBitmap?.recycle()
+        profileAvatarBitmap = null
+        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        super.onDestroy()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
