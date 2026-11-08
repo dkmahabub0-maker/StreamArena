@@ -1165,6 +1165,7 @@ class MainActivity : ComponentActivity() {
                 }
                 if (activeCommunityFamilyId != familyId || communityChatContainer !== targetChat || !targetChat.isAttachedToWindow) return@launch
                 val scroll = targetChat.parent as? ScrollView
+                val previousScrollY = scroll?.scrollY ?: 0
                 val wasAtBottom = scroll != null && scroll.height > 0 &&
                     scroll.scrollY + scroll.height >= targetChat.height - dp(24)
                 targetChat.removeAllViews()
@@ -1186,8 +1187,14 @@ class MainActivity : ComponentActivity() {
                         background = panelBackground()
                     }, bottomMargin(dp(6)))
                 }
-                if (wasAtBottom || messages.length() <= 1) scroll?.post {
-                    scroll.fullScroll(ScrollView.FOCUS_DOWN)
+                scroll?.post {
+                    if (!targetChat.isAttachedToWindow || communityChatContainer !== targetChat ||
+                        activeCommunityFamilyId != familyId) return@post
+                    if (wasAtBottom || messages.length() <= 1) {
+                        scroll.fullScroll(ScrollView.FOCUS_DOWN)
+                    } else {
+                        scroll.scrollTo(0, previousScrollY)
+                    }
                 }
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
