@@ -793,7 +793,8 @@ class MainActivity : ComponentActivity() {
             filters = arrayOf(android.text.InputFilter.LengthFilter(1000))
         }
         composer.addView(input, LinearLayout.LayoutParams(0, dp(50), 1f))
-        val sendButton = makeButton("Send", true) {
+        lateinit var sendButton: Button
+        sendButton = makeButton("Send", true) {
             val message = input.text.toString().trim()
             val uid = userId
             val token = accessToken
@@ -802,10 +803,8 @@ class MainActivity : ComponentActivity() {
                 setStatus("Sign in again before sending chat messages.", true)
                 return@makeButton
             }
-            sendButton@ run {
-                // The button is disabled until this request completes to prevent duplicate posts.
-                composer.getChildAt(1).isEnabled = false
-            }
+            // Disable the button until the request completes to prevent duplicate posts.
+            sendButton.isEnabled = false
             input.text.clear()
             lifecycleScope.launch {
                 try {
