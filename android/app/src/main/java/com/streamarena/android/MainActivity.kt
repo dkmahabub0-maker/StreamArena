@@ -18,6 +18,7 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.PopupMenu
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ImageView
 import android.widget.ScrollView
