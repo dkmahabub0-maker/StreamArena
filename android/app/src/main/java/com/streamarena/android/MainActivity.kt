@@ -660,7 +660,7 @@ class MainActivity : ComponentActivity() {
         composer.addView(makeButton("Send", true) { sendCommunityMessage() },
             LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
         root.addView(composer, bottomMargin(dp(10)))
-        addBottomNav()
+        addBottomNav(3)
         loadCommunityFamilies()
     }
 
@@ -947,7 +947,7 @@ class MainActivity : ComponentActivity() {
             loadProfile()
         }, fieldLayout(dp(46), dp(4)))
         root.addView(makeButton("Logout", true) { signOut() }, fieldLayout(dp(50), dp(8)))
-        addBottomNav()
+        addBottomNav(4)
     }
 
         private fun showAccountList(title: String, emptyMessage: String, loader: suspend () -> JSONArray, render: (JSONArray, LinearLayout) -> Unit) {
