@@ -467,7 +467,7 @@ class MainActivity : ComponentActivity() {
                 setPadding(0, dp(3), 0, dp(2))
                 setOnClickListener {
                     when (index) {
-                        0 -> { stopCameraPreview(); buildLiveScreen(); setContentView(liveScreen) }
+                        0 -> { stopCameraPreview(); buildLiveScreen(); setContentView(liveScreen); loadGames(); loadLiveStreams() }
                         1 -> showExploreScreen()
                         2 -> {
                             buildLiveScreen()
