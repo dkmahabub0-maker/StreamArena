@@ -2343,6 +2343,7 @@ class MainActivity : ComponentActivity() {
                         .ifBlank { json.optString("error") }
                 }.getOrDefault("")
                 throw IllegalStateException(message.ifBlank { "Server returned HTTP $code" })
+            }
             return if (response.isBlank()) JSONObject() else JSONObject(response)
         } finally {
             connection.disconnect()
