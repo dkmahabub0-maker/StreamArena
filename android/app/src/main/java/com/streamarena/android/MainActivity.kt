@@ -2666,6 +2666,8 @@ class MainActivity : ComponentActivity() {
         val streamId = activeStreamId
         val session = accessToken
         val ownerId = userId
+        val publisherRoom = room
+        room = null
 
         // Invalidate account-bound work immediately so late responses cannot update the signed-out UI.
         accountListLoadJob?.cancel(); accountListLoadJob = null
@@ -2691,6 +2693,9 @@ class MainActivity : ComponentActivity() {
         userId = null
 
         lifecycleScope.launch {
+            // Stop local publishing before waiting on the network to mark the stream offline.
+            runCatching { publisherRoom?.localParticipant?.setScreenShareEnabled(false) }
+            runCatching { publisherRoom?.disconnect() }
             if (streamId != null && session != null && ownerId != null) {
                 runCatching {
                     withContext(Dispatchers.IO) { updateStreamRow(session, streamId, ownerId, false) }
@@ -2698,9 +2703,6 @@ class MainActivity : ComponentActivity() {
                     setStatus("Signed out locally, but the stream status could not be updated: ${it.message}")
                 }
             }
-            runCatching { room?.localParticipant?.setScreenShareEnabled(false) }
-            runCatching { room?.disconnect() }
-            room = null
             window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activeStreamId = null
             sharing = false
