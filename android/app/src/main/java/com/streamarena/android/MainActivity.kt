@@ -4,10 +4,14 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.text.InputType
 import android.view.Gravity
+import android.net.Uri
+import android.util.Base64
 import android.view.inputmethod.InputMethodManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -100,6 +104,32 @@ class MainActivity : ComponentActivity() {
     private lateinit var communityChatContainer: LinearLayout
     private lateinit var communityMessageInput: EditText
     private var activeCommunityFamilyId: String? = null
+    private var profileAvatarBitmap: Bitmap? = null
+    private var profileAvatarDataUrl: String? = null
+    private var profileAvatarView: ImageView? = null
+
+    private val profileImagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) lifecycleScope.launch {
+            try {
+                val bitmap = withContext(Dispatchers.IO) {
+                    contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+                        ?: error("Could not read the selected image.")
+                }
+                val scale = minOf(384f / bitmap.width, 384f / bitmap.height, 1f)
+                val resized = Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt().coerceAtLeast(1), (bitmap.height * scale).toInt().coerceAtLeast(1), true)
+                val bytes = java.io.ByteArrayOutputStream().use { out ->
+                    resized.compress(Bitmap.CompressFormat.JPEG, 72, out)
+                    out.toByteArray()
+                }
+                profileAvatarBitmap = resized
+                profileAvatarDataUrl = "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
+                profileAvatarView?.setImageBitmap(resized)
+                profileStatus.text = "Photo selected. Tap Save to update your profile picture."
+            } catch (error: Exception) {
+                profileStatus.text = "Could not use this image: ${error.message ?: "unsupported image"}"
+            }
+        }
+    }
 
     private val cameraPreviewPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -1092,40 +1122,38 @@ class MainActivity : ComponentActivity() {
         sc.addView(root)
         liveScreen.addView(sc, LinearLayout.LayoutParams(-1, 0, 1f))
 
-        val orderHero = LinearLayout(this).apply {
+        val profileHero = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(18), dp(18), dp(18), dp(18))
+            setPadding(dp(18), dp(20), dp(18), dp(20))
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
                 intArrayOf(Color.rgb(25, 8, 67), Color.rgb(53, 12, 104), Color.rgb(18, 15, 43))).apply {
                 cornerRadius = dp(24).toFloat()
                 setStroke(dp(1), Color.rgb(91, 35, 145))
             }
         }
-        val cart = TextView(this).apply {
-            text = "🛒"
-            textSize = 38f
-            gravity = Gravity.CENTER
+        profileAvatarView = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(111, 0, 220), Color.rgb(63, 0, 156))).apply { shape = GradientDrawable.OVAL }
+                intArrayOf(Color.rgb(111, 0, 220), Color.rgb(63, 0, 156))).apply {
+                shape = GradientDrawable.OVAL
+                setStroke(dp(2), Color.rgb(205, 105, 255))
+            }
+            clipToOutline = true
+            setImageResource(android.R.drawable.ic_menu_myplaces)
+            setOnClickListener { openProfileEditor() }
         }
-        orderHero.addView(cart, LinearLayout.LayoutParams(dp(88), dp(88)).apply { bottomMargin = dp(8) })
-        orderHero.addView(TextView(this).apply {
-            text = "Order"
-            textSize = 20f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
+        profileHero.addView(profileAvatarView, LinearLayout.LayoutParams(dp(96), dp(96)).apply { bottomMargin = dp(10) })
+        profileHero.addView(TextView(this).apply {
+            text = "Your profile"; textSize = 20f; setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD; gravity = Gravity.CENTER
         })
-        orderHero.addView(TextView(this).apply {
-            text = "Your Order List & Purchase History"
-            textSize = 12f
-            setTextColor(Color.LTGRAY)
-            gravity = Gravity.CENTER
+        profileHero.addView(TextView(this).apply {
+            text = "Set your username"; textSize = 12f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER
         }, bottomMargin(dp(12)))
-        orderHero.addView(makeButton("View Orders", true) {
-            showUnavailableAccountFeature("Orders", "No orders or purchase-history table is configured in this backend.")
-        }, LinearLayout.LayoutParams(dp(190), dp(44)))
-        root.addView(orderHero, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(14) })
+        profileHero.addView(makeButton("Change Photo", true) { openProfileEditor() },
+            LinearLayout.LayoutParams(dp(190), dp(44)))
+        root.addView(profileHero, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(14) })
 
         val menuCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1180,28 +1208,7 @@ class MainActivity : ComponentActivity() {
         })
         root.addView(menuCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
 
-        root.addView(makeButton("Edit Profile", false) {
-            val form = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(dp(8), dp(8), dp(8), dp(4))
-            }
-            profileNameInput = EditText(this).apply {
-                hint = "Full name"; setSingleLine(true); setTextColor(Color.WHITE)
-                setHintTextColor(Color.LTGRAY); background = inputBackground(); setPadding(dp(12), 0, dp(12), 0)
-            }
-            profileUsernameInput = EditText(this).apply {
-                hint = "Username"; setSingleLine(true); setTextColor(Color.WHITE)
-                setHintTextColor(Color.LTGRAY); background = inputBackground(); setPadding(dp(12), 0, dp(12), 0)
-            }
-            form.addView(profileNameInput, fieldLayout(dp(50), dp(8)))
-            form.addView(profileUsernameInput, fieldLayout(dp(50), dp(8)))
-            profileStatus = TextView(this).apply { text = "Loading profile…"; setTextColor(Color.LTGRAY); textSize = 12f }
-            form.addView(profileStatus)
-            AlertDialog.Builder(this).setTitle("Edit Profile").setView(form)
-                .setPositiveButton("Save") { _, _ -> saveProfile() }
-                .setNegativeButton("Cancel", null).show()
-            loadProfile()
-        }, fieldLayout(dp(46), dp(4)))
+        root.addView(makeButton("Edit Profile", false) { openProfileEditor() }, fieldLayout(dp(46), dp(4)))
         root.addView(makeButton("Logout", true) { signOut() }, fieldLayout(dp(50), dp(8)))
         addBottomNav(4)
     }
@@ -1728,6 +1735,44 @@ class MainActivity : ComponentActivity() {
     private lateinit var profileUsernameInput: EditText
     private lateinit var profileStatus: TextView
 
+    private fun openProfileEditor() {
+        val form = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), dp(8), dp(8), dp(4))
+        }
+        profileNameInput = EditText(this).apply {
+            hint = "Display name"; setSingleLine(true); setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY); background = inputBackground(); setPadding(dp(12), 0, dp(12), 0)
+        }
+        profileUsernameInput = EditText(this).apply {
+            hint = "Username (optional)"; setSingleLine(true); setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY); background = inputBackground(); setPadding(dp(12), 0, dp(12), 0)
+        }
+        form.addView(profileNameInput, fieldLayout(dp(50), dp(8)))
+        form.addView(profileUsernameInput, fieldLayout(dp(50), dp(8)))
+        form.addView(makeButton("Choose photo from gallery", false) {
+            profileImagePicker.launch("image/*")
+        }, fieldLayout(dp(46), dp(8)))
+        profileStatus = TextView(this).apply {
+            text = "Choose a display name and optional profile photo."
+            setTextColor(Color.LTGRAY); textSize = 12f
+        }
+        form.addView(profileStatus)
+        val dialog = AlertDialog.Builder(this).setTitle("Customize Profile").setView(form)
+            .setPositiveButton("Save", null).setNegativeButton("Cancel", null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { saveProfile() }
+        }
+        dialog.show()
+        loadProfile()
+    }
+
+    private fun profileHeroNameUpdate(name: String, username: String) {
+        val hero = (liveScreen.getChildAt(0) as? ScrollView)?.getChildAt(0) as? LinearLayout ?: return
+        (hero.getChildAt(1) as? TextView)?.text = name.ifBlank { "Your profile" }
+        (hero.getChildAt(2) as? TextView)?.text = if (username.isNotBlank()) "@$username" else "Set your username"
+    }
+
     private fun loadProfile() {
         val session = accessToken
         val uid = userId
@@ -1751,8 +1796,26 @@ class MainActivity : ComponentActivity() {
                     return@launch
                 }
                 val row = rows.getJSONObject(0)
-                profileNameInput.setText(row.optString("full_name").takeUnless { it == "null" } ?: "")
-                profileUsernameInput.setText(row.optString("username").takeUnless { it == "null" } ?: "")
+                val savedName = row.optString("full_name").takeUnless { it == "null" } ?: ""
+                val savedUsername = row.optString("username").takeUnless { it == "null" } ?: ""
+                val avatarUrl = row.optString("avatar_url").takeUnless { it == "null" || it.isBlank() }
+                profileNameInput.setText(savedName)
+                profileUsernameInput.setText(savedUsername)
+                if (avatarUrl != null && avatarUrl.startsWith("data:image/")) {
+                    val bytes = Base64.decode(avatarUrl.substringAfter(",", ""), Base64.DEFAULT)
+                    profileAvatarBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    profileAvatarView?.setImageBitmap(profileAvatarBitmap)
+                } else if (avatarUrl != null && (avatarUrl.startsWith("https://") || avatarUrl.startsWith("http://"))) {
+                    val bitmap = withContext(Dispatchers.IO) {
+                        (URL(avatarUrl).openConnection() as HttpURLConnection).run {
+                            connectTimeout = 10000; readTimeout = 10000
+                            try { inputStream.use { BitmapFactory.decodeStream(it) } } finally { disconnect() }
+                        }
+                    }
+                    profileAvatarBitmap = bitmap
+                    profileAvatarView?.setImageBitmap(bitmap)
+                }
+                profileHeroNameUpdate(savedName, savedUsername)
                 profileStatus.text = "Profile loaded."
             } catch (error: Exception) {
                 profileStatus.text = "Profile could not load: " + (error.message ?: "network error")
@@ -1786,20 +1849,25 @@ class MainActivity : ComponentActivity() {
                         JSONObject()
                             .put("full_name", fullName.ifEmpty { JSONObject.NULL })
                             .put("username", username.ifEmpty { JSONObject.NULL })
+                            .put("avatar_url", profileAvatarDataUrl ?: JSONObject.NULL)
                     )
                     val verified = getRestJson(
-                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?select=id,full_name,username&id=eq.$uid&limit=1",
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?select=id,full_name,username,avatar_url&id=eq.$uid&limit=1",
                         session
                     )
                     if (verified.length() != 1) error("No profile row was updated for this account.")
                     val saved = verified.getJSONObject(0)
                     val savedName = saved.optString("full_name").takeUnless { it == "null" } ?: ""
                     val savedUsername = saved.optString("username").takeUnless { it == "null" } ?: ""
-                    if (savedName != fullName || savedUsername != username) {
+                    val savedAvatar = saved.optString("avatar_url").takeUnless { it == "null" } ?: ""
+                    if (savedName != fullName || savedUsername != username ||
+                        (profileAvatarDataUrl != null && savedAvatar != profileAvatarDataUrl)) {
                         error("The saved profile values could not be verified.")
                     }
                 }
-                profileStatus.text = "Profile saved and verified."
+                profileHeroNameUpdate(fullName, username)
+                profileAvatarDataUrl = null
+                profileStatus.text = "Profile name and photo saved."
             } catch (error: Exception) {
                 profileStatus.text = "Profile save failed: " + (error.message ?: "database policy or network error")
             }
