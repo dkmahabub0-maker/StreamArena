@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var loginTabButton: Button
     private lateinit var signUpTabButton: Button
     private lateinit var authScreen: ScrollView
+    private lateinit var welcomeScreen: LinearLayout
     private lateinit var liveScreen: LinearLayout
     private lateinit var signInButton: Button
     private var isSignUpMode = false
@@ -151,130 +152,55 @@ class MainActivity : ComponentActivity() {
         window.navigationBarColor = Color.rgb(9, 14, 29)
         buildAuthScreen()
         buildLiveScreen()
-        setContentView(authScreen)
+        buildWelcomeScreen()
+        setContentView(welcomeScreen)
+    }
+
+
+    private fun buildWelcomeScreen() {
+        welcomeScreen = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+            setPadding(dp(28), dp(30), dp(28), dp(30))
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Color.rgb(7,12,43), Color.rgb(25,8,72), Color.rgb(4,12,35)))
+        }
+        welcomeScreen.addView(ImageView(this).apply { setImageResource(R.drawable.ic_streamarena) }, LinearLayout.LayoutParams(dp(116),dp(116)).apply { bottomMargin=dp(16) })
+        welcomeScreen.addView(TextView(this).apply { text="StreamArena"; textSize=34f; gravity=Gravity.CENTER; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
+        welcomeScreen.addView(TextView(this).apply { text="Live Together • Play Together"; textSize=16f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) }, bottomMargin(dp(30)))
+        welcomeScreen.addView(TextView(this).apply {
+            text="🎮          ⚔️          🎮"; textSize=42f; gravity=Gravity.CENTER
+            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(77,20,166),Color.rgb(16,32,90))).apply { cornerRadius=dp(28).toFloat() }
+        }, LinearLayout.LayoutParams(-1,dp(250)).apply { bottomMargin=dp(28) })
+        welcomeScreen.addView(makeButton("Get Started  →",true) { setContentView(authScreen) }, LinearLayout.LayoutParams(-1,dp(56)))
+        welcomeScreen.addView(TextView(this).apply { text="Version 1.0.0"; textSize=11f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) }, topMargin(dp(18)))
     }
 
     private fun buildAuthScreen() {
-        authScreen = ScrollView(this).apply {
-            isFillViewport = true
-            setBackgroundColor(Color.rgb(7, 12, 25))
-        }
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(24), dp(34), dp(24), dp(30))
-        }
+        authScreen=ScrollView(this).apply { isFillViewport=true; background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(4,9,27),Color.rgb(26,8,63),Color.rgb(5,9,28))) }
+        val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.CENTER_HORIZONTAL; setPadding(dp(24),dp(40),dp(24),dp(28)) }
         authScreen.addView(root)
-
-        val logo = ImageView(this).apply {
-            setImageResource(R.drawable.ic_streamarena)
-            contentDescription = "StreamArena"
-        }
-        root.addView(logo, LinearLayout.LayoutParams(dp(76), dp(76)).apply {
-            bottomMargin = dp(14)
-        })
-        root.addView(TextView(this).apply {
-            text = "STREAMARENA"
-            textSize = 24f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.create("sans-serif", Typeface.BOLD)
-            letterSpacing = 0.10f
-            gravity = Gravity.CENTER
-        })
-        root.addView(TextView(this).apply {
-            text = "Welcome back"
-            textSize = 16f
-            setTextColor(Color.rgb(151, 168, 194))
-            gravity = Gravity.CENTER
-        }, bottomMargin(dp(28)))
-
-        val authCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = panelBackground()
-            setPadding(dp(20), dp(20), dp(20), dp(20))
-        }
-        val tabs = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            background = GradientDrawable().apply {
-                setColor(Color.rgb(10, 17, 32))
-                cornerRadius = dp(14).toFloat()
-            }
-            setPadding(dp(4), dp(4), dp(4), dp(4))
-        }
-        loginTabButton = makeButton("Log in", true) { setAuthMode(false) }
-        signUpTabButton = makeButton("Sign up", false) { setAuthMode(true) }
-        tabs.addView(loginTabButton, LinearLayout.LayoutParams(0, dp(46), 1f).apply {
-            rightMargin = dp(4)
-        })
-        tabs.addView(signUpTabButton, LinearLayout.LayoutParams(0, dp(46), 1f))
-        authCard.addView(tabs, bottomMargin(dp(24)))
-
-        authCard.addView(fieldLabel("Email"), bottomMargin(dp(8)))
-        emailInput = EditText(this).apply {
-            hint = "name@example.com"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            setSingleLine(true)
-            textSize = 16f
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.rgb(111, 126, 153))
-            background = inputBackground()
-            setPadding(dp(15), 0, dp(15), 0)
-            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
-        }
-        authCard.addView(emailInput, fieldLayout(dp(54), dp(18)))
-
-        authCard.addView(fieldLabel("Password"), bottomMargin(dp(8)))
-        passwordInput = EditText(this).apply {
-            hint = "Enter password"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            setSingleLine(true)
-            textSize = 16f
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.rgb(111, 126, 153))
-            background = inputBackground()
-            setPadding(dp(15), 0, dp(15), 0)
-            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
-        }
-        authCard.addView(passwordInput, fieldLayout(dp(54), dp(20)))
-
-        signInButton = makeButton("Log in", true) {
-            if (isSignUpMode) signUp() else signIn()
-        }
-        authCard.addView(signInButton, fieldLayout(dp(54), dp(10)))
-
-        status = TextView(this).apply {
-            text = ""
-            textSize = 13f
-            setTextColor(Color.rgb(166, 178, 202))
-            gravity = Gravity.CENTER
-            setPadding(dp(6), dp(8), dp(6), dp(2))
-        }
-        authCard.addView(status, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
-        otpInput = EditText(this).apply {
-            hint = "6-digit email code"
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setSingleLine(true)
-            textSize = 18f
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.rgb(111, 126, 153))
-            background = inputBackground()
-            setPadding(dp(15), 0, dp(15), 0)
-            visibility = android.view.View.GONE
-        }
-        authCard.addView(fieldLabel("Email confirmation code").apply {
-            visibility = android.view.View.GONE
-            tag = "otp_label"
-        }, bottomMargin(dp(8)))
-        authCard.addView(otpInput, fieldLayout(dp(54), dp(10)).apply { })
-        otpVerifyButton = makeButton("Verify code", true) { verifySignupOtp() }.apply {
-            visibility = android.view.View.GONE
-        }
-        authCard.addView(otpVerifyButton, fieldLayout(dp(52), dp(10)))
-        root.addView(authCard, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
+        root.addView(ImageView(this).apply { setImageResource(R.drawable.ic_streamarena) },LinearLayout.LayoutParams(dp(88),dp(88)).apply { bottomMargin=dp(8) })
+        root.addView(TextView(this).apply { text="StreamArena"; textSize=30f; gravity=Gravity.CENTER; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },bottomMargin(dp(22)))
+        root.addView(TextView(this).apply { text="Welcome Back!"; textSize=19f; gravity=Gravity.CENTER; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
+        root.addView(TextView(this).apply { text="Sign in to continue"; textSize=14f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY },bottomMargin(dp(24)))
+        root.addView(makeButton("🌐   Continue with Google",false) { AlertDialog.Builder(this).setMessage("Google sign-in is not configured in this Android client yet.").setPositiveButton("OK",null).show() },fieldLayout(dp(52),dp(10)))
+        root.addView(makeButton("✉   Login with Email",true) { emailInput.requestFocus() },fieldLayout(dp(52),dp(18)))
+        root.addView(TextView(this).apply { text="──────────────  or  ──────────────"; textSize=14f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) },bottomMargin(dp(14)))
+        emailInput=EditText(this).apply { hint="Email Address"; inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS; setSingleLine(true); textSize=15f; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(16),0,dp(16),0) }
+        root.addView(emailInput,fieldLayout(dp(54),dp(12)))
+        passwordInput=EditText(this).apply { hint="Password"; inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD; setSingleLine(true); textSize=15f; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(16),0,dp(16),0) }
+        root.addView(passwordInput,fieldLayout(dp(54),dp(14)))
+        signInButton=makeButton("Login",true) { if(isSignUpMode) signUp() else signIn() }
+        root.addView(signInButton,fieldLayout(dp(54),dp(8)))
+        status=TextView(this).apply { text=""; textSize=13f; gravity=Gravity.CENTER; setTextColor(Color.rgb(255,145,160)); setPadding(dp(8),dp(6),dp(8),dp(6)) }
+        root.addView(status,LinearLayout.LayoutParams(-1,-2))
+        otpInput=EditText(this).apply { hint="6-digit email code"; inputType=InputType.TYPE_CLASS_NUMBER; setSingleLine(true); setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(16),0,dp(16),0); visibility=android.view.View.GONE }
+        root.addView(otpInput,fieldLayout(dp(52),dp(8)))
+        otpVerifyButton=makeButton("Verify code",true) { verifySignupOtp() }.apply { visibility=android.view.View.GONE }
+        root.addView(otpVerifyButton,fieldLayout(dp(50),dp(8)))
+        val links=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL }
+        links.addView(TextView(this).apply { text="Create Account"; setTextColor(Color.WHITE); setOnClickListener { setAuthMode(true) } },LinearLayout.LayoutParams(0,dp(42),1f))
+        links.addView(TextView(this).apply { text="Forgot Password?"; gravity=Gravity.END; setTextColor(Color.WHITE); setOnClickListener { AlertDialog.Builder(this@MainActivity).setMessage("Password reset is not available in this Android build yet.").setPositiveButton("OK",null).show() } },LinearLayout.LayoutParams(0,dp(42),1f))
+        root.addView(links)
         setAuthMode(false)
     }
 
@@ -303,310 +229,107 @@ class MainActivity : ComponentActivity() {
         cornerRadius = dp(11).toFloat()
     }
 
+
     private fun buildLiveScreen() {
-        liveScreen = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.rgb(9, 14, 29))
+        liveScreen=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setBackgroundColor(Color.rgb(5,7,19)) }
+        val scroll=ScrollView(this).apply { isFillViewport=true }
+        val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(14),dp(12),dp(14),dp(14)) }
+        scroll.addView(root); liveScreen.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
+        val header=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL }
+        val menu=makeButton("☰",false) { showDashboardMenu(menuAnchor) }
+        menuAnchor=menu
+        header.addView(menu,LinearLayout.LayoutParams(dp(42),dp(48)))
+        header.addView(ImageView(this).apply { setImageResource(R.drawable.ic_streamarena) },LinearLayout.LayoutParams(dp(34),dp(34)))
+        header.addView(TextView(this).apply { text="StreamArena"; textSize=21f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },LinearLayout.LayoutParams(0,-2,1f).apply { leftMargin=dp(8) })
+        header.addView(makeButton("♧",false) { setStatus("No new notifications.") })
+        root.addView(header,bottomMargin(dp(12)))
+        val hero=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.BOTTOM; setPadding(dp(16),dp(16),dp(16),dp(16)); background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(118,16,151),Color.rgb(26,38,111),Color.rgb(7,16,45))).apply { cornerRadius=dp(20).toFloat() } }
+        hero.addView(TextView(this).apply { text="🔴 LIVE     ◉ 12.5K"; textSize=13f; setTextColor(Color.WHITE) },bottomMargin(dp(42)))
+        hero.addView(TextView(this).apply { text="FREE FIRE"; textSize=30f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
+        hero.addView(makeButton("Play Now  ▶",true) { showLivePlayer() },topMargin(dp(8)))
+        root.addView(hero,LinearLayout.LayoutParams(-1,dp(190)).apply { bottomMargin=dp(12) })
+        root.addView(makeButton("✦ ADS     Add System                         Go",true) { setStatus("Ad system is not connected yet.") },fieldLayout(dp(48),dp(16)))
+        addSectionTitle(root,"Popular Games","See All →") { showExploreScreen() }
+        val games=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
+        listOf("🔥\nFree Fire","🎯\nPUBG MOBILE","🏆\nBGMI").forEach { name ->
+            games.addView(TextView(this).apply { text=name; gravity=Gravity.CENTER; textSize=15f; setTextColor(Color.WHITE); background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(112,25,155),Color.rgb(20,52,104))).apply { cornerRadius=dp(14).toFloat() }; setOnClickListener { selectedGameCategory=name.substringAfter("\n").uppercase() } },LinearLayout.LayoutParams(0,dp(112),1f).apply { setMargins(dp(3),0,dp(3),0) })
         }
-        val scroll = ScrollView(this).apply { isFillViewport = true }
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(24), dp(20), dp(28))
-        }
-        scroll.addView(root)
-        liveScreen.addView(scroll, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
-        ))
-
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val logo = ImageView(this).apply {
-            setImageResource(R.drawable.ic_streamarena)
-            contentDescription = "StreamArena logo"
-        }
-        header.addView(logo, LinearLayout.LayoutParams(dp(56), dp(56)))
-        header.addView(TextView(this).apply {
-            text = "STREAMARENA\nCREATOR DASHBOARD"
-            textSize = 16f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(dp(12), 0, 0, 0)
-        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        lateinit var menuButton: Button
-        menuButton = makeButton("⋮", false) { showDashboardMenu(menuButton) }.apply {
-            textSize = 32f
-            contentDescription = "More options"
-            setPadding(0, 0, 0, 0)
-        }
-        header.addView(menuButton, LinearLayout.LayoutParams(dp(52), dp(46)))
-        root.addView(header, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(30)
-        })
-        val topNav = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(dp(5), dp(6), dp(5), dp(6))
-            setBackgroundColor(Color.rgb(13, 21, 38))
-            background = GradientDrawable().apply {
-                setColor(Color.rgb(13, 21, 38))
-                cornerRadius = dp(15).toFloat()
-                setStroke(dp(1), Color.rgb(35, 53, 82))
-            }
-        }
-        fun navItem(label: String, action: () -> Unit) {
-            val button = makeButton(label, false, action).apply {
-                textSize = 12f
-                minWidth = 0
-                minimumWidth = 0
-                setPadding(dp(1), 0, dp(1), 0)
-                isAllCaps = false
-                maxLines = 2
-            }
-            topNav.addView(button, LinearLayout.LayoutParams(0, dp(58), 1f).apply {
-                setMargins(dp(1), 0, dp(1), 0)
-            })
-        }
-        navItem("⌂\nHome") { scroll.smoothScrollTo(0, 0) }
-        plusNavButton = makeButton("＋", true) {
-            openLiveSetup("camera", scroll)
-        }.apply {
-            textSize = 29f
-            minWidth = 0
-            minimumWidth = 0
-            setPadding(0, 0, 0, 0)
-            contentDescription = "Create live or screen share"
-        }
-        topNav.addView(plusNavButton, LinearLayout.LayoutParams(0, dp(58), 1f).apply {
-            setMargins(dp(1), 0, dp(1), 0)
-        })
-        navItem("♧\nNotifications") { setStatus("Notifications will appear here when the notification service is connected.") }
-        navItem("◎\nCommunity") { setStatus("Community feed is not connected yet.") }
-        // Bottom navigation is attached below the scroll area; the overflow menu stays in the header.
-
-        root.addView(TextView(this).apply {
-            text = "FEATURED GAMES"
-            textSize = 13f
-            setTextColor(Color.rgb(128, 190, 255))
-            typeface = Typeface.DEFAULT_BOLD
-            letterSpacing = 0.12f
-        }, bottomMargin(dp(10)))
-
-        val featuredGamesScroll = HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-            clipToPadding = false
-        }
-        val featuredGames = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val featured = listOf(
-            Triple("ACTION GAMES", "Fast-paced action picks", intArrayOf(Color.rgb(20, 105, 145), Color.rgb(30, 54, 105))),
-            Triple("BATTLE GAMES", "Competitive battle zone", intArrayOf(Color.rgb(132, 48, 62), Color.rgb(65, 35, 83))),
-            Triple("SPORTS GAMES", "Sports and tournaments", intArrayOf(Color.rgb(24, 119, 91), Color.rgb(23, 62, 84))),
-            Triple("RACING GAMES", "Speed and racing picks", intArrayOf(Color.rgb(170, 91, 30), Color.rgb(88, 43, 75)))
-        )
-        featured.forEach { item ->
-            val gameBanner = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.BOTTOM
-                setPadding(dp(16), dp(14), dp(16), dp(14))
-                background = GradientDrawable(GradientDrawable.Orientation.TL_BR, item.third).apply {
-                    cornerRadius = dp(18).toFloat()
-                    setStroke(dp(1), Color.argb(90, 190, 215, 255))
-                }
-                isClickable = true
-                isFocusable = true
-                setOnClickListener {
-                    selectedGameCategory = item.first.substringBefore(' ').uppercase()
-                    setStatus("${item.first} selected.")
-                }
-            }
-            gameBanner.addView(TextView(this).apply {
-                text = "▶"
-                textSize = 25f
-                setTextColor(Color.WHITE)
-                typeface = Typeface.DEFAULT_BOLD
-            }, bottomMargin(dp(8)))
-            gameBanner.addView(TextView(this).apply {
-                text = item.first
-                textSize = 15f
-                setTextColor(Color.WHITE)
-                typeface = Typeface.DEFAULT_BOLD
-            })
-            gameBanner.addView(TextView(this).apply {
-                text = item.second
-                textSize = 11f
-                setTextColor(Color.rgb(226, 235, 248))
-            })
-            featuredGames.addView(gameBanner, LinearLayout.LayoutParams(dp(270), dp(158)).apply {
-                rightMargin = dp(10)
-            })
-        }
-        featuredGamesScroll.addView(featuredGames)
-        root.addView(featuredGamesScroll, bottomMargin(dp(14)))
-
-        // Reserved, intentionally empty ad slot for a future horizontal mobile banner.
-        val adSlot = TextView(this).apply {
-            text = "AD SPACE"
-            textSize = 9f
-            letterSpacing = 0.16f
-            setTextColor(Color.rgb(92, 107, 132))
-            gravity = Gravity.CENTER
-            background = GradientDrawable().apply {
-                setColor(Color.rgb(12, 19, 33))
-                cornerRadius = dp(8).toFloat()
-                setStroke(dp(1), Color.rgb(35, 48, 70))
-            }
-        }
-        root.addView(adSlot, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(54)
-        ).apply { bottomMargin = dp(22) })
-
-        root.addView(TextView(this).apply {
-            text = "GAME CATEGORIES"
-            textSize = 13f
-            setTextColor(Color.rgb(128, 190, 255))
-            typeface = Typeface.DEFAULT_BOLD
-            letterSpacing = 0.12f
-        }, bottomMargin(dp(10)))
-
-        val categoryRowOne = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("ACTION", "BATTLE").forEach { category ->
-            categoryRowOne.addView(makeButton(category, selectedGameCategory == category) {
-                selectedGameCategory = category
-                setStatus("$category category selected.")
-            }, LinearLayout.LayoutParams(0, dp(46), 1f).apply {
-                setMargins(dp(3), 0, dp(3), dp(8))
-            })
-        }
-        root.addView(categoryRowOne)
-        val categoryRowTwo = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("SPORTS", "RACING").forEach { category ->
-            categoryRowTwo.addView(makeButton(category, selectedGameCategory == category) {
-                selectedGameCategory = category
-                setStatus("$category category selected.")
-            }, LinearLayout.LayoutParams(0, dp(46), 1f).apply {
-                setMargins(dp(3), 0, dp(3), dp(8))
-            })
-        }
-        root.addView(categoryRowTwo, bottomMargin(dp(20)))
-
-        root.addView(TextView(this).apply {
-            text = "Welcome to your creator space."
-            textSize = 27f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-        })
-        root.addView(TextView(this).apply {
-            text = "Manage your broadcast, screen sharing and creator tools from one place."
-            textSize = 14f
-            setTextColor(Color.rgb(166, 178, 202))
-        }, bottomMargin(dp(22)))
-
-        liveCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = panelBackground()
-            setPadding(dp(20), dp(20), dp(20), dp(20))
-            visibility = android.view.View.GONE
-        }
-        liveCard.addView(TextView(this).apply {
-            text = "CREATE A LIVE"
-            textSize = 12f
-            setTextColor(Color.rgb(115, 205, 255))
-            typeface = Typeface.DEFAULT_BOLD
-            letterSpacing = 0.12f
-        }, bottomMargin(dp(14)))
-        liveCard.addView(TextView(this).apply {
-            text = "Choose how you want to broadcast"
-            textSize = 14f
-            setTextColor(Color.rgb(197, 207, 225))
-            typeface = Typeface.DEFAULT_BOLD
-        }, bottomMargin(dp(10)))
-        cameraPreviewView = PreviewView(this).apply {
-            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-            scaleType = PreviewView.ScaleType.FILL_CENTER
-            setBackgroundColor(Color.BLACK)
-            contentDescription = "Front camera preview"
-        }
-        liveCard.addView(cameraPreviewView, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(210)
-        ).apply { bottomMargin = dp(14) })
-        val liveModes = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        liveModes.addView(makeButton("Camera", true) {
-            selectedLiveMode = "camera"
-            startLiveButton.text = "Go Live"
-            showCameraPreview()
-            setStatus("Camera selected. Preview is local; tap Go Live when ready to broadcast.")
-        }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(5) })
-        liveModes.addView(makeButton("Screen Share", false) {
-            selectedLiveMode = "screen"
-            startLiveButton.text = "Go Live with Screen Share"
-            stopCameraPreview()
-            setStatus("Screen Share selected. Tap Go Live and approve Android's screen-capture prompt.")
-        }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { leftMargin = dp(5) })
-        liveCard.addView(liveModes, bottomMargin(dp(16)))
-        liveCard.addView(fieldLabel("Stream title"), bottomMargin(dp(7)))
-        titleInput = EditText(this).apply {
-            hint = "Enter your live title"
-            setSingleLine(true)
-            textSize = 16f
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.rgb(111, 126, 153))
-            background = inputBackground()
-            setPadding(dp(15), 0, dp(15), 0)
-        }
-        liveCard.addView(titleInput, fieldLayout(dp(54), dp(14)))
-        startLiveButton = makeButton("Go Live", true) { startLive() }
-        liveCard.addView(startLiveButton, fieldLayout(dp(52), dp(10)))
-        shareButton = makeButton("Share phone screen", false) {
-            val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            screenCaptureLauncher.launch(manager.createScreenCaptureIntent())
-        }
-        liveCard.addView(shareButton, fieldLayout(dp(50), dp(8)))
-        stopShareButton = makeButton("Stop screen share", false) { stopScreenShare() }
-        liveCard.addView(stopShareButton, fieldLayout(dp(50), dp(8)))
-        endLiveButton = makeButton("End Live", false) { endLive() }
-        liveCard.addView(endLiveButton, fieldLayout(dp(50), dp(12)))
-        liveStatus = TextView(this).apply {
-            text = "You are signed in. Set a title to start your Live."
-            textSize = 13f
-            setTextColor(Color.rgb(166, 178, 202))
-            gravity = Gravity.CENTER
-            setPadding(dp(8), dp(8), dp(8), dp(4))
-        }
-        liveCard.addView(liveStatus, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        root.addView(liveCard)
-
-        val bottomBanner = TextView(this).apply {
-            text = "READY WHEN YOU ARE  •  Set your title, start your stream and connect with your viewers."
-            textSize = 12f
-            setTextColor(Color.rgb(215, 228, 248))
-            gravity = Gravity.CENTER
-            setPadding(dp(16), dp(16), dp(16), dp(16))
-            background = GradientDrawable().apply {
-                setColor(Color.rgb(24, 42, 70))
-                cornerRadius = dp(16).toFloat()
-                setStroke(dp(1), Color.rgb(48, 75, 112))
-            }
-        }
-        root.addView(bottomBanner, bottomMargin(dp(14)))
-        root.addView(TextView(this).apply {
-            text = "Screen sharing starts only after you approve Android's system prompt."
-            textSize = 12f
-            setTextColor(Color.rgb(120, 133, 158))
-            gravity = Gravity.CENTER
-        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(18)
-        })
-
-        // Keep navigation fixed at the bottom while dashboard content scrolls above it.
-        liveScreen.addView(topNav, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply {
-            // Lift the bottom navigation slightly without changing icon or button sizes.
-            bottomMargin = dp(8)
-        })
+        root.addView(games,bottomMargin(dp(18)))
+        addSectionTitle(root,"Live Streams","See All →") { showLivePlayer() }
+        root.addView(makeButton("🔴 LIVE     Gaming with Mahabub  ✓\n              12.5K Watching",false) { showLivePlayer() },fieldLayout(dp(76),dp(18)))
+        liveCard=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; background=panelBackground(); setPadding(dp(16),dp(16),dp(16),dp(16)); visibility=android.view.View.GONE }
+        liveCard.addView(TextView(this).apply { text="Go Live"; textSize=20f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },bottomMargin(dp(12)))
+        cameraPreviewView=PreviewView(this).apply { implementationMode=PreviewView.ImplementationMode.COMPATIBLE; scaleType=PreviewView.ScaleType.FILL_CENTER; setBackgroundColor(Color.BLACK) }
+        liveCard.addView(cameraPreviewView,LinearLayout.LayoutParams(-1,dp(190)).apply { bottomMargin=dp(12) })
+        val modes=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
+        modes.addView(makeButton("Camera",true) { selectedLiveMode="camera"; showCameraPreview() },LinearLayout.LayoutParams(0,dp(44),1f))
+        modes.addView(makeButton("Screen Share",false) { selectedLiveMode="screen"; stopCameraPreview() },LinearLayout.LayoutParams(0,dp(44),1f))
+        liveCard.addView(modes,bottomMargin(dp(12)))
+        titleInput=EditText(this).apply { hint="Gaming Live 🔥"; setSingleLine(true); setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(12),0,dp(12),0) }
+        liveCard.addView(titleInput,fieldLayout(dp(50),dp(10)))
+        startLiveButton=makeButton("Start Live  ▶",true) { startLive() }; liveCard.addView(startLiveButton,fieldLayout(dp(52),dp(8)))
+        shareButton=makeButton("Start Sharing",false) { val mgr=getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager; screenCaptureLauncher.launch(mgr.createScreenCaptureIntent()) }; liveCard.addView(shareButton,fieldLayout(dp(48),dp(6)))
+        stopShareButton=makeButton("Stop Sharing",false) { stopScreenShare() }; liveCard.addView(stopShareButton,fieldLayout(dp(48),dp(6)))
+        endLiveButton=makeButton("End Live",false) { endLive() }; liveCard.addView(endLiveButton,fieldLayout(dp(48),dp(6)))
+        liveStatus=TextView(this).apply { text="Ready to stream"; textSize=12f; setTextColor(Color.LTGRAY); gravity=Gravity.CENTER }; liveCard.addView(liveStatus)
+        root.addView(liveCard,topMargin(dp(8)))
+        addBottomNav()
     }
 
+    private var menuAnchor: android.view.View? = null
+    private fun addSectionTitle(root:LinearLayout,title:String,action:String,click:()->Unit) {
+        val row=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL }
+        row.addView(TextView(this).apply { text=title; textSize=17f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },LinearLayout.LayoutParams(0,dp(38),1f))
+        row.addView(TextView(this).apply { text=action; textSize=12f; setTextColor(Color.MAGENTA); setOnClickListener { click() } }); root.addView(row)
+    }
+    private fun addBottomNav() {
+        val nav=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER; setPadding(dp(3),dp(4),dp(3),dp(4)); setBackgroundColor(Color.rgb(13,12,29)) }
+        listOf("⌂\nHome","◎\nExplore","⊕\nCreate","♧\nCommunity","♙\nProfile").forEachIndexed { i,label ->
+            nav.addView(makeButton(label,i==0) { when(i) {
+                0 -> { stopCameraPreview(); buildLiveScreen(); setContentView(liveScreen) }
+                1 -> showExploreScreen()
+                2 -> { val sc=liveScreen.getChildAt(0) as? ScrollView; if(sc!=null) openLiveSetup("camera",sc) }
+                3 -> showCommunityScreen()
+                4 -> showProfileScreen()
+            } }.apply { textSize=11f; minWidth=0; minimumWidth=0; setPadding(0,0,0,0); isAllCaps=false },LinearLayout.LayoutParams(0,dp(54),1f))
+        }
+        liveScreen.addView(nav)
+    }
+    private fun showExploreScreen() {
+        liveScreen.removeAllViews(); val sc=ScrollView(this); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(18),dp(24),dp(18),dp(20)) }
+        sc.addView(root); liveScreen.addView(sc,LinearLayout.LayoutParams(-1,0,1f))
+        root.addView(TextView(this).apply { text="Explore Games"; textSize=24f; setTextColor(Color.WHITE) },bottomMargin(dp(18)))
+        listOf("Free Fire","PUBG MOBILE","BGMI","ACTION","BATTLE","SPORTS","RACING").forEach { game -> root.addView(makeButton("🎮   "+game,false) { selectedGameCategory=game.uppercase(); buildLiveScreen(); setContentView(liveScreen) },fieldLayout(dp(58),dp(8))) }
+        addBottomNav()
+    }
+    private fun showLivePlayer() {
+        liveScreen.removeAllViews(); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(12),dp(16),dp(12),dp(12)) }
+        root.addView(makeButton("🔴 LIVE     ◉ 8.7K                                  ✕",false) { buildLiveScreen(); setContentView(liveScreen) },fieldLayout(dp(46),dp(8)))
+        root.addView(TextView(this).apply { text="🎮\n\n\n\n\n\n\n"; textSize=42f; gravity=Gravity.CENTER; background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(29,101,150),Color.rgb(11,19,47))) },LinearLayout.LayoutParams(-1,dp(260)))
+        root.addView(TextView(this).apply { text="Rony Hasan\nNice gameplay! 🔥\n\nGaming Lover\nGo for Booyah! 💪\n\nNusrat Jahan\nAwesome! ❤️"; textSize=14f; setTextColor(Color.WHITE); setPadding(dp(8),dp(12),dp(8),dp(8)) },LinearLayout.LayoutParams(-1,0,1f))
+        root.addView(EditText(this).apply { hint="Type a message..."; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(14),0,dp(14),0) },fieldLayout(dp(50),dp(6)))
+        liveScreen.addView(root,LinearLayout.LayoutParams(-1,0,1f))
+    }
+    private fun showCommunityScreen() {
+        liveScreen.removeAllViews(); val sc=ScrollView(this); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(16),dp(22),dp(16),dp(16)) }
+        sc.addView(root); liveScreen.addView(sc,LinearLayout.LayoutParams(-1,0,1f))
+        root.addView(TextView(this).apply { text="‹     Community"; textSize=21f; setTextColor(Color.WHITE) },bottomMargin(dp(18)))
+        root.addView(makeButton("👥     Community Hub                      Join",true) { setStatus("Community join service is not connected yet.") },fieldLayout(dp(92),dp(12)))
+        root.addView(TextView(this).apply { text="Chat                         Members"; textSize=16f; gravity=Gravity.CENTER; setTextColor(Color.MAGENTA) },bottomMargin(dp(12)))
+        listOf("Gaming Lover|Welcome to StreamArena! 🎉|2m ago","Riya Islam|Great platform! ❤️|3m ago","Tanvir Ahmed|Let's grow together! 💪|5m ago").forEach { item ->
+            val a=item.split("|"); root.addView(TextView(this).apply { text="👤   "+a[0]+"\n       "+a[1]+"\n       "+a[2]; textSize=14f; setTextColor(Color.WHITE); setPadding(dp(14),dp(14),dp(14),dp(14)); background=panelBackground() },bottomMargin(dp(8)))
+        }
+        root.addView(EditText(this).apply { hint="Type a message..."; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY); background=inputBackground(); setPadding(dp(12),0,dp(12),0) },fieldLayout(dp(50),dp(8))); addBottomNav()
+    }
+    private fun showProfileScreen() {
+        liveScreen.removeAllViews(); val sc=ScrollView(this); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(16),dp(20),dp(16),dp(18)) }
+        sc.addView(root); liveScreen.addView(sc,LinearLayout.LayoutParams(-1,0,1f))
+        root.addView(TextView(this).apply { text="🛒\nOrder"; textSize=25f; gravity=Gravity.CENTER; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },bottomMargin(dp(8)))
+        root.addView(TextView(this).apply { text="Your Order List & Purchase History"; textSize=13f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) },bottomMargin(dp(14)))
+        root.addView(makeButton("View Orders",true) { setStatus("Order history is not connected to the backend yet.") },fieldLayout(dp(48),dp(16)))
+        listOf("My Streams","Watch History","Settings","Notifications","Help & Support","About App").forEach { item -> root.addView(makeButton("⚙   "+item+"      ›",false) { if(item=="Settings") showLiveSettings() else setStatus(item+" is not connected yet.") },fieldLayout(dp(48),dp(4))) }
+        root.addView(makeButton("Logout",true) { signOut() },fieldLayout(dp(52),dp(16))); addBottomNav()
+    }
 
     private fun showDashboardMenu(anchor: android.view.View) {
         val popup = PopupMenu(this, anchor)
