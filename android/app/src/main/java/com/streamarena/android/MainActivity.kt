@@ -107,6 +107,7 @@ class MainActivity : ComponentActivity() {
     private var liveStreamsLoadJob: Job? = null
     private var profileLoadJob: Job? = null
     private var profileImageLoadJob: Job? = null
+    private var profileSaveJob: Job? = null
     private var activeSupportTicketId: String? = null
     private var communityMessageSending = false
     private var communitySendButton: Button? = null
@@ -2233,7 +2234,8 @@ class MainActivity : ComponentActivity() {
             return
         }
         profileStatus.text = if (pendingAvatar != null) "Uploading profile photo and saving…" else "Saving profile…"
-        lifecycleScope.launch {
+        profileSaveJob?.cancel()
+        profileSaveJob = lifecycleScope.launch {
             try {
                 val savedAvatar = withContext(Dispatchers.IO) {
                     val avatarUrl = pendingAvatar?.let { uploadProfileAvatar(session, uid, it) }
@@ -2260,12 +2262,17 @@ class MainActivity : ComponentActivity() {
                     }
                     verifiedAvatar
                 }
+                if (accessToken != session || userId != uid) return@launch
                 profileHeroNameUpdate(fullName, username)
                 profileAvatarStoredUrl = savedAvatar
                 profileAvatarDataUrl = null
                 profileStatus.text = "Profile name and photo saved."
             } catch (error: Exception) {
-                profileStatus.text = "Profile save failed: " + (error.message ?: "database policy or network error")
+                if (accessToken == session && userId == uid) {
+                    profileStatus.text = "Profile save failed: " + (error.message ?: "database policy or network error")
+                }
+            } finally {
+                if (accessToken == session && userId == uid) profileSaveJob = null
             }
         }
     }
@@ -2600,6 +2607,7 @@ class MainActivity : ComponentActivity() {
         liveStreamsLoadJob?.cancel(); liveStreamsLoadJob = null
         profileLoadJob?.cancel(); profileLoadJob = null
         profileImageLoadJob?.cancel(); profileImageLoadJob = null
+        profileSaveJob?.cancel(); profileSaveJob = null
         communityFamiliesLoadJob?.cancel(); communityFamiliesLoadJob = null
         communityMessageLoadJob?.cancel(); communityMessageLoadJob = null
         communityRefreshJob?.cancel(); communityRefreshJob = null
