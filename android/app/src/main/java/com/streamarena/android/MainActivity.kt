@@ -2550,13 +2550,29 @@ class MainActivity : ComponentActivity() {
 
     private fun signOut() {
         stopCameraPreview()
-        heartbeatJob?.cancel()
-        heartbeatJob = null
+        val streamId = activeStreamId
+        val session = accessToken
+        val ownerId = userId
+
+        // Invalidate account-bound work immediately so late responses cannot update the signed-out UI.
+        accountListLoadJob?.cancel(); accountListLoadJob = null
+        gamesLoadJob?.cancel(); gamesLoadJob = null
+        liveStreamsLoadJob?.cancel(); liveStreamsLoadJob = null
+        profileLoadJob?.cancel(); profileLoadJob = null
+        communityFamiliesLoadJob?.cancel(); communityFamiliesLoadJob = null
+        communityMessageLoadJob?.cancel(); communityMessageLoadJob = null
+        communityRefreshJob?.cancel(); communityRefreshJob = null
+        supportTicketRepliesLoadJob?.cancel(); supportTicketRepliesLoadJob = null
+        supportTicketRefreshJob?.cancel(); supportTicketRefreshJob = null
+        liveChatRefreshJob?.cancel(); liveChatRefreshJob = null
+        streamChatLoadJob?.cancel(); streamChatLoadJob = null
+        heartbeatJob?.cancel(); heartbeatJob = null
+        respondingInvitationIds.clear()
+        closeLiveViewer()
+        accessToken = null
+        userId = null
+
         lifecycleScope.launch {
-            // Mark the user's active stream offline before discarding the session token.
-            val streamId = activeStreamId
-            val session = accessToken
-            val ownerId = userId
             if (streamId != null && session != null && ownerId != null) {
                 runCatching {
                     withContext(Dispatchers.IO) { updateStreamRow(session, streamId, ownerId, false) }
@@ -2570,13 +2586,14 @@ class MainActivity : ComponentActivity() {
             window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activeStreamId = null
             sharing = false
-            accessToken = null
-            userId = null
+            profileAvatarBitmap?.recycle()
             profileAvatarBitmap = null
             profileAvatarDataUrl = null
             profileAvatarStoredUrl = null
             profileAvatarView?.setImageDrawable(null)
             profileAvatarView = null
+            activeSupportTicketId = null
+            activeCommunityFamilyId = null
             emailInput.text.clear()
             passwordInput.text.clear()
             titleInput.text.clear()
