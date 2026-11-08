@@ -1859,6 +1859,42 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun uploadProfileAvatar(session: String, uid: String, dataUrl: String): String {
+        val encodedImage = dataUrl.substringAfter(",", "")
+        if (encodedImage.isBlank()) error("Selected profile image is empty.")
+        val imageBytes = Base64.decode(encodedImage, Base64.DEFAULT)
+        if (imageBytes.size > 5 * 1024 * 1024) error("Profile image exceeds the 5 MB storage limit.")
+        val objectName = "$uid/profile-avatar-${java.util.UUID.randomUUID()}.jpg"
+        val endpoint = "https://ovoufvyevnixpmswfrgl.supabase.co/storage/v1/object/stream-thumbnails/$objectName"
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 15000
+            readTimeout = 25000
+            doOutput = true
+            setRequestProperty("apikey", "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2")
+            setRequestProperty("Authorization", "Bearer $session")
+            setRequestProperty("Content-Type", "image/jpeg")
+            setRequestProperty("Cache-Control", "3600")
+            setRequestProperty("x-upsert", "false")
+        }
+        try {
+            connection.outputStream.use { it.write(imageBytes) }
+            val code = connection.responseCode
+            val responseStream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val response = responseStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            if (code !in 200..299) {
+                val message = runCatching {
+                    val json = JSONObject(response)
+                    json.optString("message").ifBlank { json.optString("error") }
+                }.getOrDefault("")
+                throw IllegalStateException(message.ifBlank { "Avatar upload failed (HTTP $code)."})
+            }
+        } finally {
+            connection.disconnect()
+        }
+        return "https://ovoufvyevnixpmswfrgl.supabase.co/storage/v1/object/public/stream-thumbnails/$objectName"
+    }
+
     private fun saveProfile() {
         val session = accessToken ?: run {
             profileStatus.text = "Sign in to update your profile."
@@ -1867,6 +1903,7 @@ class MainActivity : ComponentActivity() {
         val uid = userId ?: return
         val fullName = profileNameInput.text.toString().trim()
         val username = profileUsernameInput.text.toString().trim()
+        val pendingAvatar = profileAvatarDataUrl
         if (fullName.length > 80 || username.length > 30) {
             profileStatus.text = "Name must be 80 characters or fewer; username 30 or fewer."
             return
@@ -1875,17 +1912,19 @@ class MainActivity : ComponentActivity() {
             profileStatus.text = "Username can contain only letters, numbers, and underscores."
             return
         }
-        profileStatus.text = "Saving profile…"
+        profileStatus.text = if (pendingAvatar != null) "Uploading profile photo and saving…" else "Saving profile…"
         lifecycleScope.launch {
             try {
-                withContext(Dispatchers.IO) {
+                val savedAvatar = withContext(Dispatchers.IO) {
+                    val avatarUrl = pendingAvatar?.let { uploadProfileAvatar(session, uid, it) }
+                        ?: profileAvatarStoredUrl
                     patchRestJson(
                         "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?id=eq.$uid",
                         session,
                         JSONObject()
                             .put("full_name", fullName.ifEmpty { JSONObject.NULL })
                             .put("username", username.ifEmpty { JSONObject.NULL })
-                            .put("avatar_url", profileAvatarDataUrl ?: profileAvatarStoredUrl ?: JSONObject.NULL)
+                            .put("avatar_url", avatarUrl ?: JSONObject.NULL)
                     )
                     val verified = getRestJson(
                         "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?select=id,full_name,username,avatar_url&id=eq.$uid&limit=1",
@@ -1895,14 +1934,14 @@ class MainActivity : ComponentActivity() {
                     val saved = verified.getJSONObject(0)
                     val savedName = saved.optString("full_name").takeUnless { it == "null" } ?: ""
                     val savedUsername = saved.optString("username").takeUnless { it == "null" } ?: ""
-                    val savedAvatar = saved.optString("avatar_url").takeUnless { it == "null" } ?: ""
-                    if (savedName != fullName || savedUsername != username ||
-                        (profileAvatarDataUrl != null && savedAvatar != profileAvatarDataUrl)) {
+                    val verifiedAvatar = saved.optString("avatar_url").takeUnless { it == "null" }
+                    if (savedName != fullName || savedUsername != username || verifiedAvatar != avatarUrl) {
                         error("The saved profile values could not be verified.")
                     }
+                    verifiedAvatar
                 }
                 profileHeroNameUpdate(fullName, username)
-                profileAvatarStoredUrl = profileAvatarDataUrl ?: profileAvatarStoredUrl
+                profileAvatarStoredUrl = savedAvatar
                 profileAvatarDataUrl = null
                 profileStatus.text = "Profile name and photo saved."
             } catch (error: Exception) {
