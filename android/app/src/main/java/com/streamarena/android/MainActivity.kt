@@ -2776,6 +2776,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestPasswordReset() {
+        val attempt = authAttemptGeneration
         val email = emailInput.text.toString().trim()
         if (email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             setStatus("Enter a valid email address first.", true)
@@ -2793,6 +2794,7 @@ class MainActivity : ComponentActivity() {
                         JSONObject().put("email", email)
                     )
                 }
+                if (attempt != authAttemptGeneration) return@launch
                 AlertDialog.Builder(this@MainActivity)
                     .setTitle("Check your email")
                     .setMessage("If an account exists for $email, Supabase will send a password recovery email. Open the link in that email and follow the website instructions to choose a new password.")
@@ -2800,7 +2802,9 @@ class MainActivity : ComponentActivity() {
                     .show()
                 setStatus("Password recovery request submitted.")
             } catch (error: Exception) {
-                setStatus("Password recovery request failed: " + (error.message ?: "network error"), true)
+                if (attempt == authAttemptGeneration) {
+                    setStatus("Password recovery request failed: " + (error.message ?: "network error"), true)
+                }
             }
         }
     }
