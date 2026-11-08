@@ -106,6 +106,7 @@ class MainActivity : ComponentActivity() {
     private var gamesLoadJob: Job? = null
     private var liveStreamsLoadJob: Job? = null
     private var profileLoadJob: Job? = null
+    private var profileImageLoadJob: Job? = null
     private var activeSupportTicketId: String? = null
     private var communityMessageSending = false
     private var communitySendButton: Button? = null
@@ -129,7 +130,11 @@ class MainActivity : ComponentActivity() {
     private var profileAvatarView: ImageView? = null
 
     private val profileImagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) lifecycleScope.launch {
+        if (uri != null) {
+            profileImageLoadJob?.cancel()
+            val session = accessToken
+            val targetView = profileAvatarView
+            profileImageLoadJob = lifecycleScope.launch {
             try {
                 val resized = withContext(Dispatchers.IO) {
                     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -155,6 +160,10 @@ class MainActivity : ComponentActivity() {
                     if (output !== decoded) decoded.recycle()
                     output
                 }
+                if (accessToken != session || profileAvatarView !== targetView || targetView?.isAttachedToWindow != true) {
+                    resized.recycle()
+                    return@launch
+                }
                 val bytes = java.io.ByteArrayOutputStream().use { out ->
                     resized.compress(Bitmap.CompressFormat.JPEG, 72, out)
                     out.toByteArray()
@@ -162,10 +171,13 @@ class MainActivity : ComponentActivity() {
                 profileAvatarBitmap?.takeIf { it !== resized }?.recycle()
                 profileAvatarBitmap = resized
                 profileAvatarDataUrl = "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
-                profileAvatarView?.setImageBitmap(resized)
+                targetView.setImageBitmap(resized)
                 profileStatus.text = "Photo selected. Tap Save to update your profile picture."
             } catch (error: Exception) {
-                profileStatus.text = "Could not use this image: ${error.message ?: "unsupported image"}"
+                if (accessToken == session && profileAvatarView === targetView && targetView?.isAttachedToWindow == true) {
+                    profileStatus.text = "Could not use this image: ${error.message ?: "unsupported image"}"
+                }
+            }
             }
         }
     }
@@ -2587,6 +2599,7 @@ class MainActivity : ComponentActivity() {
         gamesLoadJob?.cancel(); gamesLoadJob = null
         liveStreamsLoadJob?.cancel(); liveStreamsLoadJob = null
         profileLoadJob?.cancel(); profileLoadJob = null
+        profileImageLoadJob?.cancel(); profileImageLoadJob = null
         communityFamiliesLoadJob?.cancel(); communityFamiliesLoadJob = null
         communityMessageLoadJob?.cancel(); communityMessageLoadJob = null
         communityRefreshJob?.cancel(); communityRefreshJob = null
