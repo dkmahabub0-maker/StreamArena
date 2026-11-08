@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
     private var activeStreamId: String? = null
     private var heartbeatJob: Job? = null
     private lateinit var liveStreamsContainer: LinearLayout
+    private lateinit var gamesContainer: LinearLayout
 
     private val cameraPreviewPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -253,11 +254,9 @@ class MainActivity : ComponentActivity() {
         root.addView(hero,LinearLayout.LayoutParams(-1,dp(190)).apply { bottomMargin=dp(12) })
         root.addView(makeButton("✦ ADS     Add System                         Go",true) { setStatus("Ad system is not connected yet.") },fieldLayout(dp(48),dp(16)))
         addSectionTitle(root,"Popular Games","See All →") { showExploreScreen() }
-        val games=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
-        listOf("🔥\nFree Fire","🎯\nPUBG MOBILE","🏆\nBGMI").forEach { name ->
-            games.addView(TextView(this).apply { text=name; gravity=Gravity.CENTER; textSize=15f; setTextColor(Color.WHITE); background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(112,25,155),Color.rgb(20,52,104))).apply { cornerRadius=dp(14).toFloat() }; setOnClickListener { selectedGameCategory=name.substringAfter("\n").uppercase() } },LinearLayout.LayoutParams(0,dp(112),1f).apply { setMargins(dp(3),0,dp(3),0) })
-        }
-        root.addView(games,bottomMargin(dp(18)))
+        gamesContainer=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
+        root.addView(gamesContainer,bottomMargin(dp(18)))
+        loadGames()
         addSectionTitle(root,"Live Streams","See All →") { loadLiveStreams() }
         liveStreamsContainer=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         root.addView(liveStreamsContainer,bottomMargin(dp(18)))
@@ -947,6 +946,50 @@ class MainActivity : ComponentActivity() {
             if (code !in 200..299) throw IllegalStateException("Database request failed (HTTP $code): $response")
             return org.json.JSONArray(response)
         } finally { connection.disconnect() }
+    }
+
+    private fun loadGames() {
+        if (!::gamesContainer.isInitialized) return
+        lifecycleScope.launch {
+            try {
+                val rows = withContext(Dispatchers.IO) {
+                    getRestJson("https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/games?select=id,name&order=name.asc&limit=12", accessToken)
+                }
+                gamesContainer.removeAllViews()
+                if (rows.length() == 0) {
+                    gamesContainer.addView(TextView(this@MainActivity).apply {
+                        text = "No games have been added yet."
+                        setTextColor(Color.LTGRAY)
+                    })
+                }
+                for (i in 0 until rows.length()) {
+                    val name = rows.getJSONObject(i).optString("name", "Game")
+                    gamesContainer.addView(TextView(this@MainActivity).apply {
+                        text = name
+                        gravity = Gravity.CENTER
+                        textSize = 14f
+                        setTextColor(Color.WHITE)
+                        setPadding(dp(8), dp(12), dp(8), dp(12))
+                        background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                            intArrayOf(Color.rgb(112,25,155), Color.rgb(20,52,104))).apply {
+                            cornerRadius = dp(14).toFloat()
+                        }
+                        setOnClickListener {
+                            selectedGameCategory = name.uppercase()
+                            setStatus("$name selected")
+                        }
+                    }, LinearLayout.LayoutParams(0, dp(92), 1f).apply {
+                        setMargins(dp(3), 0, dp(3), 0)
+                    })
+                }
+            } catch (error: Exception) {
+                gamesContainer.removeAllViews()
+                gamesContainer.addView(TextView(this@MainActivity).apply {
+                    text = "Games could not load: " + (error.message ?: "network error")
+                    setTextColor(Color.LTGRAY)
+                })
+            }
+        }
     }
 
     private fun loadLiveStreams() {
