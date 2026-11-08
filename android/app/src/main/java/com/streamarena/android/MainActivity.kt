@@ -106,6 +106,7 @@ class MainActivity : ComponentActivity() {
     private var activeCommunityFamilyId: String? = null
     private var profileAvatarBitmap: Bitmap? = null
     private var profileAvatarDataUrl: String? = null
+    private var profileAvatarStoredUrl: String? = null
     private var profileAvatarView: ImageView? = null
 
     private val profileImagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -1210,6 +1211,7 @@ class MainActivity : ComponentActivity() {
 
         root.addView(makeButton("Edit Profile", false) { openProfileEditor() }, fieldLayout(dp(46), dp(4)))
         root.addView(makeButton("Logout", true) { signOut() }, fieldLayout(dp(50), dp(8)))
+        loadProfileSummary()
         addBottomNav(4)
     }
 
@@ -1735,6 +1737,39 @@ class MainActivity : ComponentActivity() {
     private lateinit var profileUsernameInput: EditText
     private lateinit var profileStatus: TextView
 
+    private fun loadProfileSummary() {
+        val session = accessToken ?: return
+        val uid = userId ?: return
+        lifecycleScope.launch {
+            try {
+                val rows = withContext(Dispatchers.IO) {
+                    getRestJson("https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?select=full_name,username,avatar_url&id=eq.$uid&limit=1", session)
+                }
+                if (rows.length() == 0) return@launch
+                val row = rows.getJSONObject(0)
+                val name = row.optString("full_name").takeUnless { it == "null" } ?: ""
+                val username = row.optString("username").takeUnless { it == "null" } ?: ""
+                val avatar = row.optString("avatar_url").takeUnless { it == "null" || it.isBlank() }
+                profileAvatarStoredUrl = avatar
+                profileHeroNameUpdate(name, username)
+                if (avatar != null && avatar.startsWith("data:image/")) {
+                    val bytes = Base64.decode(avatar.substringAfter(",", ""), Base64.DEFAULT)
+                    profileAvatarBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    profileAvatarView?.setImageBitmap(profileAvatarBitmap)
+                } else if (avatar != null && (avatar.startsWith("https://") || avatar.startsWith("http://"))) {
+                    val bitmap = withContext(Dispatchers.IO) {
+                        (URL(avatar).openConnection() as HttpURLConnection).run {
+                            connectTimeout = 10000; readTimeout = 10000
+                            try { inputStream.use { BitmapFactory.decodeStream(it) } } finally { disconnect() }
+                        }
+                    }
+                    profileAvatarBitmap = bitmap
+                    profileAvatarView?.setImageBitmap(bitmap)
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
     private fun openProfileEditor() {
         val form = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1799,6 +1834,7 @@ class MainActivity : ComponentActivity() {
                 val savedName = row.optString("full_name").takeUnless { it == "null" } ?: ""
                 val savedUsername = row.optString("username").takeUnless { it == "null" } ?: ""
                 val avatarUrl = row.optString("avatar_url").takeUnless { it == "null" || it.isBlank() }
+                profileAvatarStoredUrl = avatarUrl
                 profileNameInput.setText(savedName)
                 profileUsernameInput.setText(savedUsername)
                 if (avatarUrl != null && avatarUrl.startsWith("data:image/")) {
@@ -1849,7 +1885,7 @@ class MainActivity : ComponentActivity() {
                         JSONObject()
                             .put("full_name", fullName.ifEmpty { JSONObject.NULL })
                             .put("username", username.ifEmpty { JSONObject.NULL })
-                            .put("avatar_url", profileAvatarDataUrl ?: JSONObject.NULL)
+                            .put("avatar_url", profileAvatarDataUrl ?: profileAvatarStoredUrl ?: JSONObject.NULL)
                     )
                     val verified = getRestJson(
                         "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?select=id,full_name,username,avatar_url&id=eq.$uid&limit=1",
@@ -1866,6 +1902,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 profileHeroNameUpdate(fullName, username)
+                profileAvatarStoredUrl = profileAvatarDataUrl ?: profileAvatarStoredUrl
                 profileAvatarDataUrl = null
                 profileStatus.text = "Profile name and photo saved."
             } catch (error: Exception) {
