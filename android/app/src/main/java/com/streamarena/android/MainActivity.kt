@@ -2499,6 +2499,7 @@ class MainActivity : ComponentActivity() {
                     userId = user.getString("id")
                     passwordInput.text.clear()
                     setContentView(liveScreen)
+                    loadLiveStreams()
                     setStatus("Account created. You are signed in.")
                 } else {
                     pendingSignupEmail = email
@@ -2783,7 +2784,6 @@ class MainActivity : ComponentActivity() {
                 if (!isActive || accessToken != token || userId != id) {
                     throw CancellationException("Live session ended during publisher setup.")
                 }
-                connectingRoom = null
                 heartbeatJob?.cancel()
                 heartbeatJob = lifecycleScope.launch {
                     while (activeStreamId == streamId && accessToken == token && userId == id) {
@@ -2805,6 +2805,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     setStatus("You are live with your camera and microphone.")
                 }
+                connectingRoom = null
             } catch (cancelled: CancellationException) {
                 withContext(NonCancellable) {
                     runCatching { connectingRoom?.disconnect() }
