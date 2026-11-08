@@ -101,6 +101,7 @@ class MainActivity : ComponentActivity() {
     private var supportTicketRepliesLoadJob: Job? = null
     private var supportTicketRefreshJob: Job? = null
     private var accountListLoadJob: Job? = null
+    private val respondingInvitationIds = mutableSetOf<String>()
     private var gamesLoadJob: Job? = null
     private var activeSupportTicketId: String? = null
     private var communityMessageSending = false
@@ -1585,8 +1586,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun respondToInvitation(inviteId: String, kind: String, accept: Boolean) {
-        if (inviteId.isBlank()) return
-        val token = accessToken ?: return
+        if (inviteId.isBlank() || !respondingInvitationIds.add(inviteId)) return
+        val token = accessToken
+        val uid = userId
+        if (token == null || uid == null) {
+            respondingInvitationIds.remove(inviteId)
+            return
+        }
         val rpc = if (kind == "Community invitation") "respond_family_invite" else "respond_tournament_invite"
         lifecycleScope.launch {
             try {
@@ -1617,10 +1623,18 @@ class MainActivity : ComponentActivity() {
                         connection.disconnect()
                     }
                 }
-                setStatus(if (accept) "Invitation accepted." else "Invitation declined.")
-                showNotifications()
+                if (accessToken == token && userId == uid) {
+                    setStatus(if (accept) "Invitation accepted." else "Invitation declined.")
+                    showNotifications()
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
-                setStatus("Could not respond: " + (error.message ?: "network error"))
+                if (accessToken == token && userId == uid) {
+                    setStatus("Could not respond: " + (error.message ?: "network error"))
+                }
+            } finally {
+                respondingInvitationIds.remove(inviteId)
             }
         }
     }
