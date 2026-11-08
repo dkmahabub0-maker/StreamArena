@@ -163,8 +163,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun buildUi() {
-        window.statusBarColor = Color.rgb(9, 14, 29)
-        window.navigationBarColor = Color.rgb(9, 14, 29)
+        window.statusBarColor = Color.rgb(5, 7, 19)
+        window.navigationBarColor = Color.rgb(5, 7, 19)
         buildAuthScreen()
         buildLiveScreen()
         buildWelcomeScreen()
@@ -1305,15 +1305,15 @@ class MainActivity : ComponentActivity() {
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun panelBackground(): GradientDrawable = GradientDrawable().apply {
-        setColor(Color.rgb(19, 28, 49))
+        setColor(Color.rgb(22, 18, 43))
         cornerRadius = dp(22).toFloat()
-        setStroke(dp(1), Color.rgb(37, 51, 78))
+        setStroke(dp(1), Color.rgb(65, 39, 102))
     }
 
     private fun inputBackground(): GradientDrawable = GradientDrawable().apply {
-        setColor(Color.rgb(11, 18, 34))
+        setColor(Color.rgb(31, 27, 57))
         cornerRadius = dp(13).toFloat()
-        setStroke(dp(1), Color.rgb(48, 65, 96))
+        setStroke(dp(1), Color.rgb(70, 51, 111))
     }
 
     private fun fieldLabel(value: String): TextView = TextView(this).apply {
@@ -1340,10 +1340,13 @@ class MainActivity : ComponentActivity() {
             textSize = 15f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.WHITE)
-            background = GradientDrawable().apply {
-                setColor(if (primary) Color.rgb(31, 123, 222) else Color.rgb(34, 48, 73))
-                cornerRadius = dp(14).toFloat()
-                if (!primary) setStroke(dp(1), Color.rgb(58, 77, 108))
+            background = GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                if (primary) intArrayOf(Color.rgb(139, 0, 255), Color.rgb(202, 0, 224), Color.rgb(118, 0, 255))
+                else intArrayOf(Color.rgb(34, 27, 61), Color.rgb(27, 24, 48))
+            ).apply {
+                cornerRadius = dp(18).toFloat()
+                if (!primary) setStroke(dp(1), Color.rgb(75, 55, 116))
             }
             stateListAnimator = null
             setOnClickListener { action() }
