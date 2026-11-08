@@ -93,6 +93,8 @@ class MainActivity : ComponentActivity() {
     private var room: Room? = null
     private var viewerRoom: Room? = null
     private var viewerEventJob: Job? = null
+    private var liveChatRefreshJob: Job? = null
+    private var communityRefreshJob: Job? = null
     private var viewerVideoTrack: VideoTrack? = null
     private var viewerRenderer: SurfaceViewRenderer? = null
     private var sharing = false
@@ -733,6 +735,8 @@ class MainActivity : ComponentActivity() {
     }
 
         private fun closeLiveViewer() {
+        liveChatRefreshJob?.cancel()
+        liveChatRefreshJob = null
         viewerEventJob?.cancel()
         viewerEventJob = null
         viewerVideoTrack?.let { track -> viewerRenderer?.let { renderer -> runCatching { track.removeRenderer(renderer) } } }
@@ -809,6 +813,12 @@ class MainActivity : ComponentActivity() {
         root.addView(composer, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(8) })
         liveScreen.addView(root, LinearLayout.LayoutParams(-1, -1))
         loadStreamChat(streamId, chat)
+        liveChatRefreshJob = lifecycleScope.launch {
+            while (viewerRenderer === renderer && viewerRoom != null) {
+                delay(6000)
+                if (viewerRenderer === renderer && viewerRoom != null) loadStreamChat(streamId, chat)
+            }
+        }
 
         lifecycleScope.launch {
             try {
@@ -856,6 +866,9 @@ class MainActivity : ComponentActivity() {
             try {
                 val endpoint = "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/chat_messages?select=id,user_id,message,created_at&stream_id=eq." + streamId + "&order=created_at.asc&limit=80"
                 val rows = withContext(Dispatchers.IO) { getRestJson(endpoint, accessToken) }
+                val scroll = target.parent as? ScrollView
+                val wasAtBottom = scroll != null && scroll.height > 0 &&
+                    scroll.scrollY + scroll.height >= target.height - dp(24)
                 target.removeAllViews()
                 for (index in 0 until rows.length()) {
                     val row = rows.getJSONObject(index)
@@ -874,6 +887,9 @@ class MainActivity : ComponentActivity() {
                     gravity = Gravity.CENTER
                     setPadding(0, dp(20), 0, dp(20))
                 })
+                if (wasAtBottom || rows.length() <= 1) scroll?.post {
+                    scroll.fullScroll(ScrollView.FOCUS_DOWN)
+                }
             } catch (error: Exception) {
                 target.addView(TextView(this@MainActivity).apply {
                     text = "Chat unavailable: " + (error.message ?: "network error")
@@ -981,6 +997,8 @@ class MainActivity : ComponentActivity() {
         communityFamiliesContainer.removeAllViews()
         communityChatContainer.removeAllViews()
         communityMessageInput.isEnabled = false
+        communityRefreshJob?.cancel()
+        communityRefreshJob = null
         activeCommunityFamilyId = null
         if (session == null || uid == null) {
             communityFamiliesContainer.addView(TextView(this).apply {
@@ -1049,6 +1067,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openCommunityFamily(familyId: String, familyName: String) {
+        communityRefreshJob?.cancel()
         activeCommunityFamilyId = familyId
         communityMessageInput.isEnabled = true
         communityChatContainer.removeAllViews()
@@ -1057,6 +1076,12 @@ class MainActivity : ComponentActivity() {
             setTextColor(Color.LTGRAY)
         })
         loadCommunityMessages(familyId)
+        communityRefreshJob = lifecycleScope.launch {
+            while (activeCommunityFamilyId == familyId) {
+                delay(6000)
+                if (activeCommunityFamilyId == familyId) loadCommunityMessages(familyId)
+            }
+        }
     }
 
     private fun loadCommunityMessages(familyId: String) {
@@ -1070,6 +1095,9 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 if (activeCommunityFamilyId != familyId || !::communityChatContainer.isInitialized) return@launch
+                val scroll = communityChatContainer.parent as? ScrollView
+                val wasAtBottom = scroll != null && scroll.height > 0 &&
+                    scroll.scrollY + scroll.height >= communityChatContainer.height - dp(24)
                 communityChatContainer.removeAllViews()
                 if (messages.length() == 0) {
                     communityChatContainer.addView(TextView(this@MainActivity).apply {
@@ -1088,6 +1116,9 @@ class MainActivity : ComponentActivity() {
                         setPadding(dp(10), dp(8), dp(10), dp(8))
                         background = panelBackground()
                     }, bottomMargin(dp(6)))
+                }
+                if (wasAtBottom || messages.length() <= 1) scroll?.post {
+                    scroll.fullScroll(ScrollView.FOCUS_DOWN)
                 }
             } catch (error: Exception) {
                 if (activeCommunityFamilyId != familyId) return@launch
