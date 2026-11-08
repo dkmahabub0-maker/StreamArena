@@ -2475,6 +2475,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun verifySignupOtp() {
+        val attempt = authAttemptGeneration
         val email = pendingSignupEmail ?: emailInput.text.toString().trim()
         val code = otpInput.text.toString().trim()
         if (email.isBlank() || code.length !in 6..8) {
@@ -2493,6 +2494,7 @@ class MainActivity : ComponentActivity() {
                         JSONObject().put("type", "signup").put("email", email).put("token", code)
                     )
                 }
+                if (attempt != authAttemptGeneration) return@launch
                 accessToken = result.getString("access_token")
                 userId = result.optJSONObject("user")?.optString("id")
                     ?.takeIf { it.isNotBlank() }
@@ -2504,10 +2506,14 @@ class MainActivity : ComponentActivity() {
                 loadLiveStreams()
                 setStatus("Email confirmed. Welcome to StreamArena.")
             } catch (error: Exception) {
-                setStatus("Code verification failed: ${error.message ?: "unknown error"}", true)
+                if (attempt == authAttemptGeneration) {
+                    setStatus("Code verification failed: ${error.message ?: "unknown error"}", true)
+                }
             } finally {
-                otpVerifyButton.isEnabled = true
-                otpVerifyButton.text = "Verify code"
+                if (attempt == authAttemptGeneration) {
+                    otpVerifyButton.isEnabled = true
+                    otpVerifyButton.text = "Verify code"
+                }
             }
         }
     }
