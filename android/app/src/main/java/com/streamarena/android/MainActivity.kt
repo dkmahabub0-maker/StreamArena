@@ -352,7 +352,122 @@ class MainActivity : ComponentActivity() {
         liveScreen.addView(nav)
     }
 
-        private fun showExploreScreen() {
+        private fun showCreateScreen() {
+        liveScreen.removeAllViews()
+        val sc = ScrollView(this)
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(18), dp(16), dp(18))
+        }
+        sc.addView(root)
+        liveScreen.addView(sc, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(TextView(this).apply {
+            text = "‹      Go Live"
+            textSize = 21f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            setOnClickListener { buildLiveScreen(); setContentView(liveScreen) }
+        }, bottomMargin(dp(12)))
+
+        val preview = FrameLayout(this).apply {
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(93, 0, 180), Color.rgb(12, 28, 91), Color.rgb(5, 9, 27))).apply {
+                cornerRadius = dp(18).toFloat()
+            }
+        }
+        cameraPreviewView = PreviewView(this).apply {
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            scaleType = PreviewView.ScaleType.FILL_CENTER
+            setBackgroundColor(Color.TRANSPARENT)
+        }
+        preview.addView(cameraPreviewView, FrameLayout.LayoutParams(-1, dp(188)))
+        preview.addView(TextView(this).apply {
+            text = "🔴 LIVE"
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            setPadding(dp(10), dp(6), dp(10), dp(6))
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(235, 15, 54)); cornerRadius = dp(8).toFloat()
+            }
+        }, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.LEFT).apply {
+            leftMargin = dp(10); topMargin = dp(10)
+        })
+        root.addView(preview, LinearLayout.LayoutParams(-1, dp(188)).apply { bottomMargin = dp(14) })
+
+        fun fieldLabel(label: String) {
+            root.addView(TextView(this).apply {
+                text = label
+                textSize = 13f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+            }, bottomMargin(dp(6)))
+        }
+        fieldLabel("Stream Title")
+        titleInput = EditText(this).apply {
+            hint = "Gaming Live 🔥"
+            setSingleLine(true)
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            background = inputBackground()
+            setPadding(dp(12), 0, dp(12), 0)
+        }
+        root.addView(titleInput, fieldLayout(dp(48), dp(12)))
+        fieldLabel("Select Category")
+        root.addView(makeButton("🎮   $selectedGameCategory     ▾", false) {
+            val choices = arrayOf("FREE FIRE", "PUBG MOBILE", "BGMI", "CALL OF DUTY", "OTHER")
+            AlertDialog.Builder(this).setTitle("Select Game")
+                .setItems(choices) { _, which ->
+                    selectedGameCategory = choices[which]
+                    (root.getChildAt(5) as? Button)?.text = "🎮   $selectedGameCategory     ▾"
+                }.show()
+        }, fieldLayout(dp(48), dp(10)))
+
+        val cameraToggle = CheckBox(this).apply {
+            text = "Enable Camera"
+            isChecked = selectedLiveMode == "camera"
+            setTextColor(Color.WHITE)
+            buttonTintList = android.content.res.ColorStateList.valueOf(Color.rgb(176, 0, 255))
+            setOnCheckedChangeListener { _, checked ->
+                if (checked) {
+                    selectedLiveMode = "camera"
+                    showCameraPreview()
+                } else if (selectedLiveMode == "camera") stopCameraPreview()
+            }
+        }
+        root.addView(cameraToggle, fieldLayout(dp(42), dp(2)))
+        val screenToggle = CheckBox(this).apply {
+            text = "Enable Screen Share"
+            isChecked = selectedLiveMode == "screen"
+            setTextColor(Color.WHITE)
+            buttonTintList = android.content.res.ColorStateList.valueOf(Color.rgb(176, 0, 255))
+            setOnCheckedChangeListener { _, checked ->
+                if (checked) {
+                    selectedLiveMode = "screen"
+                    cameraToggle.isChecked = false
+                    stopCameraPreview()
+                    cameraPreviewView.visibility = android.view.View.GONE
+                } else if (selectedLiveMode == "screen") {
+                    selectedLiveMode = "camera"
+                    cameraPreviewView.visibility = android.view.View.VISIBLE
+                }
+            }
+        }
+        root.addView(screenToggle, fieldLayout(dp(42), dp(2)))
+        startLiveButton = makeButton("Start Live  ▶", true) { startLive() }
+        root.addView(startLiveButton, fieldLayout(dp(52), dp(14)))
+        liveStatus = TextView(this).apply {
+            text = "Ready to stream"
+            textSize = 12f
+            gravity = Gravity.CENTER
+            setTextColor(Color.LTGRAY)
+        }
+        root.addView(liveStatus, bottomMargin(dp(6)))
+        addBottomNav(2)
+        if (selectedLiveMode == "camera") showCameraPreview() else stopCameraPreview()
+    }
+
+    private fun showExploreScreen() {
         liveScreen.removeAllViews()
         val sc = ScrollView(this)
         val root = LinearLayout(this).apply {
@@ -419,7 +534,7 @@ class MainActivity : ComponentActivity() {
                         isFocusable = true
                         setOnClickListener {
                             selectedGameCategory = name.uppercase()
-                            buildLiveScreen(); setContentView(liveScreen); val homeScroll = liveScreen.getChildAt(0) as? ScrollView; if (homeScroll != null) openLiveSetup("camera", homeScroll)
+                            showCreateScreen()
                         }
                     }
                     item.addView(TextView(this@MainActivity).apply {
@@ -451,7 +566,7 @@ class MainActivity : ComponentActivity() {
                 })
             }
         }
-        root.addView(makeButton("Go Live", true) { buildLiveScreen(); setContentView(liveScreen); val homeScroll = liveScreen.getChildAt(0) as? ScrollView; if (homeScroll != null) openLiveSetup("camera", homeScroll) },
+        root.addView(makeButton("Go Live", true) { showCreateScreen() },
             fieldLayout(dp(50), dp(8)))
         addBottomNav(1)
     }
