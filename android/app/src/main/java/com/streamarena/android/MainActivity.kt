@@ -1045,12 +1045,14 @@ class MainActivity : ComponentActivity() {
 
     private fun loadCommunityFamilies() {
         if (!::communityFamiliesContainer.isInitialized) return
+        val targetFamilies = communityFamiliesContainer
+        val targetChat = communityChatContainer
         val session = accessToken
         val uid = userId
         communityFamiliesLoadJob?.cancel()
         communityFamiliesLoadJob = null
-        communityFamiliesContainer.removeAllViews()
-        communityChatContainer.removeAllViews()
+        targetFamilies.removeAllViews()
+        targetChat.removeAllViews()
         communityMessageInput.isEnabled = false
         communitySendButton?.isEnabled = false
         communityRefreshJob?.cancel()
@@ -1059,13 +1061,13 @@ class MainActivity : ComponentActivity() {
         communityMessageLoadJob = null
         activeCommunityFamilyId = null
         if (session == null || uid == null) {
-            communityFamiliesContainer.addView(TextView(this).apply {
+            targetFamilies.addView(TextView(this).apply {
                 text = "Sign in to view your communities."
                 setTextColor(Color.LTGRAY)
             })
             return
         }
-        communityFamiliesContainer.addView(TextView(this).apply {
+        targetFamilies.addView(TextView(this).apply {
             text = "Loading communities…"
             setTextColor(Color.LTGRAY)
         })
@@ -1087,7 +1089,8 @@ class MainActivity : ComponentActivity() {
                         session
                     )
                 }
-                communityFamiliesContainer.removeAllViews()
+                if (communityFamiliesContainer !== targetFamilies || !targetFamilies.isAttachedToWindow) return@launch
+                targetFamilies.removeAllViews()
                 var shown = 0
                 for (i in 0 until families.length()) {
                     val family = families.getJSONObject(i)
@@ -1095,7 +1098,7 @@ class MainActivity : ComponentActivity() {
                     if (familyId !in memberIds) continue
                     shown++
                     val familyName = family.optString("name", "Community")
-                    communityFamiliesContainer.addView(
+                    targetFamilies.addView(
                         makeButton("👥   $familyName   ›", shown == 1) {
                             openCommunityFamily(familyId, familyName)
                         },
@@ -1103,13 +1106,13 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 if (shown == 0) {
-                    communityFamiliesContainer.addView(TextView(this@MainActivity).apply {
+                    targetFamilies.addView(TextView(this@MainActivity).apply {
                         text = "You have not joined a community yet. Ask a community owner to invite your account."
                         textSize = 13f
                         setTextColor(Color.LTGRAY)
                         setPadding(dp(8), dp(10), dp(8), dp(10))
                     })
-                    communityChatContainer.addView(TextView(this@MainActivity).apply {
+                    targetChat.addView(TextView(this@MainActivity).apply {
                         text = "Community messages will appear here after you join."
                         setTextColor(Color.LTGRAY)
                     })
@@ -1117,8 +1120,9 @@ class MainActivity : ComponentActivity() {
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
             } catch (error: Exception) {
-                communityFamiliesContainer.removeAllViews()
-                communityFamiliesContainer.addView(TextView(this@MainActivity).apply {
+                if (communityFamiliesContainer !== targetFamilies || !targetFamilies.isAttachedToWindow) return@launch
+                targetFamilies.removeAllViews()
+                targetFamilies.addView(TextView(this@MainActivity).apply {
                     text = "Communities could not load: " + (error.message ?: "network error")
                     setTextColor(Color.rgb(255, 140, 140))
                     setPadding(dp(8), dp(8), dp(8), dp(8))
