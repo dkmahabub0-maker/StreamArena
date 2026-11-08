@@ -1707,12 +1707,18 @@ class MainActivity : ComponentActivity() {
                             JSONObject().put("user_id", uid).put("subject", subject).put("message", message)
                         )
                     }
-                    statusText.text = "Support request submitted."
-                    subjectInput.text.clear()
-                    messageInput.text.clear()
-                    showSupportTickets()
+                    if (root.isAttachedToWindow) {
+                        statusText.text = "Support request submitted."
+                        subjectInput.text.clear()
+                        messageInput.text.clear()
+                        showSupportTickets()
+                    }
+                } catch (error: kotlinx.coroutines.CancellationException) {
+                    throw error
                 } catch (error: Exception) {
-                    statusText.text = "Request failed: " + (error.message ?: "network or access policy error")
+                    if (root.isAttachedToWindow) {
+                        statusText.text = "Request failed: " + (error.message ?: "network or access policy error")
+                    }
                 } finally {
                     ticketSending = false
                     subjectInput.isEnabled = true
@@ -1820,10 +1826,16 @@ class MainActivity : ComponentActivity() {
                             JSONObject().put("ticket_id", ticketId).put("sender_id", uid).put("message", message)
                         )
                     }
-                    if (composer.text.toString().trim() == message) composer.text.clear()
-                    loadSupportTicketReplies(ticketId, messages)
+                    if (activeSupportTicketId == ticketId && messages.isAttachedToWindow) {
+                        if (composer.text.toString().trim() == message) composer.text.clear()
+                        loadSupportTicketReplies(ticketId, messages)
+                    }
+                } catch (error: kotlinx.coroutines.CancellationException) {
+                    throw error
                 } catch (error: Exception) {
-                    setStatus("Reply failed: " + (error.message ?: "network or access policy error"), true)
+                    if (activeSupportTicketId == ticketId && messages.isAttachedToWindow) {
+                        setStatus("Reply failed: " + (error.message ?: "network or access policy error"), true)
+                    }
                 } finally {
                     replySending = false
                     composer.isEnabled = true
