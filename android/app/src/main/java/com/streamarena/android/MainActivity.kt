@@ -1374,16 +1374,72 @@ class MainActivity : ComponentActivity() {
                     val field = if (kind == "Community invitation") "name" else "title"
                     val name = related?.optString(field)?.takeIf { !it.isNullOrBlank() && it != "null" } ?: "Invitation"
                     val date = row.optString("created_at").take(10)
-                    list.addView(TextView(this).apply {
+                    val card = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(dp(14), dp(12), dp(14), dp(12))
+                        background = panelBackground()
+                    }
+                    card.addView(TextView(this).apply {
                         text = kind + "\n" + name + "\nPending · " + date
                         textSize = 14f
                         setTextColor(Color.WHITE)
-                        setPadding(dp(14), dp(13), dp(14), dp(13))
-                        background = panelBackground()
-                    }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+                    })
+                    val actions = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.END
+                    }
+                    actions.addView(makeButton("Decline", false) {
+                        respondToInvitation(row.optString("id"), kind, false)
+                    }, LinearLayout.LayoutParams(0, dp(42), 1f).apply { rightMargin = dp(6) })
+                    actions.addView(makeButton("Accept", true) {
+                        respondToInvitation(row.optString("id"), kind, true)
+                    }, LinearLayout.LayoutParams(0, dp(42), 1f).apply { leftMargin = dp(6) })
+                    card.addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
+                    list.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
                 }
             }
         )
+    }
+
+    private fun respondToInvitation(inviteId: String, kind: String, accept: Boolean) {
+        if (inviteId.isBlank()) return
+        val token = accessToken ?: return
+        val rpc = if (kind == "Community invitation") "respond_family_invite" else "respond_tournament_invite"
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val connection = (URL("https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/rpc/$rpc").openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        connectTimeout = 15000
+                        readTimeout = 20000
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                        setRequestProperty("apikey", "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2")
+                        setRequestProperty("Authorization", "Bearer $token")
+                    }
+                    try {
+                        val body = JSONObject().put("p_invite_id", inviteId).put("p_accept", accept)
+                        connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                        val code = connection.responseCode
+                        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                        val response = stream.bufferedReader().use { it.readText() }
+                        if (code !in 200..299) {
+                            val message = runCatching {
+                                val json = JSONObject(response)
+                                json.optString("message").ifBlank { json.optString("msg") }.ifBlank { json.optString("error") }
+                            }.getOrDefault("")
+                            throw IllegalStateException(message.ifBlank { "Server returned HTTP $code" })
+                        }
+                    } finally {
+                        connection.disconnect()
+                    }
+                }
+                setStatus(if (accept) "Invitation accepted." else "Invitation declined.")
+                showNotifications()
+            } catch (error: Exception) {
+                setStatus("Could not respond: " + (error.message ?: "network error"))
+            }
+        }
     }
 
     private fun showMyStreams() {
