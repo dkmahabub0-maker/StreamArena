@@ -44,6 +44,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -683,9 +684,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private lateinit var profileNameInput: EditText
-    private lateinit var profileUsernameInput: EditText
-    private lateinit var profileStatus: TextView
 
     private fun showProfileScreen() {
         liveScreen.removeAllViews()
@@ -933,7 +931,7 @@ class MainActivity : ComponentActivity() {
                 for (i in 0 until rows.length()) {
                     val row = rows.getJSONObject(i)
                     list.addView(TextView(this@MainActivity).apply {
-                        text = row.optString("subject") + "\\n" + row.optString("status") + " • " + row.optString("created_at")
+                        text = row.optString("subject") + "\n" + row.optString("status") + " • " + row.optString("created_at")
                         textSize = 14f
                         setTextColor(Color.WHITE)
                         setPadding(dp(12), dp(12), dp(12), dp(12))
