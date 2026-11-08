@@ -93,6 +93,7 @@ class MainActivity : ComponentActivity() {
     private var room: Room? = null
     private var viewerRoom: Room? = null
     private var viewerEventJob: Job? = null
+    private var viewerConnectJob: Job? = null
     private var liveChatRefreshJob: Job? = null
     private var communityRefreshJob: Job? = null
     private var streamChatLoadJob: Job? = null
@@ -749,6 +750,8 @@ class MainActivity : ComponentActivity() {
         streamChatLoadJob = null
         viewerEventJob?.cancel()
         viewerEventJob = null
+        viewerConnectJob?.cancel()
+        viewerConnectJob = null
         viewerVideoTrack?.let { track -> viewerRenderer?.let { renderer -> runCatching { track.removeRenderer(renderer) } } }
         viewerVideoTrack = null
         viewerRenderer?.let { renderer -> runCatching { renderer.release() } }
@@ -855,11 +858,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        lifecycleScope.launch {
+        viewerConnectJob = lifecycleScope.launch {
+            var connectingRoom: Room? = null
             try {
                 val token = accessToken ?: error("Sign in to watch live streams.")
                 val credentials = withContext(Dispatchers.IO) { requestViewerToken(token, streamId) }
+                if (viewerRenderer !== renderer || !renderer.isAttachedToWindow) return@launch
                 val liveRoom = LiveKit.create(applicationContext)
+                connectingRoom = liveRoom
                 viewerRoom = liveRoom
                 liveRoom.initVideoRenderer(renderer)
                 viewerEventJob = lifecycleScope.launch {
@@ -888,10 +894,24 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
+                if (viewerRenderer !== renderer || viewerRoom !== liveRoom) {
+                    runCatching { liveRoom.disconnect() }
+                    return@launch
+                }
                 playbackStatus.text = "Connected • Waiting for video…"
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                connectingRoom?.let { staleRoom ->
+                    runCatching { staleRoom.disconnect() }
+                    if (viewerRoom === staleRoom) viewerRoom = null
+                }
+                throw error
             } catch (error: Exception) {
-                playbackStatus.text = "Playback unavailable: " + (error.message ?: "connection failed")
-                closeLiveViewer()
+                if (viewerRenderer === renderer) {
+                    playbackStatus.text = "Playback unavailable: " + (error.message ?: "connection failed")
+                    closeLiveViewer()
+                } else {
+                    connectingRoom?.let { staleRoom -> runCatching { staleRoom.disconnect() } }
+                }
             }
         }
     }
