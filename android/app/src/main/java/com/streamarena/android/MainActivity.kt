@@ -415,14 +415,15 @@ class MainActivity : ComponentActivity() {
         }
         root.addView(titleInput, fieldLayout(dp(48), dp(12)))
         fieldLabel("Select Category")
-        root.addView(makeButton("🎮   $selectedGameCategory     ▾", false) {
+        val categoryButton = makeButton("🎮   $selectedGameCategory     ▾", false) {
             val choices = arrayOf("FREE FIRE", "PUBG MOBILE", "BGMI", "CALL OF DUTY", "OTHER")
             AlertDialog.Builder(this).setTitle("Select Game")
                 .setItems(choices) { _, which ->
                     selectedGameCategory = choices[which]
-                    (root.getChildAt(5) as? Button)?.text = "🎮   $selectedGameCategory     ▾"
+                    categoryButton.text = "🎮   $selectedGameCategory     ▾"
                 }.show()
-        }, fieldLayout(dp(48), dp(10)))
+        }
+        root.addView(categoryButton, fieldLayout(dp(48), dp(10)))
 
         val cameraToggle = CheckBox(this).apply {
             text = "Enable Camera"
@@ -465,7 +466,20 @@ class MainActivity : ComponentActivity() {
         }
         root.addView(liveStatus, bottomMargin(dp(6)))
         addBottomNav(2)
-        if (selectedLiveMode == "camera") showCameraPreview() else stopCameraPreview()
+        if (selectedLiveMode == "camera") {
+            cameraPreviewView.visibility = android.view.View.VISIBLE
+            showCameraPreview()
+        } else {
+            stopCameraPreview()
+            cameraPreviewView.visibility = android.view.View.GONE
+            preview.addView(TextView(this).apply {
+                text = "▣\nShare Your Screen"
+                textSize = 22f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+            }, FrameLayout.LayoutParams(-1, -1))
+        }
     }
 
     private fun showExploreScreen() {
