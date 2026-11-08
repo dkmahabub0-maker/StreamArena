@@ -627,6 +627,39 @@ class MainActivity : ComponentActivity() {
         }, LinearLayout.LayoutParams(0, dp(48), 1f))
         heading.addView(makeButton("Refresh", false) { loadCommunityFamilies() })
         root.addView(heading, bottomMargin(dp(12)))
+        val communityHero = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(14), dp(14), dp(14))
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.rgb(48, 9, 104), Color.rgb(91, 0, 151), Color.rgb(31, 16, 62))).apply {
+                cornerRadius = dp(20).toFloat()
+                setStroke(dp(1), Color.rgb(102, 35, 157))
+            }
+        }
+        communityHero.addView(TextView(this).apply {
+            text = "♟"
+            textSize = 34f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+        }, LinearLayout.LayoutParams(dp(58), dp(58)))
+        communityHero.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(TextView(this@MainActivity).apply {
+                text = "Your Gaming Squad"
+                textSize = 15f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+            })
+            addView(TextView(this@MainActivity).apply {
+                text = "Chat, connect and play together"
+                textSize = 11f
+                setTextColor(Color.LTGRAY)
+            })
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = dp(8) })
+        communityHero.addView(makeButton("Refresh", true) { loadCommunityFamilies() },
+            LinearLayout.LayoutParams(dp(92), dp(42)))
+        root.addView(communityHero, bottomMargin(dp(16)))
         root.addView(TextView(this).apply {
             text = "Your communities"
             textSize = 15f
