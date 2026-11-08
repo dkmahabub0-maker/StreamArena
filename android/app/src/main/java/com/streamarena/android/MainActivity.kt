@@ -1773,13 +1773,19 @@ class MainActivity : ComponentActivity() {
             setPadding(dp(12), dp(8), dp(12), dp(8))
         }
         root.addView(composer, fieldLayout(dp(90), dp(8)))
-        root.addView(makeButton("Send Reply", true) {
+        var replySending = false
+        val sendReplyButton = makeButton("Send Reply", true) {
+            if (replySending) return@makeButton
             val message = composer.text.toString().trim()
             val uid = userId ?: return@makeButton
             if (message.isEmpty() || message.length > 5000) {
                 setStatus("Reply must contain 1–5000 characters.", true)
                 return@makeButton
             }
+            replySending = true
+            composer.isEnabled = false
+            sendReplyButton.isEnabled = false
+            sendReplyButton.text = "Sending…"
             lifecycleScope.launch {
                 try {
                     withContext(Dispatchers.IO) {
@@ -1789,13 +1795,19 @@ class MainActivity : ComponentActivity() {
                             JSONObject().put("ticket_id", ticketId).put("sender_id", uid).put("message", message)
                         )
                     }
-                    composer.text.clear()
+                    if (composer.text.toString().trim() == message) composer.text.clear()
                     loadSupportTicketReplies(ticketId, messages)
                 } catch (error: Exception) {
                     setStatus("Reply failed: " + (error.message ?: "network or access policy error"), true)
+                } finally {
+                    replySending = false
+                    composer.isEnabled = true
+                    sendReplyButton.isEnabled = true
+                    sendReplyButton.text = "Send Reply"
                 }
             }
-        }, fieldLayout(dp(48), dp(4)))
+        }
+        root.addView(sendReplyButton, fieldLayout(dp(48), dp(4)))
         liveScreen.addView(root, LinearLayout.LayoutParams(-1, 0, 1f))
         addBottomNav()
         loadSupportTicketReplies(ticketId, messages)
