@@ -313,13 +313,110 @@ class MainActivity : ComponentActivity() {
         liveScreen.addView(nav)
     }
     private fun showExploreScreen() {
-        liveScreen.removeAllViews(); val sc=ScrollView(this); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(18),dp(24),dp(18),dp(20)) }
-        sc.addView(root); liveScreen.addView(sc,LinearLayout.LayoutParams(-1,0,1f))
-        root.addView(TextView(this).apply { text="Explore Games"; textSize=24f; setTextColor(Color.WHITE) },bottomMargin(dp(18)))
-        listOf("Free Fire","PUBG MOBILE","BGMI","ACTION","BATTLE","SPORTS","RACING").forEach { game -> root.addView(makeButton("🎮   "+game,false) { selectedGameCategory=game.uppercase(); buildLiveScreen(); setContentView(liveScreen) },fieldLayout(dp(58),dp(8))) }
+        liveScreen.removeAllViews()
+        val sc = ScrollView(this)
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(20), dp(16), dp(18))
+        }
+        sc.addView(root)
+        liveScreen.addView(sc, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(TextView(this).apply {
+            text = "Explore"
+            textSize = 24f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(4)))
+        root.addView(TextView(this).apply {
+            text = "Discover games and choose what you want to stream"
+            textSize = 13f
+            setTextColor(Color.LTGRAY)
+        }, bottomMargin(dp(16)))
+        val games = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = panelBackground()
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+        }
+        root.addView(games, bottomMargin(dp(14)))
+        games.addView(TextView(this).apply {
+            text = "Popular Games"
+            textSize = 17f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(8)))
+        games.addView(TextView(this).apply {
+            text = "Loading games…"
+            textSize = 13f
+            setTextColor(Color.LTGRAY)
+        })
+        lifecycleScope.launch {
+            try {
+                val rows = withContext(Dispatchers.IO) {
+                    getRestJson("https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/games?select=id,name&order=name.asc&limit=50", accessToken)
+                }
+                games.removeAllViews()
+                games.addView(TextView(this@MainActivity).apply {
+                    text = "Popular Games"
+                    textSize = 17f
+                    setTextColor(Color.WHITE)
+                    typeface = Typeface.DEFAULT_BOLD
+                }, bottomMargin(dp(8)))
+                if (rows.length() == 0) {
+                    games.addView(TextView(this@MainActivity).apply {
+                        text = "No games have been added yet."
+                        setTextColor(Color.LTGRAY)
+                        textSize = 13f
+                    })
+                }
+                for (index in 0 until rows.length()) {
+                    val name = rows.getJSONObject(index).optString("name", "Game")
+                    val item = LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding(dp(10), dp(4), dp(10), dp(4))
+                        background = inputBackground()
+                        isClickable = true
+                        isFocusable = true
+                        setOnClickListener {
+                            selectedGameCategory = name.uppercase()
+                            openLiveSetup("camera", sc)
+                        }
+                    }
+                    item.addView(TextView(this@MainActivity).apply {
+                        text = "🎮"
+                        textSize = 22f
+                        gravity = Gravity.CENTER
+                    }, LinearLayout.LayoutParams(dp(44), dp(52)))
+                    item.addView(TextView(this@MainActivity).apply {
+                        text = name
+                        textSize = 14f
+                        setTextColor(Color.WHITE)
+                        typeface = Typeface.DEFAULT_BOLD
+                    }, LinearLayout.LayoutParams(0, dp(52), 1f))
+                    item.addView(TextView(this@MainActivity).apply {
+                        text = "›"
+                        textSize = 24f
+                        setTextColor(Color.LTGRAY)
+                    })
+                    games.addView(item, LinearLayout.LayoutParams(-1, dp(56)).apply {
+                        bottomMargin = dp(6)
+                    })
+                }
+            } catch (error: Exception) {
+                games.removeAllViews()
+                games.addView(TextView(this@MainActivity).apply {
+                    text = "Games could not load: " + (error.message ?: "network error")
+                    setTextColor(Color.LTGRAY)
+                    textSize = 13f
+                })
+            }
+        }
+        root.addView(makeButton("Go Live", true) { openLiveSetup("camera", sc) },
+            fieldLayout(dp(50), dp(8)))
         addBottomNav()
     }
-    private fun closeLiveViewer() {
+
+        private fun closeLiveViewer() {
         viewerEventJob?.cancel()
         viewerEventJob = null
         viewerVideoTrack?.let { track -> viewerRenderer?.let { renderer -> runCatching { track.removeRenderer(renderer) } } }
