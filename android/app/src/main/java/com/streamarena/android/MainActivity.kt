@@ -730,23 +730,223 @@ class MainActivity : ComponentActivity() {
         root.addView(makeButton("Save Profile", true) { saveProfile() }, fieldLayout(dp(50), dp(6)))
         root.addView(makeButton("Refresh Profile", false) { loadProfile() }, fieldLayout(dp(46), dp(14)))
         root.addView(TextView(this).apply {
-            text = "Account"
+            text = "Your Activity"
             textSize = 17f
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
         }, bottomMargin(dp(8)))
-        root.addView(makeButton("View Orders", false) {
-            setStatus("Order history is not connected to the backend yet.")
+        root.addView(makeButton("My Streams", false) { showMyStreams() }, fieldLayout(dp(48), dp(4)))
+        root.addView(makeButton("Tournament Registrations", false) { showMyTournamentRegistrations() }, fieldLayout(dp(48), dp(4)))
+        root.addView(makeButton("Watch History", false) {
+            showUnavailableAccountFeature("Watch History", "The app does not currently record watched streams.")
         }, fieldLayout(dp(48), dp(4)))
-        listOf("My Streams", "Watch History", "Settings", "Notifications", "Help & Support", "About App").forEach { item ->
-            root.addView(makeButton("⚙   $item      ›", false) {
-                if (item == "Settings") showLiveSettings() else setStatus("$item is not connected yet.")
-            }, fieldLayout(dp(48), dp(4)))
-        }
+        root.addView(TextView(this).apply {
+            text = "Orders & Support"
+            textSize = 17f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, fieldLayout(dp(40), dp(8)))
+        root.addView(makeButton("View Orders", false) {
+            showUnavailableAccountFeature("Orders", "No orders or purchase-history table is configured in this backend.")
+        }, fieldLayout(dp(48), dp(4)))
+        root.addView(makeButton("Help & Support", false) { showSupportTickets() }, fieldLayout(dp(48), dp(4)))
+        root.addView(makeButton("Settings", false) { showLiveSettings() }, fieldLayout(dp(48), dp(4)))
+        root.addView(makeButton("Notifications", false) {
+            showUnavailableAccountFeature("Notifications", "A notifications inbox is not connected yet.")
+        }, fieldLayout(dp(48), dp(4)))
+        root.addView(makeButton("About App", false) {
+            showUnavailableAccountFeature("About StreamArena", "StreamArena Android app.")
+        }, fieldLayout(dp(48), dp(4)))
         root.addView(makeButton("Logout", true) { signOut() }, fieldLayout(dp(52), dp(16)))
         addBottomNav()
         loadProfile()
     }
+
+    private fun showAccountList(title: String, emptyMessage: String, loader: suspend () -> JSONArray, render: (JSONArray, LinearLayout) -> Unit) {
+        liveScreen.removeAllViews()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(20), dp(16), dp(16))
+        }
+        root.addView(makeButton("‹  Back to Profile", false) { showProfileScreen() }, fieldLayout(dp(46), dp(8)))
+        root.addView(TextView(this).apply {
+            text = title
+            textSize = 22f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(12)))
+        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val sc = ScrollView(this)
+        sc.addView(list)
+        root.addView(sc, LinearLayout.LayoutParams(-1, 0, 1f))
+        liveScreen.addView(root, LinearLayout.LayoutParams(-1, -1))
+        list.addView(TextView(this).apply {
+            text = "Loading…"
+            setTextColor(Color.LTGRAY)
+        })
+        lifecycleScope.launch {
+            try {
+                val rows = loader()
+                list.removeAllViews()
+                if (rows.length() == 0) {
+                    list.addView(TextView(this@MainActivity).apply {
+                        text = emptyMessage
+                        textSize = 14f
+                        setTextColor(Color.LTGRAY)
+                        setPadding(dp(8), dp(16), dp(8), dp(16))
+                    })
+                } else {
+                    render(rows, list)
+                }
+            } catch (error: Exception) {
+                list.removeAllViews()
+                list.addView(TextView(this@MainActivity).apply {
+                    text = "Could not load $title: " + (error.message ?: "network error")
+                    setTextColor(Color.rgb(255, 140, 140))
+                    setPadding(dp(8), dp(12), dp(8), dp(12))
+                })
+            }
+        }
+        addBottomNav()
+    }
+
+    private fun showUnavailableAccountFeature(title: String, reason: String) {
+        liveScreen.removeAllViews()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(24), dp(24), dp(24), dp(24))
+        }
+        root.addView(TextView(this).apply {
+            text = title
+            textSize = 22f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+        }, bottomMargin(dp(12)))
+        root.addView(TextView(this).apply {
+            text = reason
+            textSize = 14f
+            setTextColor(Color.LTGRAY)
+            gravity = Gravity.CENTER
+        }, bottomMargin(dp(20)))
+        root.addView(makeButton("Back to Profile", true) { showProfileScreen() }, fieldLayout(dp(48), dp(8)))
+        liveScreen.addView(root, LinearLayout.LayoutParams(-1, 0, 1f))
+        addBottomNav()
+    }
+
+    private fun showMyStreams() {
+        val uid = userId ?: run {
+            showUnavailableAccountFeature("My Streams", "Sign in to view your streams.")
+            return
+        }
+        val token = accessToken ?: return
+        showAccountList(
+            "My Streams",
+            "You have not created any streams yet.",
+            loader = {
+                withContext(Dispatchers.IO) {
+                    getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/streams?select=id,title,caption,is_live,created_at,last_heartbeat_at&user_id=eq.$uid&order=created_at.desc&limit=50",
+                        token
+                    )
+                }
+            },
+            render = { rows, list ->
+                for (i in 0 until rows.length()) {
+                    val row = rows.getJSONObject(i)
+                    val streamId = row.optString("id")
+                    val title = row.optString("title", "Untitled stream")
+                    val isLive = row.optBoolean("is_live", false)
+                    val heartbeat = row.optString("last_heartbeat_at")
+                    val liveNow = isLive && heartbeat.isNotBlank() && heartbeat != "null" &&
+                        runCatching {
+                            java.time.Instant.parse(heartbeat).isAfter(java.time.Instant.now().minusSeconds(120))
+                        }.getOrDefault(false)
+                    val subtitle = if (liveNow) "LIVE" else "Offline"
+                    list.addView(makeButton("$title\n$subtitle", liveNow) {
+                        if (liveNow) showLivePlayer(streamId, title)
+                        else setStatus("This stream is currently offline.")
+                    }, fieldLayout(dp(60), dp(8)))
+                }
+            }
+        )
+    }
+
+    private fun showMyTournamentRegistrations() {
+        val uid = userId ?: run {
+            showUnavailableAccountFeature("Tournament Registrations", "Sign in to view your registrations.")
+            return
+        }
+        val token = accessToken ?: return
+        showAccountList(
+            "Tournament Registrations",
+            "You have no tournament registrations.",
+            loader = {
+                withContext(Dispatchers.IO) {
+                    getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/tournament_registrations?select=id,created_at,tournament_id,tournaments(title,status,starts_at,entry_type,entry_fee,prize_pool)&user_id=eq.$uid&order=created_at.desc&limit=50",
+                        token
+                    )
+                }
+            },
+            render = { rows, list ->
+                for (i in 0 until rows.length()) {
+                    val row = rows.getJSONObject(i)
+                    val tournament = row.optJSONObject("tournaments")
+                    val title = tournament?.optString("title")?.takeIf { !it.isNullOrBlank() && it != "null" }
+                        ?: "Tournament"
+                    val status = tournament?.optString("status")?.takeIf { !it.isNullOrBlank() && it != "null" }
+                        ?: "Status unavailable"
+                    val type = tournament?.optString("entry_type")?.takeIf { !it.isNullOrBlank() && it != "null" }
+                        ?: "Entry type unavailable"
+                    list.addView(TextView(this@MainActivity).apply {
+                        text = "$title\n$status • $type"
+                        textSize = 14f
+                        setTextColor(Color.WHITE)
+                        setPadding(dp(12), dp(12), dp(12), dp(12))
+                        background = panelBackground()
+                    }, bottomMargin(dp(8)))
+                }
+            }
+        )
+    }
+
+    private fun showSupportTickets() {
+        val uid = userId ?: run {
+            showUnavailableAccountFeature("Help & Support", "Sign in to view support requests.")
+            return
+        }
+        val token = accessToken ?: return
+        showAccountList(
+            "Help & Support",
+            "No support requests found.",
+            loader = {
+                withContext(Dispatchers.IO) {
+                    getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/support_tickets?select=id,subject,message,status,created_at,updated_at&user_id=eq.$uid&order=created_at.desc&limit=50",
+                        token
+                    )
+                }
+            },
+            render = { rows, list ->
+                for (i in 0 until rows.length()) {
+                    val row = rows.getJSONObject(i)
+                    list.addView(TextView(this@MainActivity).apply {
+                        text = row.optString("subject") + "\\n" + row.optString("status") + " • " + row.optString("created_at")
+                        textSize = 14f
+                        setTextColor(Color.WHITE)
+                        setPadding(dp(12), dp(12), dp(12), dp(12))
+                        background = panelBackground()
+                    }, bottomMargin(dp(8)))
+                }
+            }
+        )
+    }
+
+    private lateinit var profileNameInput: EditText
+    private lateinit var profileUsernameInput: EditText
+    private lateinit var profileStatus: TextView
 
     private fun loadProfile() {
         val session = accessToken
