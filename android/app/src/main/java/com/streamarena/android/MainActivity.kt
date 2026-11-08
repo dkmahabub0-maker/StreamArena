@@ -2234,6 +2234,11 @@ class MainActivity : ComponentActivity() {
             sharing = false
             accessToken = null
             userId = null
+            profileAvatarBitmap = null
+            profileAvatarDataUrl = null
+            profileAvatarStoredUrl = null
+            profileAvatarView?.setImageDrawable(null)
+            profileAvatarView = null
             emailInput.text.clear()
             passwordInput.text.clear()
             titleInput.text.clear()
