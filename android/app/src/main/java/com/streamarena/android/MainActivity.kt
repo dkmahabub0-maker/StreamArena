@@ -115,6 +115,7 @@ class MainActivity : ComponentActivity() {
     private var sharing = false
     private var activeStreamId: String? = null
     private var heartbeatJob: Job? = null
+    private var startLiveJob: Job? = null
     private lateinit var liveStreamsContainer: LinearLayout
     private lateinit var gamesContainer: LinearLayout
     private lateinit var communityFamiliesContainer: LinearLayout
@@ -2587,6 +2588,7 @@ class MainActivity : ComponentActivity() {
         liveChatRefreshJob?.cancel(); liveChatRefreshJob = null
         streamChatLoadJob?.cancel(); streamChatLoadJob = null
         heartbeatJob?.cancel(); heartbeatJob = null
+        startLiveJob?.cancel(); startLiveJob = null
         respondingInvitationIds.clear()
         closeLiveViewer()
         accessToken = null
@@ -2658,15 +2660,28 @@ class MainActivity : ComponentActivity() {
             return
         }
         stopCameraPreview()
-        lifecycleScope.launch {
+        startLiveJob?.cancel()
+        startLiveJob = lifecycleScope.launch {
             var createdStreamId: String? = null
             try {
                 val streamId = withContext(Dispatchers.IO) { createStreamRow(token, id, title) }
                 createdStreamId = streamId
+                if (accessToken != token || userId != id) {
+                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                    return@launch
+                }
                 activeStreamId = streamId
                 // The deployed publisher-token endpoint expects the stream to be marked live first.
                 withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, true) }
+                if (accessToken != token || userId != id) {
+                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                    return@launch
+                }
                 val credentials = withContext(Dispatchers.IO) { requestPublisherToken(token, id) }
+                if (accessToken != token || userId != id) {
+                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                    return@launch
+                }
                 val liveRoom = LiveKit.create(applicationContext)
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
                 room = liveRoom
@@ -2692,16 +2707,22 @@ class MainActivity : ComponentActivity() {
                     setStatus("You are live with your camera and microphone.")
                 }
             } catch (error: Exception) {
-                runCatching { room?.disconnect() }
-                room = null
+                if (accessToken == token && userId == id) {
+                    runCatching { room?.disconnect() }
+                    room = null
+                }
                 createdStreamId?.let { streamId ->
                     runCatching { withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) } }
                 }
-                activeStreamId = null
-                setStatus("Could not start Live: ${error.message ?: "unknown error"}")
+                if (activeStreamId == createdStreamId) activeStreamId = null
+                if (accessToken == token && userId == id) {
+                    setStatus("Could not start Live: ${error.message ?: "unknown error"}")
+                }
             } finally {
-                startLiveButton.isEnabled = true
-                updateControls()
+                if (accessToken == token && userId == id) {
+                    startLiveButton.isEnabled = true
+                    updateControls()
+                }
             }
         }
     }
