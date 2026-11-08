@@ -299,20 +299,60 @@ class MainActivity : ComponentActivity() {
         row.addView(TextView(this).apply { text=title; textSize=17f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },LinearLayout.LayoutParams(0,dp(38),1f))
         row.addView(TextView(this).apply { text=action; textSize=12f; setTextColor(Color.MAGENTA); setOnClickListener { click() } }); root.addView(row)
     }
-    private fun addBottomNav() {
-        val nav=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER; setPadding(dp(3),dp(4),dp(3),dp(4)); setBackgroundColor(Color.rgb(13,12,29)) }
-        listOf("⌂\nHome","◎\nExplore","⊕\nCreate","♧\nCommunity","♙\nProfile").forEachIndexed { i,label ->
-            nav.addView(makeButton(label,i==0) { when(i) {
-                0 -> { stopCameraPreview(); buildLiveScreen(); setContentView(liveScreen) }
-                1 -> showExploreScreen()
-                2 -> { val sc=liveScreen.getChildAt(0) as? ScrollView; if(sc!=null) openLiveSetup("camera",sc) }
-                3 -> showCommunityScreen()
-                4 -> showProfileScreen()
-            } }.apply { textSize=11f; minWidth=0; minimumWidth=0; setPadding(0,0,0,0); isAllCaps=false },LinearLayout.LayoutParams(0,dp(54),1f))
+    private fun addBottomNav(activeIndex: Int = 0) {
+        val nav = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(dp(3), dp(4), dp(3), dp(4))
+            setBackgroundColor(Color.rgb(10, 9, 24))
+        }
+        val items = listOf(
+            Pair("⌂", "Home"), Pair("◎", "Explore"), Pair("⊕", "Create"),
+            Pair("♧", "Community"), Pair("♙", "Profile")
+        )
+        items.forEachIndexed { index, item ->
+            val selected = index == activeIndex
+            val cell = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                isClickable = true
+                isFocusable = true
+                setPadding(0, dp(3), 0, dp(2))
+                setOnClickListener {
+                    when (index) {
+                        0 -> { stopCameraPreview(); buildLiveScreen(); setContentView(liveScreen) }
+                        1 -> showExploreScreen()
+                        2 -> {
+                            buildLiveScreen()
+                            setContentView(liveScreen)
+                            val homeScroll = liveScreen.getChildAt(0) as? ScrollView
+                            if (homeScroll != null) openLiveSetup("camera", homeScroll)
+                        }
+                        3 -> showCommunityScreen()
+                        4 -> showProfileScreen()
+                    }
+                }
+            }
+            val tint = if (selected) Color.rgb(224, 0, 239) else Color.WHITE
+            cell.addView(TextView(this).apply {
+                text = item.first
+                textSize = 20f
+                gravity = Gravity.CENTER
+                setTextColor(tint)
+            })
+            cell.addView(TextView(this).apply {
+                text = item.second
+                textSize = 10f
+                gravity = Gravity.CENTER
+                setTextColor(tint)
+                typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            })
+            nav.addView(cell, LinearLayout.LayoutParams(0, dp(52), 1f))
         }
         liveScreen.addView(nav)
     }
-    private fun showExploreScreen() {
+
+        private fun showExploreScreen() {
         liveScreen.removeAllViews()
         val sc = ScrollView(this)
         val root = LinearLayout(this).apply {
