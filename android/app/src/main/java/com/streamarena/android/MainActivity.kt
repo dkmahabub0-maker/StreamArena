@@ -35,6 +35,7 @@ import androidx.lifecycle.lifecycleScope
 import io.livekit.android.LiveKit
 import io.livekit.android.room.Room
 import io.livekit.android.events.RoomEvent
+import io.livekit.android.events.collect
 import io.livekit.android.renderer.SurfaceViewRenderer
 import io.livekit.android.room.track.VideoTrack
 import io.livekit.android.room.track.screencapture.ScreenCaptureParams
@@ -42,8 +43,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -399,12 +398,13 @@ class MainActivity : ComponentActivity() {
                 val liveRoom = LiveKit.create(applicationContext)
                 viewerRoom = liveRoom
                 liveRoom.initVideoRenderer(renderer)
-                viewerEventJob = liveRoom.events.onEach { event ->
+                viewerEventJob = lifecycleScope.launch {
+                    liveRoom.events.collect { event ->
                         when (event) {
                             is RoomEvent.TrackSubscribed -> {
                                 val video = event.track as? VideoTrack
                                 if (video != null) {
-                                    viewerVideoTrack?.let { previous -> renderer.let { previous.removeRenderer(it) } }
+                                    viewerVideoTrack?.let { previous -> previous.removeRenderer(renderer) }
                                     viewerVideoTrack = video
                                     video.addRenderer(renderer)
                                     playbackStatus.text = "LIVE • Video connected"
@@ -421,7 +421,8 @@ class MainActivity : ComponentActivity() {
                             is RoomEvent.Disconnected -> playbackStatus.text = "Disconnected from live stream."
                             else -> Unit
                         }
-                    }.launchIn(lifecycleScope)
+                    }
+                }
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
                 playbackStatus.text = "Connected • Waiting for video…"
             } catch (error: Exception) {
