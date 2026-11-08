@@ -851,7 +851,7 @@ class MainActivity : ComponentActivity() {
                 text = title
                 textSize = 14f
                 setTextColor(Color.WHITE)
-                typeface = Typeface.DEFAULT_MEDIUM
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             }, LinearLayout.LayoutParams(0, dp(48), 1f))
             if (alert != null) row.addView(TextView(this).apply {
                 text = alert
