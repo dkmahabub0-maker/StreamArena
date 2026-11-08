@@ -97,6 +97,9 @@ class MainActivity : ComponentActivity() {
     private var communityRefreshJob: Job? = null
     private var streamChatLoadJob: Job? = null
     private var communityMessageLoadJob: Job? = null
+    private var supportTicketRepliesLoadJob: Job? = null
+    private var supportTicketRefreshJob: Job? = null
+    private var activeSupportTicketId: String? = null
     private var communityMessageSending = false
     private var communitySendButton: Button? = null
     private var communityFamiliesLoadJob: Job? = null
@@ -1725,6 +1728,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showSupportTickets() {
+        activeSupportTicketId = null
+        supportTicketRefreshJob?.cancel()
+        supportTicketRepliesLoadJob?.cancel()
         val uid = userId ?: run {
             showUnavailableAccountFeature("Help & Support", "Sign in to view support requests.")
             return
@@ -1757,6 +1763,9 @@ class MainActivity : ComponentActivity() {
 
     private fun showSupportTicketConversation(ticketId: String, subject: String, ticketStatus: String) {
         val token = accessToken ?: return
+        activeSupportTicketId = ticketId
+        supportTicketRefreshJob?.cancel()
+        supportTicketRepliesLoadJob?.cancel()
         liveScreen.removeAllViews()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1827,11 +1836,20 @@ class MainActivity : ComponentActivity() {
         liveScreen.addView(root, LinearLayout.LayoutParams(-1, 0, 1f))
         addBottomNav()
         loadSupportTicketReplies(ticketId, messages)
+        supportTicketRefreshJob = lifecycleScope.launch {
+            while (activeSupportTicketId == ticketId && messages.isAttachedToWindow) {
+                delay(8000)
+                if (activeSupportTicketId == ticketId && messages.isAttachedToWindow) {
+                    loadSupportTicketReplies(ticketId, messages)
+                }
+            }
+        }
     }
 
     private fun loadSupportTicketReplies(ticketId: String, target: LinearLayout) {
         val token = accessToken ?: return
-        lifecycleScope.launch {
+        supportTicketRepliesLoadJob?.cancel()
+        supportTicketRepliesLoadJob = lifecycleScope.launch {
             try {
                 val rows = withContext(Dispatchers.IO) {
                     getRestJson(
@@ -1860,6 +1878,8 @@ class MainActivity : ComponentActivity() {
                         background = panelBackground()
                     }, bottomMargin(dp(8)))
                 }
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (error: Exception) {
                 target.addView(TextView(this@MainActivity).apply {
                     text = "Replies could not load: " + (error.message ?: "network error")
