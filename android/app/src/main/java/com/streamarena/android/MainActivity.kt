@@ -100,6 +100,7 @@ class MainActivity : ComponentActivity() {
     private var communityMessageLoadJob: Job? = null
     private var supportTicketRepliesLoadJob: Job? = null
     private var supportTicketRefreshJob: Job? = null
+    private var accountListLoadJob: Job? = null
     private var activeSupportTicketId: String? = null
     private var communityMessageSending = false
     private var communitySendButton: Button? = null
@@ -1403,9 +1404,11 @@ class MainActivity : ComponentActivity() {
             text = "Loading…"
             setTextColor(Color.LTGRAY)
         })
-        lifecycleScope.launch {
+        accountListLoadJob?.cancel()
+        accountListLoadJob = lifecycleScope.launch {
             try {
                 val rows = loader()
+                if (!list.isAttachedToWindow) return@launch
                 list.removeAllViews()
                 if (rows.length() == 0) {
                     list.addView(TextView(this@MainActivity).apply {
@@ -1417,13 +1420,17 @@ class MainActivity : ComponentActivity() {
                 } else {
                     render(rows, list)
                 }
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (error: Exception) {
-                list.removeAllViews()
-                list.addView(TextView(this@MainActivity).apply {
-                    text = "Could not load $title: " + (error.message ?: "network error")
-                    setTextColor(Color.rgb(255, 140, 140))
-                    setPadding(dp(8), dp(12), dp(8), dp(12))
-                })
+                if (list.isAttachedToWindow) {
+                    list.removeAllViews()
+                    list.addView(TextView(this@MainActivity).apply {
+                        text = "Could not load $title: " + (error.message ?: "network error")
+                        setTextColor(Color.rgb(255, 140, 140))
+                        setPadding(dp(8), dp(12), dp(8), dp(12))
+                    })
+                }
             }
         }
         addBottomNav()
