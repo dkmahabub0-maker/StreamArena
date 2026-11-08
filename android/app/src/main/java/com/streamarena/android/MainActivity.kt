@@ -447,6 +447,7 @@ class MainActivity : ComponentActivity() {
                     if (::screenToggle.isInitialized) screenToggle.isChecked = false
                     cameraPreviewView.visibility = android.view.View.VISIBLE
                     screenShareHint.visibility = android.view.View.GONE
+                    if (::startLiveButton.isInitialized) startLiveButton.text = "Start Live  ▶"
                     showCameraPreview()
                 } else if (selectedLiveMode == "camera") stopCameraPreview()
             }
@@ -464,10 +465,12 @@ class MainActivity : ComponentActivity() {
                     stopCameraPreview()
                     cameraPreviewView.visibility = android.view.View.GONE
                     screenShareHint.visibility = android.view.View.VISIBLE
+                    if (::startLiveButton.isInitialized) startLiveButton.text = "Continue to Screen Share  ▶"
                 } else if (selectedLiveMode == "screen") {
                     selectedLiveMode = "camera"
                     cameraPreviewView.visibility = android.view.View.VISIBLE
                     screenShareHint.visibility = android.view.View.GONE
+                    if (::startLiveButton.isInitialized) startLiveButton.text = "Start Live  ▶"
                 }
             }
         }
