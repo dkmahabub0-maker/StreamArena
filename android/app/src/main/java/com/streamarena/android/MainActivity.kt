@@ -181,7 +181,7 @@ class MainActivity : ComponentActivity() {
         root.addView(ImageView(this).apply { setImageResource(R.drawable.ic_streamarena) },LinearLayout.LayoutParams(dp(88),dp(88)).apply { bottomMargin=dp(8) })
         root.addView(TextView(this).apply { text="StreamArena"; textSize=30f; gravity=Gravity.CENTER; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },bottomMargin(dp(22)))
         root.addView(TextView(this).apply { text="Welcome Back!"; textSize=19f; gravity=Gravity.CENTER; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
-        root.addView(TextView(this).apply { text="Sign in to continue"; textSize=14f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY },bottomMargin(dp(24)))
+        root.addView(TextView(this).apply { text="Sign in to continue"; textSize=14f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) },bottomMargin(dp(24)))
         root.addView(makeButton("🌐   Continue with Google",false) { AlertDialog.Builder(this).setMessage("Google sign-in is not configured in this Android client yet.").setPositiveButton("OK",null).show() },fieldLayout(dp(52),dp(10)))
         root.addView(makeButton("✉   Login with Email",true) { emailInput.requestFocus() },fieldLayout(dp(52),dp(18)))
         root.addView(TextView(this).apply { text="──────────────  or  ──────────────"; textSize=14f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) },bottomMargin(dp(14)))
@@ -276,7 +276,7 @@ class MainActivity : ComponentActivity() {
         addBottomNav()
     }
 
-    private var menuAnchor: android.view.View? = null
+    private lateinit var menuAnchor: android.view.View
     private fun addSectionTitle(root:LinearLayout,title:String,action:String,click:()->Unit) {
         val row=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL }
         row.addView(TextView(this).apply { text=title; textSize=17f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },LinearLayout.LayoutParams(0,dp(38),1f))
