@@ -88,6 +88,7 @@ class MainActivity : ComponentActivity() {
     private var pendingSignupEmail: String? = null
     private var selectedLiveMode: String = "camera"
 
+    private var authAttemptGeneration = 0L
     private var accessToken: String? = null
     private var userId: String? = null
     private var room: Room? = null
@@ -2516,6 +2517,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun signIn() {
+        val attempt = authAttemptGeneration
         val email = emailInput.text.toString().trim()
         val password = passwordInput.text.toString()
         if (email.isBlank() || password.isBlank()) {
@@ -2530,6 +2532,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 val auth = withContext(Dispatchers.IO) { requestPasswordSignIn(email, password) }
+                if (attempt != authAttemptGeneration) return@launch
                 accessToken = auth.getString("access_token")
                 userId = auth.getJSONObject("user").getString("id")
                 passwordInput.text.clear()
@@ -2537,18 +2540,23 @@ class MainActivity : ComponentActivity() {
                 loadLiveStreams()
                 setStatus("Signed in successfully. You can start your Live.")
             } catch (error: Exception) {
-                accessToken = null
-                userId = null
-                val detail = error.message?.takeIf { it.isNotBlank() } ?: "Unknown connection error"
-                setStatus("Sign in failed: $detail", true)
+                if (attempt == authAttemptGeneration) {
+                    accessToken = null
+                    userId = null
+                    val detail = error.message?.takeIf { it.isNotBlank() } ?: "Unknown connection error"
+                    setStatus("Sign in failed: $detail", true)
+                }
             } finally {
-                signInButton.text = "Sign in to StreamArena"
-                updateControls()
+                if (attempt == authAttemptGeneration) {
+                    signInButton.text = "Sign in to StreamArena"
+                    updateControls()
+                }
             }
         }
     }
 
     private fun signOut() {
+        authAttemptGeneration++
         stopCameraPreview()
         val streamId = activeStreamId
         val session = accessToken
