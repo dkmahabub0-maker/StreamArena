@@ -44,10 +44,14 @@ import io.livekit.android.events.collect
 import io.livekit.android.renderer.SurfaceViewRenderer
 import io.livekit.android.room.track.VideoTrack
 import io.livekit.android.room.track.screencapture.ScreenCaptureParams
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -264,7 +268,8 @@ class MainActivity : ComponentActivity() {
         viewerRoom = null
         val activePublisher = room
         room = null
-        lifecycleScope.launch {
+        // Do not use lifecycleScope here: it is cancelled as this Activity is destroyed.
+        CoroutineScope(Dispatchers.Main.immediate).launch {
             runCatching { activeViewer?.disconnect() }
             runCatching { activePublisher?.localParticipant?.setScreenShareEnabled(false) }
             runCatching { activePublisher?.disconnect() }
@@ -2723,40 +2728,71 @@ class MainActivity : ComponentActivity() {
         startLiveJob?.cancel()
         startLiveJob = lifecycleScope.launch {
             var createdStreamId: String? = null
+            var connectingRoom: Room? = null
             try {
-                val streamId = withContext(Dispatchers.IO) { createStreamRow(token, id, title) }
+                // Complete row creation even if sign-out races the request, so its ID can be cleaned up.
+                val streamId = withContext(NonCancellable + Dispatchers.IO) {
+                    createStreamRow(token, id, title)
+                }
                 createdStreamId = streamId
-                if (accessToken != token || userId != id) {
-                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                activeStreamId = streamId
+                if (!isActive || accessToken != token || userId != id) {
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        updateStreamRow(token, streamId, id, false)
+                    }
+                    if (activeStreamId == streamId) activeStreamId = null
                     return@launch
                 }
-                activeStreamId = streamId
+
                 // The deployed publisher-token endpoint expects the stream to be marked live first.
                 withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, true) }
-                if (accessToken != token || userId != id) {
-                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                if (!isActive || accessToken != token || userId != id) {
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        updateStreamRow(token, streamId, id, false)
+                    }
+                    if (activeStreamId == streamId) activeStreamId = null
                     return@launch
                 }
+
                 val credentials = withContext(Dispatchers.IO) { requestPublisherToken(token, id) }
-                if (accessToken != token || userId != id) {
-                    withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                if (!isActive || accessToken != token || userId != id) {
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        updateStreamRow(token, streamId, id, false)
+                    }
+                    if (activeStreamId == streamId) activeStreamId = null
                     return@launch
                 }
+
                 val liveRoom = LiveKit.create(applicationContext)
+                connectingRoom = liveRoom
                 liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
+                if (!isActive || accessToken != token || userId != id) {
+                    withContext(NonCancellable) { runCatching { liveRoom.disconnect() } }
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        updateStreamRow(token, streamId, id, false)
+                    }
+                    if (activeStreamId == streamId) activeStreamId = null
+                    return@launch
+                }
+
                 room = liveRoom
+                connectingRoom = null
                 if (keepScreenAwakeDuringLive) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 liveRoom.localParticipant.setMicrophoneEnabled(true)
                 // Screen Live publishes the captured display, not the front-facing camera.
                 liveRoom.localParticipant.setCameraEnabled(selectedLiveMode == "camera")
                 heartbeatJob?.cancel()
                 heartbeatJob = lifecycleScope.launch {
-                    while (activeStreamId != null) {
+                    while (activeStreamId == streamId && accessToken == token && userId == id) {
                         delay(25_000)
-                        val streamId = activeStreamId ?: break
+                        if (activeStreamId != streamId || accessToken != token || userId != id) break
                         runCatching {
                             withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, true) }
-                        }.onFailure { setStatus("Live is running, but its heartbeat failed: ${it.message}") }
+                        }.onFailure {
+                            if (accessToken == token && activeStreamId == streamId) {
+                                setStatus("Live is running, but its heartbeat failed: ${it.message}")
+                            }
+                        }
                     }
                 }
                 if (selectedLiveMode == "screen") {
@@ -2766,17 +2802,36 @@ class MainActivity : ComponentActivity() {
                 } else {
                     setStatus("You are live with your camera and microphone.")
                 }
+            } catch (cancelled: CancellationException) {
+                withContext(NonCancellable) {
+                    runCatching { connectingRoom?.disconnect() }
+                    if (room === connectingRoom) room = null
+                    createdStreamId?.let { streamId ->
+                        runCatching {
+                            withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                        }
+                    }
+                    if (activeStreamId == createdStreamId) activeStreamId = null
+                    if (accessToken == token && userId == id) {
+                        setStatus("Live startup was cancelled.")
+                        startLiveButton.isEnabled = true
+                        updateControls()
+                    }
+                }
+                throw cancelled
             } catch (error: Exception) {
-                if (accessToken == token && userId == id) {
-                    runCatching { room?.disconnect() }
-                    room = null
-                }
-                createdStreamId?.let { streamId ->
-                    runCatching { withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) } }
-                }
-                if (activeStreamId == createdStreamId) activeStreamId = null
-                if (accessToken == token && userId == id) {
-                    setStatus("Could not start Live: ${error.message ?: "unknown error"}")
+                withContext(NonCancellable) {
+                    runCatching { connectingRoom?.disconnect() }
+                    if (room === connectingRoom || (accessToken == token && userId == id)) room = null
+                    createdStreamId?.let { streamId ->
+                        runCatching {
+                            withContext(Dispatchers.IO) { updateStreamRow(token, streamId, id, false) }
+                        }
+                    }
+                    if (activeStreamId == createdStreamId) activeStreamId = null
+                    if (accessToken == token && userId == id) {
+                        setStatus("Could not start Live: ${error.message ?: "unknown error"}")
+                    }
                 }
             } finally {
                 if (accessToken == token && userId == id) {
