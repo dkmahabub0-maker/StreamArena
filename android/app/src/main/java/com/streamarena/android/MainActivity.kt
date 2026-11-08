@@ -279,11 +279,11 @@ class MainActivity : ComponentActivity() {
         header.addView(makeButton("♧",false) { setStatus("No new notifications.") })
         root.addView(header,bottomMargin(dp(12)))
         val hero=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.BOTTOM; setPadding(dp(16),dp(16),dp(16),dp(16)); background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(118,16,151),Color.rgb(26,38,111),Color.rgb(7,16,45))).apply { cornerRadius=dp(20).toFloat() } }
-        hero.addView(TextView(this).apply { text="🔴 LIVE     ◉ 12.5K"; textSize=13f; setTextColor(Color.WHITE) },bottomMargin(dp(42)))
-        hero.addView(TextView(this).apply { text="FREE FIRE"; textSize=30f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
-        hero.addView(makeButton("Play Now  ▶",true) { setStatus("Choose a live stream from the Live Streams list below.") },LinearLayout.LayoutParams(-1,dp(44)).apply { topMargin=dp(8) })
+        hero.addView(TextView(this).apply { text="🔴 LIVE GAMING"; textSize=13f; setTextColor(Color.WHITE) },bottomMargin(dp(42)))
+        hero.addView(TextView(this).apply { text="Find Your Next Stream"; textSize=27f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
+        hero.addView(makeButton("Explore Live Streams  ▶",true) { loadLiveStreams(); setStatus("Refreshing live streams…") },LinearLayout.LayoutParams(-1,dp(44)).apply { topMargin=dp(8) })
         root.addView(hero,LinearLayout.LayoutParams(-1,dp(190)).apply { bottomMargin=dp(12) })
-        root.addView(makeButton("✦ ADS     Add System                         Go",true) { setStatus("Ad system is not connected yet.") },fieldLayout(dp(48),dp(16)))
+        root.addView(makeButton("✦ EXPLORE GAMES                         See All  ›",true) { showExploreScreen() },fieldLayout(dp(48),dp(16)))
         addSectionTitle(root,"Popular Games","See All →") { showExploreScreen() }
         gamesContainer=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
         root.addView(gamesContainer,bottomMargin(dp(18)))
