@@ -452,7 +452,7 @@ class MainActivity : ComponentActivity() {
         }
         root.addView(categoryButton, fieldLayout(dp(48), dp(10)))
 
-        lateinit var screenToggle: CheckBox
+        var screenToggle: CheckBox? = null
         val cameraToggle = CheckBox(this).apply {
             text = "Enable Camera"
             isChecked = selectedLiveMode == "camera"
@@ -461,7 +461,7 @@ class MainActivity : ComponentActivity() {
             setOnCheckedChangeListener { _, checked ->
                 if (checked) {
                     selectedLiveMode = "camera"
-                    if (::screenToggle.isInitialized) screenToggle.isChecked = false
+                    screenToggle?.isChecked = false
                     cameraPreviewView.visibility = android.view.View.VISIBLE
                     screenShareHint.visibility = android.view.View.GONE
                     if (::startLiveButton.isInitialized) startLiveButton.text = "Start Live  ▶"
