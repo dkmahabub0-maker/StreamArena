@@ -379,7 +379,7 @@ class MainActivity : ComponentActivity() {
                         isFocusable = true
                         setOnClickListener {
                             selectedGameCategory = name.uppercase()
-                            openLiveSetup("camera", sc)
+                            { buildLiveScreen(); setContentView(liveScreen); val homeScroll = liveScreen.getChildAt(0) as? ScrollView; if (homeScroll != null) openLiveSetup("camera", homeScroll) }
                         }
                     }
                     item.addView(TextView(this@MainActivity).apply {
@@ -411,7 +411,7 @@ class MainActivity : ComponentActivity() {
                 })
             }
         }
-        root.addView(makeButton("Go Live", true) { openLiveSetup("camera", sc) },
+        root.addView(makeButton("Go Live", true) { { buildLiveScreen(); setContentView(liveScreen); val homeScroll = liveScreen.getChildAt(0) as? ScrollView; if (homeScroll != null) openLiveSetup("camera", homeScroll) } },
             fieldLayout(dp(50), dp(8)))
         addBottomNav()
     }
