@@ -97,6 +97,8 @@ class MainActivity : ComponentActivity() {
     private var communityRefreshJob: Job? = null
     private var streamChatLoadJob: Job? = null
     private var communityMessageLoadJob: Job? = null
+    private var communityMessageSending = false
+    private var communitySendButton: Button? = null
     private var communityFamiliesLoadJob: Job? = null
     private var viewerVideoTrack: VideoTrack? = null
     private var viewerRenderer: SurfaceViewRenderer? = null
@@ -1003,11 +1005,14 @@ class MainActivity : ComponentActivity() {
             setHintTextColor(Color.LTGRAY)
             background = inputBackground()
             setPadding(dp(12), 0, dp(12), 0)
+            filters = arrayOf(android.text.InputFilter.LengthFilter(1000))
             isEnabled = false
         }
         composer.addView(communityMessageInput, LinearLayout.LayoutParams(0, dp(50), 1f))
-        composer.addView(makeButton("Send", true) { sendCommunityMessage() },
-            LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
+        communitySendButton = makeButton("Send", true) { sendCommunityMessage() }.apply {
+            isEnabled = false
+        }
+        composer.addView(communitySendButton, LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
         root.addView(composer, bottomMargin(dp(10)))
         addBottomNav(3)
         loadCommunityFamilies()
@@ -1022,6 +1027,7 @@ class MainActivity : ComponentActivity() {
         communityFamiliesContainer.removeAllViews()
         communityChatContainer.removeAllViews()
         communityMessageInput.isEnabled = false
+        communitySendButton?.isEnabled = false
         communityRefreshJob?.cancel()
         communityRefreshJob = null
         communityMessageLoadJob?.cancel()
@@ -1101,6 +1107,7 @@ class MainActivity : ComponentActivity() {
         communityMessageLoadJob?.cancel()
         activeCommunityFamilyId = familyId
         communityMessageInput.isEnabled = true
+        communitySendButton?.isEnabled = !communityMessageSending
         communityChatContainer.removeAllViews()
         communityChatContainer.addView(TextView(this).apply {
             text = "Loading $familyName chat…"
@@ -1179,6 +1186,9 @@ class MainActivity : ComponentActivity() {
             setStatus("Community messages must be 1000 characters or fewer.", true)
             return
         }
+        if (communityMessageSending) return
+        communityMessageSending = true
+        communitySendButton?.isEnabled = false
         communityMessageInput.text.clear()
         lifecycleScope.launch {
             try {
@@ -1190,9 +1200,19 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 loadCommunityMessages(familyId)
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (error: Exception) {
-                communityMessageInput.setText(message)
+                if (activeCommunityFamilyId == familyId && ::communityMessageInput.isInitialized) {
+                    val currentText = communityMessageInput.text.toString()
+                    if (currentText.isBlank()) communityMessageInput.setText(message)
+                    else communityMessageInput.setText(message + "\n" + currentText)
+                    communityMessageInput.setSelection(communityMessageInput.text.length)
+                }
                 setStatus("Message was not sent: " + (error.message ?: "database policy or network error"), true)
+            } finally {
+                communityMessageSending = false
+                communitySendButton?.isEnabled = activeCommunityFamilyId != null
             }
         }
     }
