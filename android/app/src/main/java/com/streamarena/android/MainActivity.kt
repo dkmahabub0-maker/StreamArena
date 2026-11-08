@@ -690,78 +690,130 @@ class MainActivity : ComponentActivity() {
         val sc = ScrollView(this)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(20), dp(16), dp(18))
+            setPadding(dp(16), dp(18), dp(16), dp(18))
         }
         sc.addView(root)
         liveScreen.addView(sc, LinearLayout.LayoutParams(-1, 0, 1f))
-        root.addView(TextView(this).apply {
-            text = "My Profile"
-            textSize = 24f
+
+        val orderHero = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(18), dp(18), dp(18), dp(18))
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(25, 8, 67), Color.rgb(53, 12, 104), Color.rgb(18, 15, 43))).apply {
+                cornerRadius = dp(24).toFloat()
+                setStroke(dp(1), Color.rgb(91, 35, 145))
+            }
+        }
+        val cart = TextView(this).apply {
+            text = "🛒"
+            textSize = 38f
+            gravity = Gravity.CENTER
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(111, 0, 220), Color.rgb(63, 0, 156))).apply { shape = GradientDrawable.OVAL }
+        }
+        orderHero.addView(cart, LinearLayout.LayoutParams(dp(88), dp(88)).apply { bottomMargin = dp(8) })
+        orderHero.addView(TextView(this).apply {
+            text = "Order"
+            textSize = 20f
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
-        }, bottomMargin(dp(16)))
-        profileNameInput = EditText(this).apply {
-            hint = "Full name"
-            setSingleLine(true)
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.LTGRAY)
-            background = inputBackground()
-            setPadding(dp(14), 0, dp(14), 0)
-        }
-        root.addView(profileNameInput, fieldLayout(dp(52), dp(10)))
-        profileUsernameInput = EditText(this).apply {
-            hint = "Username"
-            setSingleLine(true)
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.LTGRAY)
-            background = inputBackground()
-            setPadding(dp(14), 0, dp(14), 0)
-        }
-        root.addView(profileUsernameInput, fieldLayout(dp(52), dp(10)))
-        profileStatus = TextView(this).apply {
-            text = "Loading profile…"
+        })
+        orderHero.addView(TextView(this).apply {
+            text = "Your Order List & Purchase History"
             textSize = 12f
             setTextColor(Color.LTGRAY)
-            setPadding(dp(4), dp(6), dp(4), dp(6))
-        }
-        root.addView(profileStatus, bottomMargin(dp(8)))
-        root.addView(makeButton("Save Profile", true) { saveProfile() }, fieldLayout(dp(50), dp(6)))
-        root.addView(makeButton("Refresh Profile", false) { loadProfile() }, fieldLayout(dp(46), dp(14)))
-        root.addView(TextView(this).apply {
-            text = "Your Activity"
-            textSize = 17f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-        }, bottomMargin(dp(8)))
-        root.addView(makeButton("My Streams", false) { showMyStreams() }, fieldLayout(dp(48), dp(4)))
-        root.addView(makeButton("Tournament Registrations", false) { showMyTournamentRegistrations() }, fieldLayout(dp(48), dp(4)))
-        root.addView(makeButton("Watch History", false) {
-            showUnavailableAccountFeature("Watch History", "The app does not currently record watched streams.")
-        }, fieldLayout(dp(48), dp(4)))
-        root.addView(TextView(this).apply {
-            text = "Orders & Support"
-            textSize = 17f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-        }, fieldLayout(dp(40), dp(8)))
-        root.addView(makeButton("View Orders", false) {
+            gravity = Gravity.CENTER
+        }, bottomMargin(dp(12)))
+        orderHero.addView(makeButton("View Orders", true) {
             showUnavailableAccountFeature("Orders", "No orders or purchase-history table is configured in this backend.")
-        }, fieldLayout(dp(48), dp(4)))
-        root.addView(makeButton("Help & Support", false) { showSupportTickets() }, fieldLayout(dp(48), dp(4)))
-        root.addView(makeButton("Create Support Request", false) { showCreateSupportTicket() }, fieldLayout(dp(48), dp(4)))
-        root.addView(makeButton("Settings", false) { showLiveSettings() }, fieldLayout(dp(48), dp(4)))
-        root.addView(makeButton("Notifications", false) {
+        }, LinearLayout.LayoutParams(dp(190), dp(44)))
+        root.addView(orderHero, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(14) })
+
+        val menuCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(6), dp(12), dp(6))
+            background = panelBackground()
+        }
+        fun menuRow(icon: String, title: String, action: () -> Unit, alert: String? = null) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(8), 0, dp(8), 0)
+                isClickable = true
+                isFocusable = true
+                setOnClickListener { action() }
+            }
+            row.addView(TextView(this).apply {
+                text = icon
+                textSize = 19f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+            }, LinearLayout.LayoutParams(dp(36), dp(48)))
+            row.addView(TextView(this).apply {
+                text = title
+                textSize = 14f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_MEDIUM
+            }, LinearLayout.LayoutParams(0, dp(48), 1f))
+            if (alert != null) row.addView(TextView(this).apply {
+                text = alert
+                textSize = 11f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                background = GradientDrawable().apply {
+                    setColor(Color.rgb(238, 20, 58)); cornerRadius = dp(12).toFloat()
+                }
+                setPadding(dp(8), dp(3), dp(8), dp(3))
+            })
+            row.addView(TextView(this).apply { text = "›"; textSize = 25f; setTextColor(Color.LTGRAY) },
+                LinearLayout.LayoutParams(dp(28), dp(48)).apply { gravity = Gravity.CENTER_VERTICAL })
+            menuCard.addView(row)
+            if (title != "About App") menuCard.addView(android.view.View(this).apply {
+                setBackgroundColor(Color.rgb(54, 44, 78))
+            }, LinearLayout.LayoutParams(-1, dp(1)))
+        }
+        menuRow("▣", "My Streams", { showMyStreams() })
+        menuRow("◷", "Watch History", {
+            showUnavailableAccountFeature("Watch History", "The app does not currently record watched streams.")
+        })
+        menuRow("⚙", "Settings", { showLiveSettings() })
+        menuRow("♧", "Notifications", {
             showUnavailableAccountFeature("Notifications", "A notifications inbox is not connected yet.")
-        }, fieldLayout(dp(48), dp(4)))
-        root.addView(makeButton("About App", false) {
+        }, "3")
+        menuRow("?", "Help & Support", { showSupportTickets() })
+        menuRow("ⓘ", "About App", {
             showUnavailableAccountFeature("About StreamArena", "StreamArena Android app.")
-        }, fieldLayout(dp(48), dp(4)))
-        root.addView(makeButton("Logout", true) { signOut() }, fieldLayout(dp(52), dp(16)))
+        })
+        root.addView(menuCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
+
+        root.addView(makeButton("Edit Profile", false) {
+            val form = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(8), dp(8), dp(8), dp(4))
+            }
+            profileNameInput = EditText(this).apply {
+                hint = "Full name"; setSingleLine(true); setTextColor(Color.WHITE)
+                setHintTextColor(Color.LTGRAY); background = inputBackground(); setPadding(dp(12), 0, dp(12), 0)
+            }
+            profileUsernameInput = EditText(this).apply {
+                hint = "Username"; setSingleLine(true); setTextColor(Color.WHITE)
+                setHintTextColor(Color.LTGRAY); background = inputBackground(); setPadding(dp(12), 0, dp(12), 0)
+            }
+            form.addView(profileNameInput, fieldLayout(dp(50), dp(8)))
+            form.addView(profileUsernameInput, fieldLayout(dp(50), dp(8)))
+            profileStatus = TextView(this).apply { text = "Loading profile…"; setTextColor(Color.LTGRAY); textSize = 12f }
+            form.addView(profileStatus)
+            AlertDialog.Builder(this).setTitle("Edit Profile").setView(form)
+                .setPositiveButton("Save") { _, _ -> saveProfile() }
+                .setNegativeButton("Cancel", null).show()
+            loadProfile()
+        }, fieldLayout(dp(46), dp(4)))
+        root.addView(makeButton("Logout", true) { signOut() }, fieldLayout(dp(50), dp(8)))
         addBottomNav()
-        loadProfile()
     }
 
-    private fun showAccountList(title: String, emptyMessage: String, loader: suspend () -> JSONArray, render: (JSONArray, LinearLayout) -> Unit) {
+        private fun showAccountList(title: String, emptyMessage: String, loader: suspend () -> JSONArray, render: (JSONArray, LinearLayout) -> Unit) {
         liveScreen.removeAllViews()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
