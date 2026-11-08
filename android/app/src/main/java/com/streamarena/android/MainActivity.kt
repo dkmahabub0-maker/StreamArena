@@ -382,6 +382,15 @@ class MainActivity : ComponentActivity() {
             setBackgroundColor(Color.TRANSPARENT)
         }
         preview.addView(cameraPreviewView, FrameLayout.LayoutParams(-1, dp(188)))
+        val screenShareHint = TextView(this).apply {
+            text = "▣\nShare Your Screen"
+            textSize = 22f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            visibility = android.view.View.GONE
+        }
+        preview.addView(screenShareHint, FrameLayout.LayoutParams(-1, -1))
         preview.addView(TextView(this).apply {
             text = "🔴 LIVE"
             textSize = 13f
@@ -426,6 +435,7 @@ class MainActivity : ComponentActivity() {
         }
         root.addView(categoryButton, fieldLayout(dp(48), dp(10)))
 
+        lateinit var screenToggle: CheckBox
         val cameraToggle = CheckBox(this).apply {
             text = "Enable Camera"
             isChecked = selectedLiveMode == "camera"
@@ -434,12 +444,15 @@ class MainActivity : ComponentActivity() {
             setOnCheckedChangeListener { _, checked ->
                 if (checked) {
                     selectedLiveMode = "camera"
+                    if (::screenToggle.isInitialized) screenToggle.isChecked = false
+                    cameraPreviewView.visibility = android.view.View.VISIBLE
+                    screenShareHint.visibility = android.view.View.GONE
                     showCameraPreview()
                 } else if (selectedLiveMode == "camera") stopCameraPreview()
             }
         }
         root.addView(cameraToggle, fieldLayout(dp(42), dp(2)))
-        val screenToggle = CheckBox(this).apply {
+        screenToggle = CheckBox(this).apply {
             text = "Enable Screen Share"
             isChecked = selectedLiveMode == "screen"
             setTextColor(Color.WHITE)
@@ -450,9 +463,11 @@ class MainActivity : ComponentActivity() {
                     cameraToggle.isChecked = false
                     stopCameraPreview()
                     cameraPreviewView.visibility = android.view.View.GONE
+                    screenShareHint.visibility = android.view.View.VISIBLE
                 } else if (selectedLiveMode == "screen") {
                     selectedLiveMode = "camera"
                     cameraPreviewView.visibility = android.view.View.VISIBLE
+                    screenShareHint.visibility = android.view.View.GONE
                 }
             }
         }
@@ -469,17 +484,12 @@ class MainActivity : ComponentActivity() {
         addBottomNav(2)
         if (selectedLiveMode == "camera") {
             cameraPreviewView.visibility = android.view.View.VISIBLE
+            screenShareHint.visibility = android.view.View.GONE
             showCameraPreview()
         } else {
             stopCameraPreview()
             cameraPreviewView.visibility = android.view.View.GONE
-            preview.addView(TextView(this).apply {
-                text = "▣\nShare Your Screen"
-                textSize = 22f
-                gravity = Gravity.CENTER
-                setTextColor(Color.WHITE)
-                typeface = Typeface.DEFAULT_BOLD
-            }, FrameLayout.LayoutParams(-1, -1))
+            screenShareHint.visibility = android.view.View.VISIBLE
         }
     }
 
