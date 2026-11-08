@@ -807,8 +807,17 @@ class MainActivity : ComponentActivity() {
                             .put("full_name", fullName.ifEmpty { JSONObject.NULL })
                             .put("username", username.ifEmpty { JSONObject.NULL })
                     )
+                    val verified = getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?select=id,full_name,username&id=eq.$uid&limit=1",
+                        session
+                    )
+                    if (verified.length() != 1) error("No profile row was updated for this account.")
+                    val saved = verified.getJSONObject(0)
+                    if (saved.optString("full_name") != fullName || saved.optString("username") != username) {
+                        error("The saved profile values could not be verified.")
+                    }
                 }
-                profileStatus.text = "Profile saved."
+                profileStatus.text = "Profile saved and verified."
             } catch (error: Exception) {
                 profileStatus.text = "Profile save failed: " + (error.message ?: "database policy or network error")
             }
