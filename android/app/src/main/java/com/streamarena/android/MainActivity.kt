@@ -683,14 +683,136 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private lateinit var profileNameInput: EditText
+    private lateinit var profileUsernameInput: EditText
+    private lateinit var profileStatus: TextView
+
     private fun showProfileScreen() {
-        liveScreen.removeAllViews(); val sc=ScrollView(this); val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(16),dp(20),dp(16),dp(18)) }
-        sc.addView(root); liveScreen.addView(sc,LinearLayout.LayoutParams(-1,0,1f))
-        root.addView(TextView(this).apply { text="🛒\nOrder"; textSize=25f; gravity=Gravity.CENTER; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },bottomMargin(dp(8)))
-        root.addView(TextView(this).apply { text="Your Order List & Purchase History"; textSize=13f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) },bottomMargin(dp(14)))
-        root.addView(makeButton("View Orders",true) { setStatus("Order history is not connected to the backend yet.") },fieldLayout(dp(48),dp(16)))
-        listOf("My Streams","Watch History","Settings","Notifications","Help & Support","About App").forEach { item -> root.addView(makeButton("⚙   "+item+"      ›",false) { if(item=="Settings") showLiveSettings() else setStatus(item+" is not connected yet.") },fieldLayout(dp(48),dp(4))) }
-        root.addView(makeButton("Logout",true) { signOut() },fieldLayout(dp(52),dp(16))); addBottomNav()
+        liveScreen.removeAllViews()
+        val sc = ScrollView(this)
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(20), dp(16), dp(18))
+        }
+        sc.addView(root)
+        liveScreen.addView(sc, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(TextView(this).apply {
+            text = "My Profile"
+            textSize = 24f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(16)))
+        profileNameInput = EditText(this).apply {
+            hint = "Full name"
+            setSingleLine(true)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            background = inputBackground()
+            setPadding(dp(14), 0, dp(14), 0)
+        }
+        root.addView(profileNameInput, fieldLayout(dp(52), dp(10)))
+        profileUsernameInput = EditText(this).apply {
+            hint = "Username"
+            setSingleLine(true)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            background = inputBackground()
+            setPadding(dp(14), 0, dp(14), 0)
+        }
+        root.addView(profileUsernameInput, fieldLayout(dp(52), dp(10)))
+        profileStatus = TextView(this).apply {
+            text = "Loading profile…"
+            textSize = 12f
+            setTextColor(Color.LTGRAY)
+            setPadding(dp(4), dp(6), dp(4), dp(6))
+        }
+        root.addView(profileStatus, bottomMargin(dp(8)))
+        root.addView(makeButton("Save Profile", true) { saveProfile() }, fieldLayout(dp(50), dp(6)))
+        root.addView(makeButton("Refresh Profile", false) { loadProfile() }, fieldLayout(dp(46), dp(14)))
+        root.addView(TextView(this).apply {
+            text = "Account"
+            textSize = 17f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }, bottomMargin(dp(8)))
+        root.addView(makeButton("View Orders", false) {
+            setStatus("Order history is not connected to the backend yet.")
+        }, fieldLayout(dp(48), dp(4)))
+        listOf("My Streams", "Watch History", "Settings", "Notifications", "Help & Support", "About App").forEach { item ->
+            root.addView(makeButton("⚙   $item      ›", false) {
+                if (item == "Settings") showLiveSettings() else setStatus("$item is not connected yet.")
+            }, fieldLayout(dp(48), dp(4)))
+        }
+        root.addView(makeButton("Logout", true) { signOut() }, fieldLayout(dp(52), dp(16)))
+        addBottomNav()
+        loadProfile()
+    }
+
+    private fun loadProfile() {
+        val session = accessToken
+        val uid = userId
+        if (session == null || uid == null) {
+            profileStatus.text = "Sign in to view your profile."
+            profileNameInput.setText("")
+            profileUsernameInput.setText("")
+            return
+        }
+        profileStatus.text = "Loading profile…"
+        lifecycleScope.launch {
+            try {
+                val rows = withContext(Dispatchers.IO) {
+                    getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?select=id,full_name,username,avatar_url,created_at&id=eq.$uid&limit=1",
+                        session
+                    )
+                }
+                if (rows.length() == 0) {
+                    profileStatus.text = "No profile row exists for this account yet. Profile cannot be saved until a row is created."
+                    return@launch
+                }
+                val row = rows.getJSONObject(0)
+                profileNameInput.setText(row.optString("full_name").takeUnless { it == "null" } ?: "")
+                profileUsernameInput.setText(row.optString("username").takeUnless { it == "null" } ?: "")
+                profileStatus.text = "Profile loaded."
+            } catch (error: Exception) {
+                profileStatus.text = "Profile could not load: " + (error.message ?: "network error")
+            }
+        }
+    }
+
+    private fun saveProfile() {
+        val session = accessToken ?: run {
+            profileStatus.text = "Sign in to update your profile."
+            return
+        }
+        val uid = userId ?: return
+        val fullName = profileNameInput.text.toString().trim()
+        val username = profileUsernameInput.text.toString().trim()
+        if (fullName.length > 80 || username.length > 30) {
+            profileStatus.text = "Name must be 80 characters or fewer; username 30 or fewer."
+            return
+        }
+        if (username.isNotEmpty() && !username.matches(Regex("[A-Za-z0-9_]+"))) {
+            profileStatus.text = "Username can contain only letters, numbers, and underscores."
+            return
+        }
+        profileStatus.text = "Saving profile…"
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    patchRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/profiles?id=eq.$uid",
+                        session,
+                        JSONObject()
+                            .put("full_name", fullName.ifEmpty { JSONObject.NULL })
+                            .put("username", username.ifEmpty { JSONObject.NULL })
+                    )
+                }
+                profileStatus.text = "Profile saved."
+            } catch (error: Exception) {
+                profileStatus.text = "Profile save failed: " + (error.message ?: "database policy or network error")
+            }
+        }
     }
 
     private fun showDashboardMenu(anchor: android.view.View) {
@@ -1398,21 +1520,3 @@ class MainActivity : ComponentActivity() {
                         .ifBlank { json.optString("error") }
                 }.getOrDefault("")
                 throw IllegalStateException(message.ifBlank { "Server returned HTTP $code" })
-            }
-            return JSONObject(response)
-        } finally {
-            connection.disconnect()
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        // The app does not persist credentials. Explicit Live teardown is handled by End Live.
-        // Avoid blocking lifecycle teardown with a network disconnect call.
-        stopCameraPreview()
-        closeLiveViewer()
-        room = null
-        accessToken = null
-        userId = null
-    }
-}
