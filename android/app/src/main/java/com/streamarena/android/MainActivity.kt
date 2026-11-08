@@ -249,7 +249,7 @@ class MainActivity : ComponentActivity() {
         val hero=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.BOTTOM; setPadding(dp(16),dp(16),dp(16),dp(16)); background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(118,16,151),Color.rgb(26,38,111),Color.rgb(7,16,45))).apply { cornerRadius=dp(20).toFloat() } }
         hero.addView(TextView(this).apply { text="🔴 LIVE     ◉ 12.5K"; textSize=13f; setTextColor(Color.WHITE) },bottomMargin(dp(42)))
         hero.addView(TextView(this).apply { text="FREE FIRE"; textSize=30f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
-        hero.addView(makeButton("Play Now  ▶",true) { showLivePlayer() },LinearLayout.LayoutParams(-1,dp(44)).apply { topMargin=dp(8) })
+        hero.addView(makeButton("Play Now  ▶",true) { setStatus("Choose a live stream from the Live Streams list below.") },LinearLayout.LayoutParams(-1,dp(44)).apply { topMargin=dp(8) })
         root.addView(hero,LinearLayout.LayoutParams(-1,dp(190)).apply { bottomMargin=dp(12) })
         root.addView(makeButton("✦ ADS     Add System                         Go",true) { setStatus("Ad system is not connected yet.") },fieldLayout(dp(48),dp(16)))
         addSectionTitle(root,"Popular Games","See All →") { showExploreScreen() }
@@ -258,7 +258,7 @@ class MainActivity : ComponentActivity() {
             games.addView(TextView(this).apply { text=name; gravity=Gravity.CENTER; textSize=15f; setTextColor(Color.WHITE); background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(112,25,155),Color.rgb(20,52,104))).apply { cornerRadius=dp(14).toFloat() }; setOnClickListener { selectedGameCategory=name.substringAfter("\n").uppercase() } },LinearLayout.LayoutParams(0,dp(112),1f).apply { setMargins(dp(3),0,dp(3),0) })
         }
         root.addView(games,bottomMargin(dp(18)))
-        addSectionTitle(root,"Live Streams","See All →") { showLivePlayer() }
+        addSectionTitle(root,"Live Streams","See All →") { loadLiveStreams() }
         liveStreamsContainer=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         root.addView(liveStreamsContainer,bottomMargin(dp(18)))
         loadLiveStreams()
@@ -360,7 +360,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }, LinearLayout.LayoutParams(dp(78), dp(50)).apply { leftMargin = dp(6) })
-        root.addView(composer, topMargin(dp(8)))
+        root.addView(composer, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(8) })
         liveScreen.addView(root, LinearLayout.LayoutParams(-1, -1))
         loadStreamChat(streamId, chat)
     }
