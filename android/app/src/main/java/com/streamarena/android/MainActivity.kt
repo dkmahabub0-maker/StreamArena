@@ -103,6 +103,7 @@ class MainActivity : ComponentActivity() {
     private var accountListLoadJob: Job? = null
     private val respondingInvitationIds = mutableSetOf<String>()
     private var gamesLoadJob: Job? = null
+    private var liveStreamsLoadJob: Job? = null
     private var profileLoadJob: Job? = null
     private var activeSupportTicketId: String? = null
     private var communityMessageSending = false
@@ -2874,15 +2875,19 @@ class MainActivity : ComponentActivity() {
 
     private fun loadLiveStreams() {
         if (!::liveStreamsContainer.isInitialized) return
-        lifecycleScope.launch {
+        liveStreamsLoadJob?.cancel()
+        val target = liveStreamsContainer
+        val session = accessToken
+        liveStreamsLoadJob = lifecycleScope.launch {
             try {
                 val freshAfter = java.time.Instant.now().minusSeconds(120).toString()
                 val encoded = java.net.URLEncoder.encode(freshAfter, "UTF-8")
                 val endpoint = "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/streams?select=id,title,caption,user_id&is_live=eq.true&last_heartbeat_at=gt." + encoded + "&order=last_heartbeat_at.desc&limit=8"
-                val rows = withContext(Dispatchers.IO) { getRestJson(endpoint, accessToken) }
-                liveStreamsContainer.removeAllViews()
+                val rows = withContext(Dispatchers.IO) { getRestJson(endpoint, session) }
+                if (liveStreamsContainer !== target || !target.isAttachedToWindow || accessToken != session) return@launch
+                target.removeAllViews()
                 if (rows.length() == 0) {
-                    liveStreamsContainer.addView(TextView(this@MainActivity).apply {
+                    target.addView(TextView(this@MainActivity).apply {
                         text = "No live streams right now."
                         textSize = 13f
                         setTextColor(Color.LTGRAY)
@@ -2894,20 +2899,24 @@ class MainActivity : ComponentActivity() {
                     val streamId = row.getString("id")
                     val streamTitle = row.optString("title", "Live Stream")
                     val caption = row.optString("caption", "")
-                    liveStreamsContainer.addView(
+                    target.addView(
                         makeButton("🔴 LIVE   " + streamTitle + "\n" + caption + "\nWatch Live  ›", false) {
                             showLivePlayer(streamId, streamTitle)
                         },
                         fieldLayout(dp(76), dp(8))
                     )
                 }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
-                liveStreamsContainer.removeAllViews()
-                liveStreamsContainer.addView(TextView(this@MainActivity).apply {
-                    text = "Live streams could not load: " + (error.message ?: "network error")
-                    textSize = 12f
-                    setTextColor(Color.rgb(255, 140, 140))
-                })
+                if (liveStreamsContainer === target && target.isAttachedToWindow && accessToken == session) {
+                    target.removeAllViews()
+                    target.addView(TextView(this@MainActivity).apply {
+                        text = "Live streams could not load: " + (error.message ?: "network error")
+                        textSize = 12f
+                        setTextColor(Color.rgb(255, 140, 140))
+                    })
+                }
             }
         }
     }
