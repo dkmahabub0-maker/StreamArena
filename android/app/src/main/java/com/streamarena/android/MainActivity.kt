@@ -443,12 +443,31 @@ class MainActivity : ComponentActivity() {
         fieldLabel("Select Category")
         lateinit var categoryButton: Button
         categoryButton = makeButton("🎮   $selectedGameCategory     ▾", false) {
-            val choices = arrayOf("FREE FIRE", "PUBG MOBILE", "BGMI", "CALL OF DUTY", "OTHER")
-            AlertDialog.Builder(this).setTitle("Select Game")
-                .setItems(choices) { _, which ->
-                    selectedGameCategory = choices[which]
-                    categoryButton.text = "🎮   $selectedGameCategory     ▾"
-                }.show()
+            categoryButton.isEnabled = false
+            categoryButton.text = "Loading games…"
+            lifecycleScope.launch {
+                val choices = try {
+                    withContext(Dispatchers.IO) {
+                        val rows = getRestJson(
+                            "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/games?select=name&order=name.asc&limit=100",
+                            accessToken
+                        )
+                        (0 until rows.length()).mapNotNull { index ->
+                            rows.getJSONObject(index).optString("name").trim().takeIf { it.isNotEmpty() }
+                        }.distinct().toTypedArray()
+                    }
+                } catch (_: Exception) {
+                    arrayOf("FREE FIRE", "PUBG MOBILE", "BGMI", "CALL OF DUTY", "OTHER")
+                }
+                categoryButton.isEnabled = true
+                categoryButton.text = "🎮   $selectedGameCategory     ▾"
+                val options = if (choices.isNotEmpty()) choices else arrayOf("OTHER")
+                AlertDialog.Builder(this@MainActivity).setTitle("Select Game")
+                    .setItems(options) { _, which ->
+                        selectedGameCategory = options[which].uppercase()
+                        categoryButton.text = "🎮   $selectedGameCategory     ▾"
+                    }.show()
+            }
         }
         root.addView(categoryButton, fieldLayout(dp(48), dp(10)))
 
