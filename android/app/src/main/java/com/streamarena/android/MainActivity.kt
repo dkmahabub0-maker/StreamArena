@@ -1153,6 +1153,7 @@ class MainActivity : ComponentActivity() {
 
     private fun loadCommunityMessages(familyId: String) {
         val session = accessToken ?: return
+        val targetChat = communityChatContainer
         communityMessageLoadJob?.cancel()
         communityMessageLoadJob = lifecycleScope.launch {
             try {
@@ -1162,13 +1163,13 @@ class MainActivity : ComponentActivity() {
                         session
                     )
                 }
-                if (activeCommunityFamilyId != familyId || !::communityChatContainer.isInitialized) return@launch
-                val scroll = communityChatContainer.parent as? ScrollView
+                if (activeCommunityFamilyId != familyId || communityChatContainer !== targetChat || !targetChat.isAttachedToWindow) return@launch
+                val scroll = targetChat.parent as? ScrollView
                 val wasAtBottom = scroll != null && scroll.height > 0 &&
-                    scroll.scrollY + scroll.height >= communityChatContainer.height - dp(24)
-                communityChatContainer.removeAllViews()
+                    scroll.scrollY + scroll.height >= targetChat.height - dp(24)
+                targetChat.removeAllViews()
                 if (messages.length() == 0) {
-                    communityChatContainer.addView(TextView(this@MainActivity).apply {
+                    targetChat.addView(TextView(this@MainActivity).apply {
                         text = "No messages yet. Start the conversation."
                         setTextColor(Color.LTGRAY)
                         setPadding(dp(8), dp(12), dp(8), dp(12))
@@ -1177,7 +1178,7 @@ class MainActivity : ComponentActivity() {
                 for (i in 0 until messages.length()) {
                     val row = messages.getJSONObject(i)
                     val sender = if (row.optString("user_id") == userId) "You" else "Member"
-                    communityChatContainer.addView(TextView(this@MainActivity).apply {
+                    targetChat.addView(TextView(this@MainActivity).apply {
                         text = "$sender: " + row.optString("message")
                         textSize = 14f
                         setTextColor(Color.WHITE)
@@ -1191,13 +1192,15 @@ class MainActivity : ComponentActivity() {
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
             } catch (error: Exception) {
-                if (activeCommunityFamilyId != familyId) return@launch
-                communityChatContainer.removeAllViews()
-                communityChatContainer.addView(TextView(this@MainActivity).apply {
-                    text = "Community chat unavailable: " + (error.message ?: "network error")
-                    setTextColor(Color.rgb(255, 140, 140))
-                    setPadding(dp(10), dp(8), dp(10), dp(8))
-                })
+                if (activeCommunityFamilyId != familyId || communityChatContainer !== targetChat || !targetChat.isAttachedToWindow) return@launch
+                if ((0 until targetChat.childCount).none { targetChat.getChildAt(it).tag == "community-chat-load-error" }) {
+                    targetChat.addView(TextView(this@MainActivity).apply {
+                        tag = "community-chat-load-error"
+                        text = "Community chat could not refresh: " + (error.message ?: "network error")
+                        setTextColor(Color.rgb(255, 140, 140))
+                        setPadding(dp(10), dp(8), dp(10), dp(8))
+                    })
+                }
             }
         }
     }
