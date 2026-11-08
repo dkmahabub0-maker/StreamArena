@@ -116,6 +116,7 @@ class MainActivity : ComponentActivity() {
     private var activeStreamId: String? = null
     private var heartbeatJob: Job? = null
     private var startLiveJob: Job? = null
+    private var endLiveJob: Job? = null
     private lateinit var liveStreamsContainer: LinearLayout
     private lateinit var gamesContainer: LinearLayout
     private lateinit var communityFamiliesContainer: LinearLayout
@@ -2595,6 +2596,7 @@ class MainActivity : ComponentActivity() {
         streamChatLoadJob?.cancel(); streamChatLoadJob = null
         heartbeatJob?.cancel(); heartbeatJob = null
         startLiveJob?.cancel(); startLiveJob = null
+        endLiveJob?.cancel(); endLiveJob = null
         respondingInvitationIds.clear()
         closeLiveViewer()
         accessToken = null
@@ -2748,7 +2750,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun endLive() {
-        lifecycleScope.launch {
+        if (endLiveJob?.isActive == true) return
+        endLiveButton.isEnabled = false
+        endLiveJob = lifecycleScope.launch {
             var cleanupWarning: String? = null
             heartbeatJob?.cancel()
             heartbeatJob = null
@@ -2778,6 +2782,7 @@ class MainActivity : ComponentActivity() {
             activeStreamId = null
             if (selectedLiveMode == "camera" && ::liveCard.isInitialized && liveCard.visibility == android.view.View.VISIBLE) showCameraPreview()
             setStatus(cleanupWarning ?: "Live ended.")
+            endLiveJob = null
             updateControls()
         }
     }
