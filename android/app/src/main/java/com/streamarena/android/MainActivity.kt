@@ -1146,12 +1146,15 @@ class MainActivity : ComponentActivity() {
                 if (wasAtBottom || messages.length() <= 1) scroll?.post {
                     scroll.fullScroll(ScrollView.FOCUS_DOWN)
                 }
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (error: Exception) {
                 if (activeCommunityFamilyId != familyId) return@launch
                 communityChatContainer.removeAllViews()
                 communityChatContainer.addView(TextView(this@MainActivity).apply {
                     text = "Community chat unavailable: " + (error.message ?: "network error")
                     setTextColor(Color.rgb(255, 140, 140))
+                    setPadding(dp(10), dp(8), dp(10), dp(8))
                 })
             }
         }
