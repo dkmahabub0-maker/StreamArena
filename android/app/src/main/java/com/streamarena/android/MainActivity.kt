@@ -34,11 +34,15 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import io.livekit.android.LiveKit
 import io.livekit.android.room.Room
+import io.livekit.android.events.RoomEvent
+import io.livekit.android.renderer.SurfaceViewRenderer
+import io.livekit.android.room.track.VideoTrack
 import io.livekit.android.room.track.screencapture.ScreenCaptureParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -81,6 +85,10 @@ class MainActivity : ComponentActivity() {
     private var accessToken: String? = null
     private var userId: String? = null
     private var room: Room? = null
+    private var viewerRoom: Room? = null
+    private var viewerEventJob: Job? = null
+    private var viewerVideoTrack: VideoTrack? = null
+    private var viewerRenderer: SurfaceViewRenderer? = null
     private var sharing = false
     private var activeStreamId: String? = null
     private var heartbeatJob: Job? = null
@@ -306,7 +314,20 @@ class MainActivity : ComponentActivity() {
         listOf("Free Fire","PUBG MOBILE","BGMI","ACTION","BATTLE","SPORTS","RACING").forEach { game -> root.addView(makeButton("🎮   "+game,false) { selectedGameCategory=game.uppercase(); buildLiveScreen(); setContentView(liveScreen) },fieldLayout(dp(58),dp(8))) }
         addBottomNav()
     }
+    private fun closeLiveViewer() {
+        viewerEventJob?.cancel()
+        viewerEventJob = null
+        viewerVideoTrack?.let { track -> viewerRenderer?.let { renderer -> runCatching { track.removeRenderer(renderer) } } }
+        viewerVideoTrack = null
+        viewerRenderer?.let { renderer -> runCatching { renderer.release() } }
+        viewerRenderer = null
+        val activeViewer = viewerRoom
+        viewerRoom = null
+        if (activeViewer != null) lifecycleScope.launch { runCatching { activeViewer.disconnect() } }
+    }
+
     private fun showLivePlayer(streamId: String, streamTitle: String) {
+        closeLiveViewer()
         liveScreen.removeAllViews()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -314,16 +335,23 @@ class MainActivity : ComponentActivity() {
             setBackgroundColor(Color.rgb(5, 7, 19))
         }
         root.addView(makeButton("LIVE   " + streamTitle + "     ✕", false) {
+            closeLiveViewer()
             buildLiveScreen()
             setContentView(liveScreen)
         }, fieldLayout(dp(48), dp(8)))
-        root.addView(TextView(this).apply {
-            text = "Stream video player\n\nViewer playback renderer is not yet connected."
-            textSize = 15f
+
+        val renderer = SurfaceViewRenderer(this).apply { setBackgroundColor(Color.BLACK) }
+        viewerRenderer = renderer
+        root.addView(renderer, LinearLayout.LayoutParams(-1, dp(220)))
+        val playbackStatus = TextView(this).apply {
+            text = "Connecting to live stream…"
+            textSize = 12f
             gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
-            background = panelBackground()
-        }, LinearLayout.LayoutParams(-1, dp(210)))
+            setTextColor(Color.LTGRAY)
+            setPadding(dp(4), dp(8), dp(4), dp(8))
+        }
+        root.addView(playbackStatus, LinearLayout.LayoutParams(-1, dp(34)))
+
         val chat = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val chatScroll = ScrollView(this)
         chatScroll.addView(chat)
@@ -362,6 +390,46 @@ class MainActivity : ComponentActivity() {
         root.addView(composer, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(8) })
         liveScreen.addView(root, LinearLayout.LayoutParams(-1, -1))
         loadStreamChat(streamId, chat)
+
+        lifecycleScope.launch {
+            try {
+                val token = accessToken ?: error("Sign in to watch live streams.")
+                val credentials = withContext(Dispatchers.IO) { requestViewerToken(token, streamId) }
+                val liveRoom = LiveKit.create(applicationContext)
+                viewerRoom = liveRoom
+                liveRoom.initVideoRenderer(renderer)
+                viewerEventJob = launch {
+                    liveRoom.events.collect { event ->
+                        when (event) {
+                            is RoomEvent.TrackSubscribed -> {
+                                val video = event.track as? VideoTrack
+                                if (video != null) {
+                                    viewerVideoTrack?.let { previous -> renderer.let { previous.removeRenderer(it) } }
+                                    viewerVideoTrack = video
+                                    video.addRenderer(renderer)
+                                    playbackStatus.text = "LIVE • Video connected"
+                                }
+                            }
+                            is RoomEvent.TrackUnsubscribed -> {
+                                val video = event.track as? VideoTrack
+                                if (video != null && viewerVideoTrack === video) {
+                                    video.removeRenderer(renderer)
+                                    viewerVideoTrack = null
+                                    playbackStatus.text = "Video track disconnected. Waiting for stream…"
+                                }
+                            }
+                            is RoomEvent.Disconnected -> playbackStatus.text = "Disconnected from live stream."
+                            else -> Unit
+                        }
+                    }
+                }
+                liveRoom.connect(credentials.getString("serverUrl"), credentials.getString("token"))
+                playbackStatus.text = "Connected • Waiting for video…"
+            } catch (error: Exception) {
+                playbackStatus.text = "Playback unavailable: " + (error.message ?: "connection failed")
+                closeLiveViewer()
+            }
+        }
     }
 
     private fun loadStreamChat(streamId: String, target: LinearLayout) {
@@ -1078,6 +1146,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun requestViewerToken(session: String, streamId: String): JSONObject {
+        val body = JSONObject().put("roomName", "stream-$streamId").put("role", "viewer")
+        return postJson(
+            "https://ovoufvyevnixpmswfrgl.supabase.co/functions/v1/livekit-token",
+            "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+            session,
+            body
+        )
+    }
+
     private fun requestPublisherToken(session: String, id: String): JSONObject {
         val body = JSONObject().put("roomName", "stream-$id").put("role", "publisher")
         return postJson(
@@ -1124,6 +1202,7 @@ class MainActivity : ComponentActivity() {
         // The app does not persist credentials. Explicit Live teardown is handled by End Live.
         // Avoid blocking lifecycle teardown with a network disconnect call.
         stopCameraPreview()
+        closeLiveViewer()
         room = null
         accessToken = null
         userId = null
