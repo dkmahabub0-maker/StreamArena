@@ -1173,9 +1173,7 @@ class MainActivity : ComponentActivity() {
         menuRow("▣", "My Streams", { showMyStreams() })
         menuRow("◷", "Watch History", { showWatchHistory() })
         menuRow("⚙", "Settings", { showLiveSettings() })
-        menuRow("♧", "Notifications", {
-            showUnavailableAccountFeature("Notifications", "A notifications inbox is not connected yet.")
-        }, "3")
+        menuRow("♧", "Notifications", { showNotifications() })
         menuRow("?", "Help & Support", { showSupportTickets() })
         menuRow("ⓘ", "About App", {
             showUnavailableAccountFeature("About StreamArena", "StreamArena Android app.")
@@ -1337,6 +1335,55 @@ class MainActivity : ComponentActivity() {
         root.addView(makeButton("Back to Profile", true) { showProfileScreen() }, fieldLayout(dp(48), dp(8)))
         liveScreen.addView(root, LinearLayout.LayoutParams(-1, 0, 1f))
         addBottomNav()
+    }
+
+    private fun showNotifications() {
+        val uid = userId ?: run {
+            showUnavailableAccountFeature("Notifications", "Sign in to view invitations.")
+            return
+        }
+        val token = accessToken ?: return
+        showAccountList(
+            "Notifications",
+            "You have no pending invitations.",
+            loader = {
+                withContext(Dispatchers.IO) {
+                    val family = getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/family_invites?select=id,status,created_at,families(name)&invitee_id=eq.$uid&status=eq.pending&order=created_at.desc&limit=50",
+                        token
+                    )
+                    val tournaments = getRestJson(
+                        "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/tournament_invites?select=id,status,created_at,tournaments(title)&invited_user_id=eq.$uid&status=eq.pending&order=created_at.desc&limit=50",
+                        token
+                    )
+                    val combined = JSONArray()
+                    for (i in 0 until family.length()) {
+                        combined.put(family.getJSONObject(i).apply { put("_kind", "Community invitation") })
+                    }
+                    for (i in 0 until tournaments.length()) {
+                        combined.put(tournaments.getJSONObject(i).apply { put("_kind", "Tournament invitation") })
+                    }
+                    combined
+                }
+            },
+            render = { rows, list ->
+                for (i in 0 until rows.length()) {
+                    val row = rows.getJSONObject(i)
+                    val kind = row.optString("_kind")
+                    val related = if (kind == "Community invitation") row.optJSONObject("families") else row.optJSONObject("tournaments")
+                    val field = if (kind == "Community invitation") "name" else "title"
+                    val name = related?.optString(field)?.takeIf { !it.isNullOrBlank() && it != "null" } ?: "Invitation"
+                    val date = row.optString("created_at").take(10)
+                    list.addView(TextView(this).apply {
+                        text = kind + "\n" + name + "\nPending · " + date
+                        textSize = 14f
+                        setTextColor(Color.WHITE)
+                        setPadding(dp(14), dp(13), dp(14), dp(13))
+                        background = panelBackground()
+                    }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+                }
+            }
+        )
     }
 
     private fun showMyStreams() {
