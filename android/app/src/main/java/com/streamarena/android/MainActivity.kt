@@ -171,7 +171,7 @@ class MainActivity : ComponentActivity() {
             background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(77,20,166),Color.rgb(16,32,90))).apply { cornerRadius=dp(28).toFloat() }
         }, LinearLayout.LayoutParams(-1,dp(250)).apply { bottomMargin=dp(28) })
         welcomeScreen.addView(makeButton("Get Started  →",true) { setContentView(authScreen) }, LinearLayout.LayoutParams(-1,dp(56)))
-        welcomeScreen.addView(TextView(this).apply { text="Version 1.0.0"; textSize=11f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) }, topMargin(dp(18)))
+        welcomeScreen.addView(TextView(this).apply { text="Version 1.0.0"; textSize=11f; gravity=Gravity.CENTER; setTextColor(Color.LTGRAY) }, LinearLayout.LayoutParams(-1,-2).apply { topMargin=dp(18) })
     }
 
     private fun buildAuthScreen() {
@@ -274,7 +274,7 @@ class MainActivity : ComponentActivity() {
         stopShareButton=makeButton("Stop Sharing",false) { stopScreenShare() }; liveCard.addView(stopShareButton,fieldLayout(dp(48),dp(6)))
         endLiveButton=makeButton("End Live",false) { endLive() }; liveCard.addView(endLiveButton,fieldLayout(dp(48),dp(6)))
         liveStatus=TextView(this).apply { text="Ready to stream"; textSize=12f; setTextColor(Color.LTGRAY); gravity=Gravity.CENTER }; liveCard.addView(liveStatus)
-        root.addView(liveCard,topMargin(dp(8)))
+        root.addView(liveCard,LinearLayout.LayoutParams(-1,-2).apply { topMargin=dp(8) })
         addBottomNav()
     }
 
