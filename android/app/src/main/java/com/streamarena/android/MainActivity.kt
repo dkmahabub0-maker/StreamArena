@@ -17,6 +17,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
+import android.os.Build
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
@@ -306,6 +307,10 @@ class MainActivity : ComponentActivity() {
      * Keep every dynamically swapped screen inside the system-bar safe area.
      */
     private fun applySystemBarInsets() {
+        // Before Android 15, the platform still fits app content around system bars.
+        // Applying manual padding there would inset the content a second time.
+        if (Build.VERSION.SDK_INT < 35) return
+
         val content = findViewById<ViewGroup>(android.R.id.content)
         ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
             val safeInsets = insets.getInsets(
