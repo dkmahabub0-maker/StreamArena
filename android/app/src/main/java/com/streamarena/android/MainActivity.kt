@@ -229,10 +229,12 @@ class MainActivity : ComponentActivity() {
                     ScreenCaptureParams(
                         mediaProjectionPermissionResultData = data,
                         onStop = {
-                            sharing = false
                             runOnUiThread {
-                                updateControls()
-                                setStatus("Android stopped screen capture. Your Live can continue.")
+                                if (accessToken == session && activeStreamId == streamId && room === activeRoom) {
+                                    sharing = false
+                                    updateControls()
+                                    setStatus("Android stopped screen capture. Your Live can continue.")
+                                }
                             }
                         }
                     )
@@ -241,6 +243,8 @@ class MainActivity : ComponentActivity() {
                 sharing = started
                 updateControls()
                 setStatus(if (started) "Your phone screen is now being shared." else "LiveKit could not start screen sharing.")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 if (accessToken == session && activeStreamId == streamId && room === activeRoom) {
                     sharing = false
