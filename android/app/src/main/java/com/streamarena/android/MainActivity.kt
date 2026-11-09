@@ -459,15 +459,43 @@ class MainActivity : ComponentActivity() {
         header.addView(TextView(this).apply { text="StreamArena"; textSize=21f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },LinearLayout.LayoutParams(0,-2,1f).apply { leftMargin=dp(8) })
         header.addView(makeButton("♧",false) { showNotifications() })
         root.addView(header,bottomMargin(dp(12)))
-        val hero=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.BOTTOM; setPadding(dp(16),dp(16),dp(16),dp(16)); background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(Color.rgb(118,16,151),Color.rgb(26,38,111),Color.rgb(7,16,45))).apply { cornerRadius=dp(20).toFloat() } }
-        hero.addView(TextView(this).apply { text="🔴 LIVE GAMING"; textSize=13f; setTextColor(Color.WHITE) },bottomMargin(dp(42)))
-        hero.addView(TextView(this).apply { text="Find Your Next Stream"; textSize=27f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD })
-        hero.addView(makeButton("Explore Live Streams  ▶",true) { loadLiveStreams(); setStatus("Refreshing live streams…") },LinearLayout.LayoutParams(-1,dp(44)).apply { topMargin=dp(8) })
-        root.addView(hero,LinearLayout.LayoutParams(-1,dp(190)).apply { bottomMargin=dp(12) })
-        root.addView(makeButton("✦ EXPLORE GAMES                         See All  ›",true) { showExploreScreen() },fieldLayout(dp(48),dp(16)))
+        val hero=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL
+            gravity=Gravity.BOTTOM
+            setPadding(dp(16),dp(16),dp(16),dp(16))
+            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(196,0,174),Color.rgb(91,16,154),Color.rgb(12,26,78),Color.rgb(5,12,39))).apply {
+                cornerRadius=dp(20).toFloat()
+                setStroke(dp(1),Color.rgb(128,53,197))
+            }
+        }
+        hero.addView(TextView(this).apply {
+            text="🔴  LIVE  •  FEATURED GAME"
+            textSize=12f
+            setTextColor(Color.WHITE)
+            typeface=Typeface.DEFAULT_BOLD
+        },bottomMargin(dp(22)))
+        hero.addView(TextView(this).apply {
+            text="FREE FIRE"
+            textSize=29f
+            setTextColor(Color.WHITE)
+            typeface=Typeface.create("sans-serif-black",Typeface.BOLD)
+        })
+        hero.addView(TextView(this).apply {
+            text="Find your squad. Enter the arena."
+            textSize=13f
+            setTextColor(Color.rgb(235,225,255))
+        },bottomMargin(dp(12)))
+        hero.addView(makeButton("Play Now  ▶",true) { showExploreScreen() },
+            LinearLayout.LayoutParams(dp(150),dp(44)))
+        root.addView(hero,LinearLayout.LayoutParams(-1,dp(204)).apply { bottomMargin=dp(14) })
         addSectionTitle(root,"Popular Games","See All →") { showExploreScreen() }
         gamesContainer=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
-        root.addView(gamesContainer,bottomMargin(dp(18)))
+        val gamesScroller=HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled=false
+            addView(gamesContainer)
+        }
+        root.addView(gamesScroller,bottomMargin(dp(18)))
         loadGames()
         addSectionTitle(root,"Live Streams","See All →") { loadLiveStreams() }
         liveStreamsContainer=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
@@ -3168,22 +3196,42 @@ class MainActivity : ComponentActivity() {
                 }
                 for (i in 0 until rows.length()) {
                     val name = rows.getJSONObject(i).optString("name", "Game")
-                    target.addView(TextView(this@MainActivity).apply {
-                        text = name
+                    val gameIcon = when {
+                        name.contains("free fire", true) -> "🔥"
+                        name.contains("pubg", true) -> "🎯"
+                        name.contains("bgmi", true) -> "🪖"
+                        name.contains("call of duty", true) -> "⚔️"
+                        else -> "🎮"
+                    }
+                    val gameCard = LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.VERTICAL
                         gravity = Gravity.CENTER
-                        textSize = 14f
-                        setTextColor(Color.WHITE)
-                        setPadding(dp(8), dp(12), dp(8), dp(12))
+                        setPadding(dp(8), dp(10), dp(8), dp(10))
                         background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
                             intArrayOf(Color.rgb(112,25,155), Color.rgb(20,52,104))).apply {
                             cornerRadius = dp(14).toFloat()
+                            setStroke(dp(1), Color.rgb(94,66,151))
                         }
+                        addView(TextView(this@MainActivity).apply {
+                            text = gameIcon
+                            textSize = 27f
+                            gravity = Gravity.CENTER
+                        }, LinearLayout.LayoutParams(-1, dp(42)))
+                        addView(TextView(this@MainActivity).apply {
+                            text = name
+                            gravity = Gravity.CENTER
+                            textSize = 12f
+                            maxLines = 2
+                            setTextColor(Color.WHITE)
+                            typeface = Typeface.DEFAULT_BOLD
+                        }, LinearLayout.LayoutParams(-1, dp(34)))
                         setOnClickListener {
                             selectedGameCategory = name.uppercase()
                             setStatus("$name selected")
                         }
-                    }, LinearLayout.LayoutParams(0, dp(92), 1f).apply {
-                        setMargins(dp(3), 0, dp(3), 0)
+                    }
+                    target.addView(gameCard, LinearLayout.LayoutParams(dp(112), dp(92)).apply {
+                        setMargins(dp(4), 0, dp(4), 0)
                     })
                 }
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
