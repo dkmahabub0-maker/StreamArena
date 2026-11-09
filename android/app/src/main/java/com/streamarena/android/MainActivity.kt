@@ -754,8 +754,25 @@ class MainActivity : ComponentActivity() {
             startLive()
         }, LinearLayout.LayoutParams(-1, dp(54)).apply { bottomMargin = dp(12) })
         root.addView(makeButton("Cancel", false) {
-            showCreateScreen()
+            if (room != null) {
+                setStatus("Live is still running. End Live before leaving this screen.")
+            } else {
+                showCreateScreen()
+            }
         }, LinearLayout.LayoutParams(-1, dp(48)))
+
+        // Keep the capture/publishing result visible on the screen the user is
+        // actually looking at. Previously liveStatus stayed inside the detached
+        // liveCard, so Android's app-picker returned with no visible feedback.
+        if (::liveStatus.isInitialized) {
+            (liveStatus.parent as? android.view.ViewGroup)?.removeView(liveStatus)
+            liveStatus.gravity = Gravity.CENTER
+            liveStatus.textSize = 13f
+            liveStatus.setPadding(dp(8), dp(12), dp(8), dp(12))
+            root.addView(liveStatus, LinearLayout.LayoutParams(-1, -2).apply {
+                topMargin = dp(8)
+            })
+        }
     }
 
     private fun showExploreScreen() {
