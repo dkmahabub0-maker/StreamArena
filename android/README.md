@@ -9,7 +9,7 @@ This is a separate native Android client workstream. It does not replace the exi
 - The Android UI now follows the supplied reference structure: welcome screen, email login/OTP, dark gaming home, live-player presentation, Go Live setup, screen-share permission flow, Community layout, and Profile/Orders layout. Bottom navigation includes Home, Explore, Create, Community, and Profile.
 - Live setup allows Camera Live or Phone Screen Live selection. Camera Live requests camera and microphone access; Phone Screen Live requests microphone access plus Android's MediaProjection consent and publishes the captured display instead of the camera.
 - Uses the existing Supabase Auth password sign-in, sign-up, and email verification endpoints.
-- Requests a publisher token from the existing `livekit-token` Edge Function for the authenticated user's `stream-<user-id>` room.
+- Requests a publisher token from the existing `livekit-token` Edge Function for the stream record's `stream-<stream-id>` room; viewers use the same stream-record ID to join that room.
 - Signing out attempts to mark the active stream offline before the in-memory session is discarded.
 - Connects with the LiveKit Android SDK, enables host camera/microphone, and exposes host-only phone screen share start/stop controls.
 - Screen capture requires Android's system consent dialog and LiveKit's MediaProjection foreground service.
