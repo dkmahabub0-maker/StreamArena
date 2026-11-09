@@ -672,6 +672,7 @@ class MainActivity : ComponentActivity() {
                     cameraPreviewView.visibility = android.view.View.VISIBLE
                     screenShareHint.visibility = android.view.View.GONE
                     if (::startLiveButton.isInitialized) startLiveButton.text = "Start Live  ▶"
+                    showCameraPreview()
                 }
             }
         }
