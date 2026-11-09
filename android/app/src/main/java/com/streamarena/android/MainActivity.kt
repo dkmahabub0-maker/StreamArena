@@ -92,6 +92,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var liveCard: LinearLayout
     private lateinit var cameraPreviewView: PreviewView
     private var cameraProvider: ProcessCameraProvider? = null
+    private var cameraPreviewGeneration = 0L
     private var pendingSignupEmail: String? = null
     private var selectedLiveMode: String = "camera"
 
@@ -2453,15 +2454,24 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showCameraPreview() {
-        if (!::cameraPreviewView.isInitialized || room != null) return
+        if (!::cameraPreviewView.isInitialized || room != null || selectedLiveMode != "camera" ||
+            !::liveCard.isInitialized || liveCard.visibility != android.view.View.VISIBLE ||
+            isFinishing || isDestroyed) return
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             cameraPreviewPermissionLauncher.launch(android.Manifest.permission.CAMERA)
             return
         }
+        val generation = ++cameraPreviewGeneration
         val providerFuture = ProcessCameraProvider.getInstance(this)
         providerFuture.addListener({
+            // A mode change, sign-out, or Activity teardown may happen while CameraX initializes.
+            if (generation != cameraPreviewGeneration || selectedLiveMode != "camera" ||
+                room != null || liveCard.visibility != android.view.View.VISIBLE ||
+                isFinishing || isDestroyed || !cameraPreviewView.isAttachedToWindow) return@addListener
             try {
                 val provider = providerFuture.get()
+                if (generation != cameraPreviewGeneration || selectedLiveMode != "camera" ||
+                    room != null || isFinishing || isDestroyed) return@addListener
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(cameraPreviewView.surfaceProvider)
                 }
@@ -2470,12 +2480,16 @@ class MainActivity : ComponentActivity() {
                 cameraProvider = provider
                 cameraPreviewView.visibility = android.view.View.VISIBLE
             } catch (error: Exception) {
-                setStatus("Could not open camera preview: ${error.message ?: "unknown error"}", true)
+                if (generation == cameraPreviewGeneration && selectedLiveMode == "camera" &&
+                    !isFinishing && !isDestroyed) {
+                    setStatus("Could not open camera preview: ${error.message ?: "unknown error"}", true)
+                }
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
     private fun stopCameraPreview() {
+        cameraPreviewGeneration++
         cameraProvider?.unbindAll()
         cameraProvider = null
         if (::cameraPreviewView.isInitialized) cameraPreviewView.visibility = android.view.View.GONE
