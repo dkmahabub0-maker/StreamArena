@@ -457,7 +457,23 @@ class MainActivity : ComponentActivity() {
         header.addView(menu,LinearLayout.LayoutParams(dp(42),dp(48)))
         header.addView(ImageView(this).apply { setImageResource(R.drawable.ic_streamarena) },LinearLayout.LayoutParams(dp(34),dp(34)))
         header.addView(TextView(this).apply { text="StreamArena"; textSize=21f; setTextColor(Color.WHITE); typeface=Typeface.DEFAULT_BOLD },LinearLayout.LayoutParams(0,-2,1f).apply { leftMargin=dp(8) })
-        header.addView(makeButton("♧",false) { showNotifications() })
+        header.addView(makeButton("♧",false) { showNotifications() },
+            LinearLayout.LayoutParams(dp(42), dp(44)))
+        val headerAvatar = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.rgb(72, 35, 124))
+                setStroke(dp(1), Color.rgb(205, 95, 255))
+            }
+            clipToOutline = true
+            setImageResource(android.R.drawable.ic_menu_myplaces)
+            contentDescription = "Profile"
+            setOnClickListener { showProfileScreen() }
+        }
+        header.addView(headerAvatar, LinearLayout.LayoutParams(dp(34), dp(34)).apply {
+            leftMargin = dp(6)
+        })
         root.addView(header,bottomMargin(dp(12)))
         val hero=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
