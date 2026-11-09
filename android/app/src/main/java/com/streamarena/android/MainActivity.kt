@@ -46,6 +46,7 @@ import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
 import io.livekit.android.renderer.SurfaceViewRenderer
 import io.livekit.android.room.track.VideoTrack
+import io.livekit.android.room.track.Track
 import io.livekit.android.room.track.screencapture.ScreenCaptureParams
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -226,35 +227,50 @@ class MainActivity : ComponentActivity() {
         val session = accessToken ?: return@registerForActivityResult
         val streamId = activeStreamId ?: return@registerForActivityResult
         val activeRoom = room ?: return@registerForActivityResult
+        setStatus("Screen permission granted. Starting screen capture and publishing video…")
         lifecycleScope.launch {
             try {
                 if (accessToken != session || activeStreamId != streamId || room !== activeRoom) return@launch
-                val started = activeRoom.localParticipant.setScreenShareEnabled(
-                    true,
-                    ScreenCaptureParams(
-                        mediaProjectionPermissionResultData = data,
-                        onStop = {
-                            runOnUiThread {
-                                if (accessToken == session && activeStreamId == streamId && room === activeRoom) {
-                                    sharing = false
-                                    updateControls()
-                                    setStatus("Android stopped screen capture. Your Live can continue.")
+                val started = withContext(Dispatchers.IO) {
+                    activeRoom.localParticipant.setScreenShareEnabled(
+                        true,
+                        ScreenCaptureParams(
+                            mediaProjectionPermissionResultData = data,
+                            onStop = {
+                                runOnUiThread {
+                                    if (accessToken == session && activeStreamId == streamId && room === activeRoom) {
+                                        sharing = false
+                                        updateControls()
+                                        setStatus("Android stopped screen capture. Your Live can continue.")
+                                    }
                                 }
                             }
-                        }
+                        )
                     )
-                )
+                }
                 if (accessToken != session || activeStreamId != streamId || room !== activeRoom) return@launch
-                sharing = started
+                val screenPublication = activeRoom.localParticipant.getTrackPublication(Track.Source.SCREEN_SHARE)
+                val trackPublished = started &&
+                    activeRoom.localParticipant.isScreenShareEnabled &&
+                    screenPublication != null &&
+                    screenPublication.track != null
+                sharing = trackPublished
                 updateControls()
-                setStatus(if (started) "Your phone screen is now being shared." else "LiveKit could not start screen sharing.")
+                setStatus(
+                    when {
+                        trackPublished -> "Screen sharing is active. Your selected screen is being sent to the Live."
+                        started -> "Capture started, but LiveKit has no published screen video track. Stop sharing and try again."
+                        else -> "LiveKit could not start screen capture. Check Android's screen-capture permission and try again."
+                    },
+                    isError = !trackPublished
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 if (accessToken == session && activeStreamId == streamId && room === activeRoom) {
                     sharing = false
                     updateControls()
-                    setStatus("Screen share failed: ${error.message ?: "unknown error"}")
+                    setStatus("Screen share failed: ${error.message ?: "unknown error"}", isError = true)
                 }
             }
         }
