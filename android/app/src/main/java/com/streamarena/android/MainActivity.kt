@@ -1217,8 +1217,6 @@ class MainActivity : ComponentActivity() {
                 setTextColor(Color.LTGRAY)
             })
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = dp(8) })
-        communityHero.addView(makeButton("Refresh", true) { loadCommunityFamilies() },
-            LinearLayout.LayoutParams(dp(92), dp(42)))
         root.addView(communityHero, bottomMargin(dp(16)))
         root.addView(TextView(this).apply {
             text = "Your communities"
@@ -1396,14 +1394,55 @@ class MainActivity : ComponentActivity() {
                 }
                 for (i in 0 until messages.length()) {
                     val row = messages.getJSONObject(i)
-                    val sender = if (row.optString("user_id") == userId) "You" else "Member"
-                    targetChat.addView(TextView(this@MainActivity).apply {
-                        text = "$sender: " + row.optString("message")
-                        textSize = 14f
-                        setTextColor(Color.WHITE)
-                        setPadding(dp(10), dp(8), dp(10), dp(8))
-                        background = panelBackground()
-                    }, bottomMargin(dp(6)))
+                    val isOwnMessage = row.optString("user_id") == userId
+                    val messageRow = LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+                    if (!isOwnMessage) {
+                        messageRow.addView(TextView(this@MainActivity).apply {
+                            text = "●"
+                            textSize = 22f
+                            gravity = Gravity.CENTER
+                            setTextColor(Color.rgb(205, 105, 255))
+                            background = GradientDrawable().apply {
+                                shape = GradientDrawable.OVAL
+                                setColor(Color.rgb(45, 28, 77))
+                            }
+                        }, LinearLayout.LayoutParams(dp(32), dp(32)).apply {
+                            rightMargin = dp(8)
+                        })
+                    } else {
+                        messageRow.addView(android.view.View(this@MainActivity),
+                            LinearLayout.LayoutParams(0, 1, 1f))
+                    }
+                    val messageBubble = LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(dp(12), dp(8), dp(12), dp(8))
+                        background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                            if (isOwnMessage) intArrayOf(Color.rgb(104, 0, 205), Color.rgb(65, 18, 137))
+                            else intArrayOf(Color.rgb(35, 39, 64), Color.rgb(25, 28, 48))).apply {
+                            cornerRadius = dp(16).toFloat()
+                            setStroke(dp(1), if (isOwnMessage) Color.rgb(145, 65, 220) else Color.rgb(59, 58, 88))
+                        }
+                        addView(TextView(this@MainActivity).apply {
+                            text = if (isOwnMessage) "You" else "Community member"
+                            textSize = 10f
+                            setTextColor(if (isOwnMessage) Color.rgb(235, 205, 255) else Color.rgb(190, 170, 220))
+                            typeface = Typeface.DEFAULT_BOLD
+                        }, bottomMargin(dp(3)))
+                        addView(TextView(this@MainActivity).apply {
+                            text = row.optString("message")
+                            textSize = 14f
+                            setTextColor(Color.WHITE)
+                        })
+                    }
+                    messageRow.addView(messageBubble, LinearLayout.LayoutParams(0, -2, 1f))
+                    if (!isOwnMessage) {
+                        messageRow.addView(android.view.View(this@MainActivity),
+                            LinearLayout.LayoutParams(dp(22), 1))
+                    }
+                    targetChat.addView(messageRow, bottomMargin(dp(8)))
                 }
                 scroll?.post {
                     if (!targetChat.isAttachedToWindow || communityChatContainer !== targetChat ||
