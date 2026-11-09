@@ -2998,6 +2998,8 @@ class MainActivity : ComponentActivity() {
                     .setPositiveButton("OK", null)
                     .show()
                 setStatus("Password recovery request submitted.")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 if (attempt == authAttemptGeneration) {
                     setStatus("Password recovery request failed: " + (error.message ?: "network error"), true)
