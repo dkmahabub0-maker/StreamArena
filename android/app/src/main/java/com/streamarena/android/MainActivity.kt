@@ -31,6 +31,8 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -295,7 +297,29 @@ class MainActivity : ComponentActivity() {
         keepScreenAwakeDuringLive = getSharedPreferences("streamarena_settings", MODE_PRIVATE)
             .getBoolean("keep_screen_awake_during_live", true)
         buildUi()
+        applySystemBarInsets()
         updateControls()
+    }
+
+    /**
+     * Android 15 enforces edge-to-edge for apps targeting API 35.
+     * Keep every dynamically swapped screen inside the system-bar safe area.
+     */
+    private fun applySystemBarInsets() {
+        val content = findViewById<ViewGroup>(android.R.id.content)
+        ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
+            val safeInsets = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(
+                safeInsets.left,
+                safeInsets.top,
+                safeInsets.right,
+                safeInsets.bottom
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(content)
     }
 
     private fun buildUi() {
