@@ -2543,6 +2543,8 @@ class MainActivity : ComponentActivity() {
                     signUpTabButton.visibility = android.view.View.GONE
                     setStatus("A confirmation code was sent to your email. Enter it below.")
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 if (attempt == authAttemptGeneration) {
                     setStatus("Account creation failed: " + (error.message ?: "unknown error"), true)
@@ -2601,6 +2603,8 @@ class MainActivity : ComponentActivity() {
                 loadGames()
                 loadLiveStreams()
                 setStatus("Email confirmed. Welcome to StreamArena.")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 if (attempt == authAttemptGeneration) {
                     setStatus("Code verification failed: ${error.message ?: "unknown error"}", true)
@@ -2648,6 +2652,8 @@ class MainActivity : ComponentActivity() {
                 loadGames()
                 loadLiveStreams()
                 setStatus("Signed in successfully. You can start your Live.")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 if (attempt == authAttemptGeneration) {
                     accessToken = null
