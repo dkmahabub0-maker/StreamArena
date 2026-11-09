@@ -96,6 +96,7 @@ class MainActivity : ComponentActivity() {
     private var accessToken: String? = null
     private var userId: String? = null
     private var room: Room? = null
+    private var pendingPublisherShutdownRoom: Room? = null
     private var viewerRoom: Room? = null
     private var viewerEventJob: Job? = null
     private var viewerConnectJob: Job? = null
@@ -273,8 +274,9 @@ class MainActivity : ComponentActivity() {
         viewerRenderer = null
         val activeViewer = viewerRoom
         viewerRoom = null
-        val activePublisher = room
+        val activePublisher = room ?: pendingPublisherShutdownRoom
         room = null
+        pendingPublisherShutdownRoom = null
         // Do not use lifecycleScope here: it is cancelled as this Activity is destroyed.
         CoroutineScope(Dispatchers.Main.immediate).launch {
             runCatching { activeViewer?.disconnect() }
@@ -2678,6 +2680,7 @@ class MainActivity : ComponentActivity() {
         val ownerId = userId
         val publisherRoom = room
         room = null
+        pendingPublisherShutdownRoom = publisherRoom
 
         // Invalidate account-bound work immediately so late responses cannot update the signed-out UI.
         accountListLoadJob?.cancel(); accountListLoadJob = null
@@ -2706,6 +2709,7 @@ class MainActivity : ComponentActivity() {
             // Stop local publishing before waiting on the network to mark the stream offline.
             runCatching { publisherRoom?.localParticipant?.setScreenShareEnabled(false) }
             runCatching { publisherRoom?.disconnect() }
+            if (pendingPublisherShutdownRoom === publisherRoom) pendingPublisherShutdownRoom = null
             if (streamId != null && session != null && ownerId != null) {
                 runCatching {
                     withContext(Dispatchers.IO) { updateStreamRow(session, streamId, ownerId, false) }
