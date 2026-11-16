@@ -6,6 +6,7 @@ name: Repository static audit
   push:
     branches:
       - main
+      - feat/native-android-screen-share-foundation
 
 jobs:
   audit:
