@@ -2961,7 +2961,7 @@ class MainActivity : ComponentActivity() {
                     return@launch
                 }
 
-                val credentials = withContext(Dispatchers.IO) { requestPublisherToken(token, streamId) }
+                val credentials = withContext(Dispatchers.IO) { requestPublisherToken(token, id) }
                 if (!isActive || accessToken != token || userId != id) {
                     withContext(NonCancellable + Dispatchers.IO) {
                         updateStreamRow(token, streamId, id, false)
@@ -3407,8 +3407,9 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private fun requestPublisherToken(session: String, streamId: String): JSONObject {
-        val body = JSONObject().put("roomName", "stream-$streamId").put("role", "publisher")
+    private fun requestPublisherToken(session: String, ownerId: String): JSONObject {
+        // Publisher rooms are keyed by the authenticated owner UUID, not the streams row UUID.
+        val body = JSONObject().put("roomName", "stream-$ownerId").put("role", "publisher")
         return postJson(
             "https://ovoufvyevnixpmswfrgl.supabase.co/functions/v1/livekit-token",
             "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
