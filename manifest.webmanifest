@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "StreamArena — Your Game. Your Stream. Your Arena.",
+  "short_name": "StreamArena",
+  "description": "Watch and share gaming live streams with StreamArena.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#070912",
+  "theme_color": "#070912",
+  "orientation": "any",
+  "categories": [
+    "entertainment",
+    "games",
+    "social"
+  ],
+  "icons": [
+    {
+      "src": "./pwa-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "prefer_related_applications": false
+}
