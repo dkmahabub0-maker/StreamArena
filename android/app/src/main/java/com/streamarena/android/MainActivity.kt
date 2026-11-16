@@ -1837,7 +1837,7 @@ class MainActivity : ComponentActivity() {
                         readTimeout = 20000
                         doOutput = true
                         setRequestProperty("Content-Type", "application/json")
-                        setRequestProperty("apikey", "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2")
+                        setRequestProperty("apikey", "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2")
                         setRequestProperty("Authorization", "Bearer $token")
                     }
                     try {
@@ -2402,7 +2402,7 @@ class MainActivity : ComponentActivity() {
             connectTimeout = 15000
             readTimeout = 25000
             doOutput = true
-            setRequestProperty("apikey", "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2")
+            setRequestProperty("apikey", "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2")
             setRequestProperty("Authorization", "Bearer $session")
             setRequestProperty("Content-Type", "image/jpeg")
             setRequestProperty("Cache-Control", "3600")
@@ -2748,7 +2748,7 @@ class MainActivity : ComponentActivity() {
                 val result = withContext(Dispatchers.IO) {
                     postJson(
                         "https://ovoufvyevnixpmswfrgl.supabase.co/auth/v1/verify",
-                        "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+                        "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2",
                         null,
                         JSONObject().put("type", "signup").put("email", email).put("token", code)
                     )
@@ -2784,7 +2784,7 @@ class MainActivity : ComponentActivity() {
         val body = JSONObject().put("email", email).put("password", password)
         return postJson(
             "https://ovoufvyevnixpmswfrgl.supabase.co/auth/v1/signup",
-            "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+            "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2",
             null,
             body
         )
@@ -3156,7 +3156,7 @@ class MainActivity : ComponentActivity() {
                 withContext(Dispatchers.IO) {
                     postJson(
                         "https://ovoufvyevnixpmswfrgl.supabase.co/auth/v1/recover",
-                        "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+                        "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2",
                         null,
                         JSONObject().put("email", email)
                     )
@@ -3182,7 +3182,7 @@ class MainActivity : ComponentActivity() {
         val body = JSONObject().put("email", email).put("password", password)
         return postJson(
             "https://ovoufvyevnixpmswfrgl.supabase.co/auth/v1/token?grant_type=password",
-            "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+            "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2",
             null,
             body
         )
@@ -3219,7 +3219,7 @@ class MainActivity : ComponentActivity() {
             requestMethod = "GET"
             connectTimeout = 12000
             readTimeout = 15000
-            setRequestProperty("apikey", "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2")
+            setRequestProperty("apikey", "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2")
             if (bearer != null) setRequestProperty("Authorization", "Bearer $bearer")
         }
         try {
@@ -3358,7 +3358,7 @@ class MainActivity : ComponentActivity() {
             readTimeout = 20000
             doOutput = true
             setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("apikey", "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2")
+            setRequestProperty("apikey", "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2")
             setRequestProperty("Authorization", "Bearer $bearer")
             setRequestProperty("Prefer", "return=representation")
         }
@@ -3401,7 +3401,7 @@ class MainActivity : ComponentActivity() {
         val body = JSONObject().put("roomName", "stream-$streamId").put("role", "viewer")
         return postJson(
             "https://ovoufvyevnixpmswfrgl.supabase.co/functions/v1/livekit-token",
-            "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+            "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2",
             session,
             body
         )
@@ -3411,7 +3411,7 @@ class MainActivity : ComponentActivity() {
         val body = JSONObject().put("roomName", "stream-$streamId").put("role", "publisher")
         return postJson(
             "https://ovoufvyevnixpmswfrgl.supabase.co/functions/v1/livekit-token",
-            "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
+            "sb_publishable_0SdYbLy1WwRGMc5sxjmIEg_XmDD9Ds2",
             session,
             body
         )
