@@ -959,8 +959,8 @@ class MainActivity : ComponentActivity() {
         if (activeViewer != null) lifecycleScope.launch { runCatching { activeViewer.disconnect() } }
     }
 
-    private fun showLivePlayer(streamId: String, streamTitle: String) {
-        recordWatchedStream(streamId, streamTitle)
+    private fun showLivePlayer(streamId: String, streamTitle: String, ownerId: String) {
+        recordWatchedStream(streamId, streamTitle, ownerId)
         closeLiveViewer()
         liveScreen.removeAllViews()
         val root = LinearLayout(this).apply {
@@ -1060,7 +1060,7 @@ class MainActivity : ComponentActivity() {
             var connectingRoom: Room? = null
             try {
                 val token = accessToken ?: error("Sign in to watch live streams.")
-                val credentials = withContext(Dispatchers.IO) { requestViewerToken(token, streamId) }
+                val credentials = withContext(Dispatchers.IO) { requestViewerToken(token, ownerId) }
                 if (viewerRenderer !== renderer || !renderer.isAttachedToWindow) return@launch
                 val liveRoom = LiveKit.create(applicationContext)
                 connectingRoom = liveRoom
@@ -1672,12 +1672,12 @@ class MainActivity : ComponentActivity() {
         addBottomNav()
     }
 
-    private fun recordWatchedStream(streamId: String, streamTitle: String) {
+    private fun recordWatchedStream(streamId: String, streamTitle: String, ownerId: String) {
         val prefs = getSharedPreferences("streamarena_watch_history", MODE_PRIVATE)
         val previous = runCatching { JSONArray(prefs.getString("items", "[]") ?: "[]") }
             .getOrDefault(JSONArray())
         val updated = JSONArray()
-        updated.put(JSONObject().put("id", streamId).put("title", streamTitle)
+        updated.put(JSONObject().put("id", streamId).put("title", streamTitle).put("owner_id", ownerId)
             .put("opened_at", java.time.Instant.now().toString()))
         for (i in 0 until previous.length()) {
             val item = previous.optJSONObject(i) ?: continue
@@ -1716,7 +1716,7 @@ class MainActivity : ComponentActivity() {
                 val title = item.optString("title", "Live Stream")
                 val opened = item.optString("opened_at")
                 root.addView(makeButton("▶  $title\nOpened: $opened", false) {
-                    showLivePlayer(id, title)
+                    showLivePlayer(id, title, item.optString("owner_id"))
                 }, fieldLayout(dp(64), dp(8)))
             }
             root.addView(makeButton("Clear Watch History", false) {
@@ -1903,7 +1903,7 @@ class MainActivity : ComponentActivity() {
                         }.getOrDefault(false)
                     val subtitle = if (liveNow) "LIVE" else "Offline"
                     list.addView(makeButton("$title\n$subtitle", liveNow) {
-                        if (liveNow) showLivePlayer(streamId, title)
+                        if (liveNow) showLivePlayer(streamId, title, uid)
                         else setStatus("This stream is currently offline.")
                     }, fieldLayout(dp(60), dp(8)))
                 }
@@ -3331,7 +3331,7 @@ class MainActivity : ComponentActivity() {
                     val caption = row.optString("caption", "")
                     target.addView(
                         makeButton("🔴 LIVE   " + streamTitle + "\n" + caption + "\nWatch Live  ›", false) {
-                            showLivePlayer(streamId, streamTitle)
+                            showLivePlayer(streamId, streamTitle, row.optString("user_id"))
                         },
                         fieldLayout(dp(76), dp(8))
                     )
@@ -3397,8 +3397,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestViewerToken(session: String, streamId: String): JSONObject {
-        val body = JSONObject().put("roomName", "stream-$streamId").put("role", "viewer")
+    private fun requestViewerToken(session: String, ownerId: String): JSONObject {
+        // Viewer and publisher join the same room, keyed by the stream owner's auth UUID.
+        val body = JSONObject().put("roomName", "stream-$ownerId").put("role", "viewer")
         return postJson(
             "https://ovoufvyevnixpmswfrgl.supabase.co/functions/v1/livekit-token",
             "sb_publishable_0SdYbLyW1wRGMc5sxjmIEg_XmDD9Ds2",
