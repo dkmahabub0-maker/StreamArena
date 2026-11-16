@@ -1716,7 +1716,12 @@ class MainActivity : ComponentActivity() {
                 val title = item.optString("title", "Live Stream")
                 val opened = item.optString("opened_at")
                 root.addView(makeButton("▶  $title\nOpened: $opened", false) {
-                    showLivePlayer(id, title, item.optString("owner_id"))
+                    val ownerId = item.optString("owner_id")
+                    if (ownerId.isBlank() || ownerId == "null") {
+                        setStatus("This saved history item is from an older app version. Open the stream again from Explore to refresh it.", true)
+                    } else {
+                        showLivePlayer(id, title, ownerId)
+                    }
                 }, fieldLayout(dp(64), dp(8)))
             }
             root.addView(makeButton("Clear Watch History", false) {
