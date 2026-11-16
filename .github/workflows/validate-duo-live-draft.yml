@@ -1,0 +1,60 @@
+name: Validate Duo Live draft
+
+on:
+  push:
+    branches:
+      - "feat/duo-live-invitation-security-draft"
+    paths:
+      - "supabase/functions/duo-live-invites/**"
+      - "docs/duo-live/**"
+      - ".github/workflows/validate-duo-live-draft.yml"
+  pull_request:
+    paths:
+      - "supabase/functions/duo-live-invites/**"
+      - "docs/duo-live/**"
+      - ".github/workflows/validate-duo-live-draft.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check invitation Edge Function
+        run: deno check supabase/functions/duo-live-invites/index.ts
+
+      - name: Verify invitation expiry guards
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const schema = fs.readFileSync('docs/duo-live/stream_cohost_invites_draft.sql', 'utf8');
+          const source = fs.readFileSync('supabase/functions/duo-live-invites/index.ts', 'utf8');
+          if (!schema.includes("'revoking'")) throw new Error('Invitation schema must reserve the co-host slot while revocation is pending.');
+          if (!schema.includes("status in ('pending', 'accepted', 'revoking')")) throw new Error('The unique co-host slot must remain reserved during revocation.');
+          if (!schema.includes('revocation_requested_at')) throw new Error('Revocation must record its start time for token-expiry handling.');
+          if (!schema.includes('last_token_issued_at')) throw new Error('The last issued co-host token time must be recorded for race-safe revocation.');
+          if (!source.includes('last_token_issued_at')) throw new Error('Revocation must account for the final token issuance timestamp.');
+          if (!schema.includes('consume_stream_cohost_rate_limit')) throw new Error('Durable rate-limit RPC must be present in the draft schema.');
+          if (!source.includes('rpc/consume_stream_cohost_rate_limit')) throw new Error('The Edge Function must enforce the durable rate limit.');
+          if (!source.includes('status: "revoking"')) throw new Error('Accepted invitation revocation must enter the retryable revoking state.');
+          if (!source.includes('listParticipants(roomName)')) throw new Error('Revocation must verify participant presence before releasing the slot.');
+          if (!source.includes('const remainingParticipants = await livekit.listParticipants(roomName)')) throw new Error('Revocation must verify participant absence after removal before releasing the slot.');
+          if (!source.includes('requestedAt + 70_000')) throw new Error('Unused 60-second co-host tokens must expire before releasing a missing participant slot.');
+          if (!schema.includes("'expired'")) throw new Error('Invitation schema must allow an explicit expired state.');
+          if (!schema.includes("where status in ('pending', 'accepted', 'revoking')")) throw new Error('Pending, accepted and revoking invitations must reserve the co-host slot.');
+          if (!source.includes('{ status: "expired" }')) throw new Error('Expired pending invitations must be transitioned to expired.');
+          if (!source.includes('expires_at=lte.')) throw new Error('Expired pending invitations must be released before a replacement invite.');
+          if (!source.includes('expires_at=gt.\\u0024{encodeURIComponent(acceptBefore)}')) {
+            if (!source.includes('expires_at=gt.${encodeURIComponent(acceptBefore)}')) {
+              throw new Error('Accept/decline updates must atomically require an unexpired pending invitation.');
+            }
+          }
+          console.log('Verified explicit expiry state, unique-slot release and atomic response expiry guard.');
+          NODE
