@@ -1,0 +1,82 @@
+name: Validate viewer video recovery
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-viewer-video-recovery.yml"
+  push:
+    branches:
+      - "fix/viewer-foreground-resume-framing"
+    paths:
+      - "index.html"
+      - ".github/workflows/validate-viewer-video-recovery.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-viewer-video:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate viewer recovery, frame watchdog and read-only diagnostics
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const start = html.indexOf('async function watchLiveStream');
+          const end = html.indexOf('async function preflightBrowserMediaPermissions', start);
+          const viewer = start >= 0 && end > start ? html.slice(start, end) : '';
+          for (const required of [
+            'RoomEvent.Reconnecting',
+            'RoomEvent.Reconnected',
+            'RoomEvent.VideoPlaybackStatusChanged',
+            'RoomEvent.TrackStreamStateChanged',
+            'liveResumeVideoBtn'
+          ]) {
+            if (!viewer.includes(required)) throw new Error('Viewer recovery is missing ' + required);
+          }
+          for (const required of [
+            'function startViewerVideoWatchdog',
+            'requestVideoFrameCallback',
+            'viewerVideoStalled',
+            'video.__viewerMarkFrame?.()',
+            'RoomEvent.VideoPlaybackStatusChanged',
+            'getReceiverStats?.()',
+            'videoWidth',
+            'object-fit:contain',
+            'object-position:center center',
+            'function recoverViewerVideoOnForeground()',
+            "document.addEventListener('visibilitychange', recoverViewerVideoOnForeground)",
+            "window.addEventListener('pageshow', recoverViewerVideoOnForeground)",
+            "window.addEventListener('focus', recoverViewerVideoOnForeground)"
+          ]) {
+            if (!html.includes(required)) throw new Error('Viewer video diagnostics/recovery is missing ' + required);
+          }
+          if (/setPreferredQuality|setPreferredLayers/.test(html)) {
+            throw new Error('Viewer recovery must not force a higher video bitrate or quality layer.');
+          }
+          console.log('Validated reconnect, foreground playback, stalled-frame detection and read-only diagnostics.');
+          NODE
+      - name: Validate inline JavaScript and duplicate IDs
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
+          const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+          if (duplicates.length) throw new Error('Duplicate IDs: ' + [...new Set(duplicates)].join(', '));
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+            .filter(match => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
+          scripts.forEach((match, index) => {
+            try { new Function(match[2]); }
+            catch (error) { throw new Error('Inline script ' + (index + 1) + ': ' + error.message); }
+          });
+          const family = fs.readFileSync('family.js', 'utf8');
+          new Function(family);
+          console.log('Inline JavaScript, Family module and HTML IDs validated.');
+          NODE
