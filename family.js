@@ -4,10 +4,25 @@ const root=document.getElementById('familyWorkspace');
 if(!root)return;
 let busy=false;
 let refreshTimer=null;
+let realtimeRetryTimer=null;
 const realtimeChannels=new Map();
 function clearFamilyRealtime(){
+ if(realtimeRetryTimer){clearTimeout(realtimeRetryTimer);realtimeRetryTimer=null;}
  for(const channel of realtimeChannels.values())supabaseClient.removeChannel(channel);
  realtimeChannels.clear();
+}
+function handleFamilyRealtimeStatus(key,channel,status,error){
+ if(!['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status))return;
+ if(realtimeChannels.get(key)!==channel)return;
+ console.warn('Family realtime channel disconnected:',key,status,error||'');
+ realtimeChannels.delete(key);
+ supabaseClient.removeChannel(channel);
+ if(!realtimeRetryTimer){
+  realtimeRetryTimer=setTimeout(()=>{
+   realtimeRetryTimer=null;
+   if(currentUser)scheduleFamilyReload();
+  },1500);
+ }
 }
 function scheduleFamilyReload(){
  if(refreshTimer)clearTimeout(refreshTimer);
@@ -27,7 +42,7 @@ function syncFamilyRealtime(familyIds){
  if(!realtimeChannels.has('inbox')){
   const channel=supabaseClient.channel('family-inbox-'+currentUser.id)
    .on('postgres_changes',{event:'*',schema:'public',table:'family_invites',filter:'invitee_id=eq.'+currentUser.id},scheduleFamilyReload)
-   .subscribe();
+   .subscribe((status,error)=>handleFamilyRealtimeStatus('inbox',channel,status,error));
   realtimeChannels.set('inbox',channel);
  }
  for(const id of familyIds){
@@ -38,7 +53,7 @@ function syncFamilyRealtime(familyIds){
    .on('postgres_changes',{event:'*',schema:'public',table:'family_members',filter:'family_id=eq.'+id},scheduleFamilyReload)
    .on('postgres_changes',{event:'*',schema:'public',table:'family_invites',filter:'family_id=eq.'+id},scheduleFamilyReload)
    .on('postgres_changes',{event:'*',schema:'public',table:'families',filter:'id=eq.'+id},scheduleFamilyReload)
-   .subscribe();
+   .subscribe((status,error)=>handleFamilyRealtimeStatus(key,channel,status,error));
   realtimeChannels.set(key,channel);
  }
 }
