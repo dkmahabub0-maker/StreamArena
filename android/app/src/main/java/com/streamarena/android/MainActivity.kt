@@ -295,13 +295,24 @@ class MainActivity : ComponentActivity() {
         val activeViewer = viewerRoom
         viewerRoom = null
         val activePublisher = room ?: pendingPublisherShutdownRoom
+        val streamIdToClose = activeStreamId
+        val sessionToClose = accessToken
+        val ownerIdToClose = userId
         room = null
         pendingPublisherShutdownRoom = null
         // Do not use lifecycleScope here: it is cancelled as this Activity is destroyed.
+        // Best-effort cleanup prevents a normally destroyed Activity from leaving a live row behind.
         CoroutineScope(Dispatchers.Main.immediate).launch {
             runCatching { activeViewer?.disconnect() }
             runCatching { activePublisher?.localParticipant?.setScreenShareEnabled(false) }
             runCatching { activePublisher?.disconnect() }
+            if (streamIdToClose != null && sessionToClose != null && ownerIdToClose != null) {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        updateStreamRow(sessionToClose, streamIdToClose, ownerIdToClose, false)
+                    }
+                }
+            }
         }
         profileAvatarBitmap?.recycle()
         profileAvatarBitmap = null
@@ -2911,6 +2922,36 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Reconcile this user's previous live rows before creating another one.
+     * A heartbeat younger than two minutes is treated as an active session;
+     * null, malformed, or old heartbeats are treated as stale and closed.
+     * The unique partial index remains the final concurrency guard.
+     */
+    private fun deactivateStaleLiveRows(session: String, id: String) {
+        val rows = getRestJson(
+            "https://ovoufvyevnixpmswfrgl.supabase.co/rest/v1/streams?select=id,last_heartbeat_at&user_id=eq.$id&is_live=eq.true&order=last_heartbeat_at.desc&limit=5",
+            session
+        )
+        val staleBefore = java.time.Instant.now().minusSeconds(120)
+        for (index in 0 until rows.length()) {
+            val row = rows.getJSONObject(index)
+            val streamId = row.getString("id")
+            val heartbeat = row.optString("last_heartbeat_at").takeIf {
+                it.isNotBlank() && it != "null"
+            }
+            val isFresh = heartbeat?.let {
+                runCatching { java.time.Instant.parse(it).isAfter(staleBefore) }.getOrDefault(false)
+            } ?: false
+            if (isFresh) {
+                throw IllegalStateException(
+                    "A Live session for this account has a recent heartbeat. End it on the other device before starting another."
+                )
+            }
+            updateStreamRow(session, streamId, id, false)
+        }
+    }
+
     private fun startLive() {
         val requiredPermissions = if (selectedLiveMode == "screen") {
             listOf(android.Manifest.permission.RECORD_AUDIO)
@@ -2942,6 +2983,9 @@ class MainActivity : ComponentActivity() {
             var createdStreamId: String? = null
             var connectingRoom: Room? = null
             try {
+                // Clear abandoned sessions first; do not overwrite a recent heartbeat from another device.
+                withContext(Dispatchers.IO) { deactivateStaleLiveRows(token, id) }
+
                 // Complete row creation even if sign-out races the request, so its ID can be cleaned up.
                 val streamId = withContext(NonCancellable + Dispatchers.IO) {
                     createStreamRow(token, id, title)
@@ -3045,7 +3089,16 @@ class MainActivity : ComponentActivity() {
                     }
                     if (activeStreamId == createdStreamId) activeStreamId = null
                     if (accessToken == token && userId == id) {
-                        setStatus("Could not start Live: ${error.message ?: "unknown error"}")
+                        val detail = error.message ?: "unknown error"
+                        val message = if (
+                            detail.contains("23505") ||
+                            detail.contains("streams_one_live_per_user_idx")
+                        ) {
+                            "A Live session is already active for this account. End it on the other device before starting another."
+                        } else {
+                            detail
+                        }
+                        setStatus("Could not start Live: $message")
                     }
                 }
             } finally {
